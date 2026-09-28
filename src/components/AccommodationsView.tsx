@@ -167,7 +167,7 @@ export const AccommodationsView: React.FC = () => {
               <div className="p-4 space-y-3.5">
                 {currentAcc.id === 'homestay-sundak' && (
                   <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-950 font-medium">
-                    🏡 <strong>PENTING:</strong> Pantai Sundak adalah <strong>SATU RUMAH HOMESTAY</strong> (bukan sistem kamar hotel terpisah). Pengunjung menyewa rumah keluarga dengan pilihan Sewa 2 Kamar atau Sewa 4 Kamar (Rumah Penuh).
+                    🏡 <strong>KONSEP FULL HOUSE:</strong> Pantai Sundak adalah <strong>SATU RUMAH PENUH</strong> (bukan per kamar). Tarif Rp75.000/orang/malam (minimal pemesanan 4 orang). Total biaya: Jumlah orang × Jumlah malam × Rp75.000.
                   </div>
                 )}
                 {currentAcc.id === 'homestay-trenggole' && (
@@ -202,10 +202,10 @@ export const AccommodationsView: React.FC = () => {
               <div className="flex items-center justify-between px-1">
                 <div>
                   <h3 className="text-xs font-black uppercase tracking-wider text-neutral-600">
-                    {currentAcc.id === 'homestay-sundak' ? 'Pilihan Paket Rumah Sundak' : 'Pilihan Kamar Trenggole'} ({currentAcc.roomTypes.length})
+                    {currentAcc.id === 'homestay-sundak' ? 'Detail Full House Sundak' : 'Pilihan Kamar Trenggole'} ({currentAcc.roomTypes.length})
                   </h3>
                   <span className="text-[11px] text-neutral-400">
-                    {currentAcc.id === 'homestay-sundak' ? 'Pilih paket sewa 2 kamar atau sewa 4 kamar penuh' : 'Pilih kamar ber-AC sesuai kapasitas keluarga'}
+                    {currentAcc.id === 'homestay-sundak' ? 'Satu rumah penuh untuk keluarga Anda' : 'Pilih kamar ber-AC sesuai kapasitas keluarga'}
                   </span>
                 </div>
               </div>
@@ -291,10 +291,14 @@ export const AccommodationsView: React.FC = () => {
 
                         <div className="flex items-baseline gap-1 mt-1">
                           <span className="text-sm font-black text-emerald-800">
-                            Rp {room.pricePerNight.toLocaleString('id-ID')}
+                            {currentAcc.id === 'homestay-sundak'
+                              ? 'Rp 75.000'
+                              : `Rp ${room.pricePerNight.toLocaleString('id-ID')}`}
                           </span>
                           <span className="text-[10px] text-neutral-400 font-normal">
-                            {room.id === 'sundak-2-kamar' ? '/malam (total 2 kamar)' : `/${t.perNight}`}
+                            {currentAcc.id === 'homestay-sundak'
+                              ? '/orang/malam (Min. 4 orang)'
+                              : `/${t.perNight}`}
                           </span>
                         </div>
                       </div>

@@ -273,9 +273,13 @@ export const PropertyDetailPage: React.FC = () => {
 
                       <div className="text-right shrink-0">
                         <span className="text-[15px] font-extrabold text-neutral-900 block">
-                          Rp {room.pricePerNight.toLocaleString('id-ID')}
+                          {prop.id === 'homestay-sundak'
+                            ? 'Rp 75.000'
+                            : `Rp ${room.pricePerNight.toLocaleString('id-ID')}`}
                         </span>
-                        <span className="text-[10px] text-neutral-400 font-medium">/{t.perNight}</span>
+                        <span className="text-[10px] text-neutral-400 font-medium">
+                          {prop.id === 'homestay-sundak' ? '/orang/malam' : `/${t.perNight}`}
+                        </span>
                       </div>
                     </div>
 

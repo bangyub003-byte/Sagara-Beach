@@ -2,7 +2,15 @@ export type UserRole = 'customer' | 'admin' | 'receptionist';
 
 export type Language = 'id' | 'en';
 
-export type BookingStatus = 'pending_verification' | 'verified' | 'rejected' | 'checked_in';
+export type BookingStatus =
+  | 'pending_verification'
+  | 'approved'
+  | 'verified'
+  | 'ready_checkin'
+  | 'checked_in'
+  | 'completed'
+  | 'cancelled'
+  | 'rejected';
 
 export interface RoomType {
   id: string;
@@ -20,12 +28,15 @@ export interface RoomType {
   image: string;
   features: string[];
   featuresEn: string[];
-  minRooms?: number; // e.g. min 2 rooms for Sewa Kamar Sundak
-  extraBedPrice?: number; // e.g. Rp 25.000
+  minRooms?: number;
+  extraBedPrice?: number;
   maxExtraBeds?: number;
   bedInfo?: string;
   packageType?: 'per_kamar' | 'full_homestay';
   blockedDates?: string[]; // YYYY-MM-DD
+  pricePerPersonNight?: number; // e.g. Rp75.000 for Sundak
+  minGuests?: number; // e.g. 4 for Sundak
+  floor?: 1 | 2; // Lantai 1 atau Lantai 2
 }
 
 export interface Property {
@@ -85,9 +96,12 @@ export interface Booking {
   roomChoiceDetail?: string;
   vehicleDetail?: string;
   referralSource?: string;
+  withWhom?: string;
+  mahromConfirmed?: boolean;
   dpAmount?: number;
   dpPercentage?: number;
   remainingBalance?: number;
+  paymentType?: 'dp_50' | 'full_100';
   paymentProofUrl: string;
   paymentMethod: 'bca_va' | 'mandiri_va' | 'qris' | 'credit_card';
   status: BookingStatus;

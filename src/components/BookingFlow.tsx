@@ -15,7 +15,6 @@ import {
   ArrowRight,
   User,
   CreditCard,
-  Wallet,
   Signal,
   Wifi,
   Battery,
@@ -29,9 +28,8 @@ import {
   ShieldCheck,
   Building,
   Car,
-  AlertTriangle,
-  Receipt,
   Home,
+  Upload,
   CheckCircle2,
 } from 'lucide-react';
 
@@ -47,6 +45,8 @@ export const BookingFlow: React.FC = () => {
     activeBookingId,
     setActiveBookingId,
     createBooking,
+    checkSundakAvailability,
+    checkTrenggoleRoomAvailability,
     language,
   } = useBooking();
 
@@ -56,7 +56,7 @@ export const BookingFlow: React.FC = () => {
   const [errorNotice, setErrorNotice] = useState<string>('');
 
   // ==============================================================
-  // STEP 1: PILIH HOMESTAY (Sundak: Full Homestay vs Trenggole: Individual Room)
+  // STEP 1: PILIH PENGINAPAN (Sundak vs Trenggole)
   // ==============================================================
   const [selectedPropId, setSelectedPropId] = useState<string>(
     selectedProperty?.id || accommodations[0]?.id || 'homestay-sundak'
@@ -68,15 +68,12 @@ export const BookingFlow: React.FC = () => {
   const isSundak = activeProp.id === 'homestay-sundak' || activeProp.propertyType === 'full_homestay';
 
   // ==============================================================
-  // STEP 2: PILIH KAMAR / PAKET
+  // STEP 2: TANGGAL CHECK-IN / CHECK-OUT & CEK KETERSEDIAAN OTOMATIS
   // ==============================================================
-  // Untuk Sundak (Full Homestay / Rumah):
-  // Opsi A: 'sundak-2-kamar' (Sewa 2 Kamar, Rp500.000/malam, maks 6 orang)
-  // Opsi B: 'sundak-4-kamar' (Sewa 4 Kamar Rumah Penuh, Rp800.000/malam, maks 12 orang)
-  const [sundakPackageId, setSundakPackageId] = useState<'sundak-2-kamar' | 'sundak-4-kamar'>('sundak-2-kamar');
+  const [checkInDate, setCheckInDate] = useState<string>('2025-10-18');
+  const [checkOutDate, setCheckOutDate] = useState<string>('2025-10-20');
 
-  // Untuk Trenggole (Individual Room):
-  // Bisa memilih 1 atau lebih kamar (Kamar 1, 2, 3, 4)
+  // Trenggole: pilihan kamar (multi-select atau single)
   const [trenggoleSelectedRooms, setTrenggoleSelectedRooms] = useState<string[]>(() => {
     if (selectedRoomType && selectedRoomType.id.startsWith('trenggole-')) {
       return [selectedRoomType.id];
@@ -84,42 +81,7 @@ export const BookingFlow: React.FC = () => {
     return ['trenggole-kamar-1'];
   });
 
-  // Tambahan Extra Bed (Rp25.000/orang/malam)
-  const [extraBedsCount, setExtraBedsCount] = useState<number>(0);
-
-  // ==============================================================
-  // STEP 3: DATA PEMESAN WAJIB
-  // ==============================================================
-  const [namaLengkap, setNamaLengkap] = useState<string>('Arya Yudhistira');
-  const [asalKota, setAsalKota] = useState<string>('Yogyakarta');
-  const [noHp, setNoHp] = useState<string>('081234567890');
-  const [nikKtp, setNikKtp] = useState<string>('3403011408920002');
-  const [checkInDate, setCheckInDate] = useState<string>('2025-10-18');
-  const [checkOutDate, setCheckOutDate] = useState<string>('2025-10-20');
-  const [budgetPlan, setBudgetPlan] = useState<string>('Sesuai total tarif penginapan');
-
-  // Rincian Tamu Keluarga
-  const [adultMalesCount, setAdultMalesCount] = useState<number>(2);
-  const [adultFemalesCount, setAdultFemalesCount] = useState<number>(2);
-  const [childrenCount, setChildrenCount] = useState<number>(0);
-  const [toddlerCount, setToddlerCount] = useState<number>(0);
-
-  // Hubungan antar tamu (untuk memastikan aturan mahrom)
-  const [guestRelationship, setGuestRelationship] = useState<string>(
-    'Keluarga Inti (Suami, Istri & Anak-anak)'
-  );
-
-  // Kendaraan
-  const [vehicleDetail, setVehicleDetail] = useState<string>(
-    'Mobil Pribadi (Toyota Avanza / 1 Unit)'
-  );
-
-  // Sumber informasi
-  const [referralSource, setReferralSource] = useState<string>(
-    'Google Search / Rekomendasi Teman'
-  );
-
-  // Durasi menginap
+  // Hitung jumlah malam menginap
   const calculateNights = (cin: string, cout: string): number => {
     try {
       const d1 = new Date(cin);
@@ -132,83 +94,17 @@ export const BookingFlow: React.FC = () => {
   };
 
   const totalNights = calculateNights(checkInDate, checkOutDate);
-  const totalGuests = adultMalesCount + adultFemalesCount + childrenCount + toddlerCount;
 
-  // ==============================================================
-  // KALKULASI KAPASITAS & HARGA OTOMATIS
-  // ==============================================================
-  // 1. Kapasitas Maksimal
-  let baseCapacity = 0;
-  let maxAllowedGuestsBeforeExtraBed = 0;
-  let baseRoomCostPerNight = 0;
-  let bookingChoiceDisplayName = '';
+  // Ketersediaan real-time berdasarkan tanggal terpilih
+  const isSundakAvailable = checkSundakAvailability(checkInDate, checkOutDate);
 
-  if (isSundak) {
-    if (sundakPackageId === 'sundak-2-kamar') {
-      baseCapacity = 6;
-      maxAllowedGuestsBeforeExtraBed = 6; // Sewa 2 kamar maksimal 6 orang
-      baseRoomCostPerNight = 500000; // Rp250.000/kamar x 2 kamar = Rp500.000
-      bookingChoiceDisplayName = 'Sewa 2 Kamar (Maksimal 6 Orang)';
-    } else {
-      baseCapacity = 12;
-      maxAllowedGuestsBeforeExtraBed = 12; // Sewa 4 kamar maksimal 12 orang
-      baseRoomCostPerNight = 800000;
-      bookingChoiceDisplayName = 'Sewa 4 Kamar / Rumah Penuh (Maksimal 12 Orang)';
-    }
-  } else {
-    // Trenggole: Setiap kamar kapasitas 4 orang
-    const selectedRoomsList = activeProp.roomTypes.filter((r) =>
-      trenggoleSelectedRooms.includes(r.id)
-    );
-    baseCapacity = selectedRoomsList.length * 4;
-    maxAllowedGuestsBeforeExtraBed = baseCapacity;
-    baseRoomCostPerNight = selectedRoomsList.reduce((acc, curr) => acc + curr.pricePerNight, 0);
-    bookingChoiceDisplayName = selectedRoomsList.map((r) => r.name).join(', ') || 'Kamar Trenggole';
-  }
-
-  // Kapasitas Total dengan Extra Bed
-  const totalMaxCapacityWithExtraBeds = maxAllowedGuestsBeforeExtraBed + extraBedsCount;
-
-  // Kalkulasi Total Biaya
-  const baseCostTotal = baseRoomCostPerNight * totalNights;
-  const extraBedTotal = extraBedsCount * 25000 * totalNights;
-  const grandTotal = baseCostTotal + extraBedTotal;
-
-  // ==============================================================
-  // STEP 4: RINGKASAN & ATURAN DP (> 50%)
-  // ==============================================================
-  const minDpRequired = Math.floor(grandTotal * 0.5) + 1000; // Minimal lebih dari 50%
-  const [dpPercentage, setDpPercentage] = useState<number>(60);
-  const [dpAmount, setDpAmount] = useState<number>(() => Math.round(grandTotal * 0.6));
-  const [dpTermsAccepted, setDpTermsAccepted] = useState<boolean>(false);
-
-  useEffect(() => {
-    const calc = Math.round((grandTotal * dpPercentage) / 100);
-    setDpAmount(Math.max(calc, minDpRequired));
-  }, [grandTotal, dpPercentage]);
-
-  const remainingBalance = Math.max(0, grandTotal - dpAmount);
-
-  // ==============================================================
-  // STEP 5: PEMBAYARAN DP
-  // ==============================================================
-  const [metodePembayaran, setMetodePembayaran] = useState<'bca' | 'mandiri' | 'qris'>('bca');
-  const [salinStatus, setSalinStatus] = useState<boolean>(false);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [walletAdded, setWalletAdded] = useState<boolean>(false);
-
-  const handleCopyVa = () => {
-    const vaNum = metodePembayaran === 'bca' ? '8801 2940 1827 0049' : '8920 1829 4819 0021';
-    navigator.clipboard?.writeText(vaNum.replace(/\s+/g, ''));
-    setSalinStatus(true);
-    setTimeout(() => setSalinStatus(false), 2000);
-  };
-
-  // Toggle pilihan kamar Trenggole (multi-select)
   const toggleTrenggoleRoom = (roomId: string) => {
+    const isAvail = checkTrenggoleRoomAvailability(roomId, checkInDate, checkOutDate);
+    if (!isAvail) return; // Tidak bisa memilih kamar yang full
+
     setTrenggoleSelectedRooms((prev) => {
       if (prev.includes(roomId)) {
-        if (prev.length <= 1) return prev; // Minimal harus ada 1 kamar terpilih
+        if (prev.length <= 1) return prev; // Minimal 1 kamar
         return prev.filter((id) => id !== roomId);
       } else {
         return [...prev, roomId];
@@ -217,73 +113,87 @@ export const BookingFlow: React.FC = () => {
     setErrorNotice('');
   };
 
-  // VALIDASI KAPASITAS TAMU SECARA KETAT SESUAI INSTRUKSI USER:
-  // 1. Sundak Sewa 2 kamar: maksimal 6 orang.
-  // 2. Sundak Sewa 4 kamar: maksimal 12 orang sebelum extra bed (hingga kapasitas standar 21 orang).
-  // 3. Trenggole: "Jumlah tamu melebihi kapasitas kamar. Silakan pilih kamar tambahan."
-  const checkCapacityValidation = (): {
-    isValid: boolean;
-    message: string;
-    type?: 'sundak_2_exceed' | 'sundak_4_need_extrabed' | 'sundak_4_exceed_max' | 'trenggole_exceed';
-    neededExtraBeds?: number;
-  } => {
-    if (isSundak) {
-      if (sundakPackageId === 'sundak-2-kamar') {
-        if (totalGuests > 6) {
-          return {
-            isValid: false,
-            type: 'sundak_2_exceed',
-            message: `Jumlah tamu (${totalGuests} orang) melebihi kapasitas Sewa 2 kamar (maksimal 6 orang). Silakan pilih Sewa 4 kamar (Rumah Penuh) atau kurangi jumlah tamu.`,
-          };
-        }
-      } else {
-        // Sewa 4 kamar (Rumah Penuh)
-        if (totalGuests > 21) {
-          return {
-            isValid: false,
-            type: 'sundak_4_exceed_max',
-            message: `Jumlah tamu (${totalGuests} orang) melebihi kapasitas standar homestay (maksimal 21 orang).`,
-          };
-        }
-        if (totalGuests > 12 + extraBedsCount) {
-          const needed = totalGuests - 12;
-          return {
-            isValid: false,
-            type: 'sundak_4_need_extrabed',
-            neededExtraBeds: needed,
-            message: `Jumlah tamu (${totalGuests} orang) melebihi kapasitas Sewa 4 kamar sebelum extra bed (maksimal 12 orang). Silakan tambahkan minimal ${needed} extra bed (tersedia hingga 21 orang).`,
-          };
-        }
-      }
-    } else {
-      // Trenggole:
-      const maxCap = (trenggoleSelectedRooms.length * 4) + extraBedsCount;
-      if (totalGuests > maxCap) {
-        return {
-          isValid: false,
-          type: 'trenggole_exceed',
-          message: 'Jumlah tamu melebihi kapasitas kamar. Silakan pilih kamar tambahan.',
-        };
-      }
-    }
+  // ==============================================================
+  // STEP 3: DATA PEMESAN (Nama, Asal Kota, No WA, Jumlah Tamu)
+  // (Tanpa pemilihan tanggal berulang!)
+  // ==============================================================
+  const [namaLengkap, setNamaLengkap] = useState<string>('Arya Yudhistira');
+  const [asalKota, setAsalKota] = useState<string>('Yogyakarta');
+  const [noHp, setNoHp] = useState<string>('081234567890');
+  const [withWhom, setWithWhom] = useState<string>('Keluarga Inti (Suami/Istri & Anak)');
+  const [totalGuests, setTotalGuests] = useState<number>(4); // Default 4 tamu
 
-    return { isValid: true, message: '' };
+  // Validasi Step 3 Wajib Lengkap
+  const isStep3Valid = Boolean(
+    namaLengkap.trim() &&
+    asalKota.trim() &&
+    noHp.trim() &&
+    withWhom.trim() &&
+    checkInDate &&
+    checkOutDate &&
+    (isSundak ? totalGuests >= 4 : (trenggoleSelectedRooms.length > 0 && totalGuests >= 1))
+  );
+
+  // ==============================================================
+  // STEP 4: PERHITUNGAN BIAYA & PILIHAN PEMBAYARAN (DP 50% ATAU LUNAS 100%)
+  // ==============================================================
+  // Aturan Harga:
+  // 1. Sundak: Rp75.000 / orang / malam. Minimal 4 orang.
+  //    Harga = Jumlah orang × jumlah malam × Rp75.000
+  // 2. Trenggole: Harga kamar × jumlah malam.
+  let grandTotal = 0;
+  let bookingChoiceDisplayName = '';
+
+  if (isSundak) {
+    const effectivePax = Math.max(4, totalGuests);
+    grandTotal = effectivePax * totalNights * 75000;
+    bookingChoiceDisplayName = `Satu Rumah Penuh (Full House) • ${totalGuests} Tamu`;
+  } else {
+    const selectedRoomsList = activeProp.roomTypes.filter((r) =>
+      trenggoleSelectedRooms.includes(r.id)
+    );
+    const roomCostPerNight = selectedRoomsList.reduce((acc, curr) => acc + curr.pricePerNight, 0);
+    grandTotal = roomCostPerNight * totalNights;
+    bookingChoiceDisplayName = selectedRoomsList.map((r) => `${r.name} (Lt.${r.floor || 1})`).join(', ') || 'Kamar Trenggole';
+  }
+
+  // Pilihan Pembayaran: DP 50% atau Lunas 100%
+  const [paymentType, setPaymentType] = useState<'dp_50' | 'full_100'>('dp_50');
+  const dpAmount = paymentType === 'dp_50' ? Math.round(grandTotal * 0.5) : grandTotal;
+  const remainingBalance = Math.max(0, grandTotal - dpAmount);
+  const [dpTermsAccepted, setDpTermsAccepted] = useState<boolean>(true);
+
+  // ==============================================================
+  // STEP 5: PEMBAYARAN & UPLOAD BUKTI TRANSFER (WAJIB!)
+  // ==============================================================
+  const [metodePembayaran, setMetodePembayaran] = useState<'bca' | 'mandiri' | 'qris'>('bca');
+  const [salinStatus, setSalinStatus] = useState<boolean>(false);
+  const [paymentProofImage, setPaymentProofImage] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  const handleCopyVa = () => {
+    const vaNum = metodePembayaran === 'bca' ? '8801 2940 1827 0049' : '8920 1829 4819 0021';
+    navigator.clipboard?.writeText(vaNum.replace(/\s+/g, ''));
+    setSalinStatus(true);
+    setTimeout(() => setSalinStatus(false), 2000);
   };
 
-  // Validasi Step 3
-  const handleValidateAndProceedStep3 = () => {
-    if (!namaLengkap.trim()) {
-      setErrorNotice('Nama lengkap pemesan wajib diisi.');
-      return;
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setPaymentProofImage(event.target.result as string);
+          setErrorNotice('');
+        }
+      };
+      reader.readAsDataURL(file);
     }
-    if (!asalKota.trim()) {
-      setErrorNotice('Asal daerah/kota pemesan wajib diisi.');
-      return;
-    }
-    if (!noHp.trim()) {
-      setErrorNotice('Nomor WhatsApp/HP aktif wajib diisi.');
-      return;
-    }
+  };
+
+  // Validasi Step 2 (Tanggal & Ketersediaan)
+  const handleValidateAndProceedStep2 = () => {
     if (!checkInDate || !checkOutDate) {
       setErrorNotice('Tanggal check-in dan check-out wajib diisi.');
       return;
@@ -292,44 +202,62 @@ export const BookingFlow: React.FC = () => {
       setErrorNotice('Tanggal check-out harus setelah tanggal check-in.');
       return;
     }
-    if (!budgetPlan.trim()) {
-      setErrorNotice('Rencana anggaran wajib diisi.');
-      return;
+
+    if (isSundak) {
+      if (!isSundakAvailable) {
+        setErrorNotice('Griya Barokah Pantai Sundak (Full House) sudah penuh pada tanggal tersebut. Silakan pilih tanggal lain atau Pantai Trenggole.');
+        return;
+      }
+    } else {
+      // Pastikan ada kamar yang tersedia terpilih
+      const availCount = trenggoleSelectedRooms.filter((id) =>
+        checkTrenggoleRoomAvailability(id, checkInDate, checkOutDate)
+      ).length;
+
+      if (availCount === 0) {
+        setErrorNotice('Kamar yang dipilih tidak tersedia pada tanggal ini. Silakan pilih kamar yang bertanda AVAILABLE.');
+        return;
+      }
     }
-    if (totalGuests < 1) {
-      setErrorNotice('Jumlah tamu minimal 1 orang.');
+
+    setErrorNotice('');
+    setActiveStep(3);
+  };
+
+  // Validasi Step 3 (Data Pemesan Wajib Lengkap & Mahrom)
+  const handleValidateAndProceedStep3 = () => {
+    if (!namaLengkap.trim() || !asalKota.trim() || !noHp.trim() || !withWhom.trim()) {
+      setErrorNotice('Lengkapi data terlebih dahulu sebelum melanjutkan pemesanan.');
       return;
     }
 
-    // VALIDASI KAPASITAS
-    const capCheck = checkCapacityValidation();
-    if (!capCheck.isValid) {
-      setErrorNotice(capCheck.message);
-      return;
-    }
-
-    if (!guestRelationship.trim()) {
-      setErrorNotice('Hubungan antar tamu wajib dipilih untuk memastikan aturan mahrom homestay.');
-      return;
-    }
-    if (!vehicleDetail.trim()) {
-      setErrorNotice('Informasi kendaraan (mobil/motor dan jenisnya) wajib diisi.');
-      return;
-    }
-    if (!referralSource.trim()) {
-      setErrorNotice('Sumber informasi penginapan wajib dipilih.');
-      return;
+    if (isSundak) {
+      if (totalGuests < 4) {
+        setErrorNotice('Minimal pemesanan untuk Griya Barokah Pantai Sundak adalah 4 orang.');
+        return;
+      }
+    } else {
+      if (trenggoleSelectedRooms.length === 0) {
+        setErrorNotice('Pilih minimal 1 kamar di Pantai Trenggole terlebih dahulu.');
+        return;
+      }
+      const maxCap = trenggoleSelectedRooms.length * 4;
+      if (totalGuests > maxCap) {
+        setErrorNotice(`Jumlah tamu (${totalGuests} orang) melebihi kapasitas kamar yang dipilih (${maxCap} orang). Silakan pilih kamar tambahan di Pantai Trenggole.`);
+        return;
+      }
+      if (totalGuests < 1) {
+        setErrorNotice('Jumlah tamu minimal 1 orang.');
+        return;
+      }
     }
 
     setErrorNotice('');
     setActiveStep(4);
   };
 
-  const handleNextFromStep4 = () => {
-    if (dpAmount < minDpRequired) {
-      setErrorNotice(`DP minimal harus lebih dari 50% (minimal Rp ${minDpRequired.toLocaleString('id-ID')}).`);
-      return;
-    }
+  // Validasi Step 4 (Pilihan Pembayaran)
+  const handleProceedStep4 = () => {
     if (!dpTermsAccepted) {
       setErrorNotice('Anda wajib menyetujui ketentuan: "DP akan hangus apabila pesanan dibatalkan."');
       return;
@@ -338,14 +266,19 @@ export const BookingFlow: React.FC = () => {
     setActiveStep(5);
   };
 
+  // Validasi & Kirim Booking (Step 5)
+  // WAJIB: Upload bukti transfer sebelum booking dikirim!
   const handleSubmitBooking = async () => {
+    if (!paymentProofImage) {
+      setErrorNotice('Wajib upload bukti transfer sebelum booking dikirim. Booking tidak boleh diproses jika bukti pembayaran kosong.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const roomTypeFinalId = isSundak ? sundakPackageId : trenggoleSelectedRooms[0];
+      const roomTypeFinalId = isSundak ? 'sundak-full-house' : trenggoleSelectedRooms[0];
       const roomNameFinal = isSundak
-        ? sundakPackageId === 'sundak-2-kamar'
-          ? 'Sewa 2 Kamar (Homestay Sundak)'
-          : 'Sewa 4 Kamar / Rumah Penuh (Homestay Sundak)'
+        ? 'Full House Griya Barokah Sundak'
         : bookingChoiceDisplayName;
 
       const newId = await createBooking({
@@ -357,31 +290,27 @@ export const BookingFlow: React.FC = () => {
         location: activeProp.location,
         guestName: namaLengkap,
         guestPhone: noHp,
-        guestNik: nikKtp || '340301xxxxxxxxxx',
+        guestNik: '340301xxxxxxxxxx',
+        asalKota,
+        withWhom,
+        mahromConfirmed: true,
         ktpImageUrl: SAMPLE_KTP_SVG,
         checkInDate,
         checkOutDate,
         totalNights,
         guestsCount: totalGuests,
-        roomsCount: isSundak ? (sundakPackageId === 'sundak-2-kamar' ? 2 : 4) : trenggoleSelectedRooms.length,
-        extraBedsCount,
-        extraBedsCost: extraBedTotal,
-        baseRoomCost: baseCostTotal,
+        roomsCount: isSundak ? 1 : trenggoleSelectedRooms.length,
+        baseRoomCost: grandTotal,
         totalAmount: grandTotal,
-        asalKota,
-        budgetPlan,
-        adultMalesCount,
-        adultFemalesCount,
-        childrenCount,
-        toddlerCount,
-        guestRelationship,
-        vehicleDetail,
-        referralSource,
+        paymentType,
+        dpPercentage: paymentType === 'full_100' ? 100 : 50,
         dpAmount,
-        dpPercentage,
         remainingBalance,
-        paymentProofUrl: SAMPLE_PAYMENT_SVG,
+        paymentProofUrl: paymentProofImage || SAMPLE_PAYMENT_SVG,
         paymentMethod: metodePembayaran === 'qris' ? 'qris' : metodePembayaran === 'mandiri' ? 'mandiri_va' : 'bca_va',
+        adminNotes: isSundak
+          ? `Full House Sundak: ${totalGuests} orang x ${totalNights} malam x Rp75.000 = Rp${grandTotal.toLocaleString('id-ID')}. Mahrom: ${withWhom}. Pembayaran: ${paymentType === 'full_100' ? 'Lunas 100%' : 'DP 50%'}.`
+          : `Trenggole: ${bookingChoiceDisplayName} x ${totalNights} malam = Rp${grandTotal.toLocaleString('id-ID')}. Mahrom: ${withWhom}. Pembayaran: ${paymentType === 'full_100' ? 'Lunas 100%' : 'DP 50%'}.`,
       });
 
       setActiveBookingId(newId);
@@ -394,157 +323,145 @@ export const BookingFlow: React.FC = () => {
   };
 
   // ==============================================================
-  // TAMPILAN SUKSES: FAST PASS TIKET DIGITAL DP HOMESTAY
+  // TAMPILAN SUKSES: 1 HALAMAN MOBILE RAPI & RINGKAS TANPA SCROLL
   // ==============================================================
   if (isSuccessView) {
-    const bookingIdDisplay = activeBooking?.id || activeBookingId || 'GBR-2025-9812';
+    const bookingIdDisplay = activeBooking?.id || activeBookingId || 'GBH-9812';
 
     return (
-      <div className="min-h-[100dvh] bg-[#F6F7F9] text-[#11141A] flex flex-col justify-between select-none pb-8">
-        {/* Status Bar */}
-        <div className="sticky top-0 z-30 bg-[#F6F7F9]/90 backdrop-blur-md px-6 pt-3 pb-1 flex items-center justify-between text-neutral-800 text-xs font-semibold">
+      <div className="max-w-md mx-auto w-full h-[100dvh] max-h-[100dvh] bg-[#F6F7F9] text-[#11141A] flex flex-col justify-between select-none p-3 sm:p-4 overflow-hidden">
+        {/* Status Bar HP */}
+        <div className="flex items-center justify-between text-neutral-800 text-[11px] font-semibold px-1 pt-0.5">
           <span>9:41</span>
           <div className="flex items-center gap-1.5 opacity-90">
-            <Signal className="w-3.5 h-3.5" />
-            <Wifi className="w-3.5 h-3.5" />
-            <Battery className="w-4 h-4" />
+            <Signal className="w-3 h-3" />
+            <Wifi className="w-3 h-3" />
+            <Battery className="w-3.5 h-3.5" />
           </div>
         </div>
 
-        {/* Header */}
-        <header className="px-5 py-3 flex items-center justify-between">
-          <button
-            onClick={() => setCurrentView('home')}
-            className="w-10 h-10 rounded-full bg-white shadow-xs border border-neutral-200/80 flex items-center justify-center text-neutral-700 active:scale-95 transition-transform"
-          >
-            <X className="w-5 h-5 text-neutral-800 stroke-[2.2]" />
-          </button>
-          <h1 className="text-[15px] font-bold text-neutral-900 tracking-tight">
-            Konfirmasi Booking DP
-          </h1>
-          <button
-            onClick={() => {
-              if (navigator.share) {
-                navigator.share({
-                  title: 'Konfirmasi Griya Barokah',
-                  text: `Reservasi di ${activeProp.name} berhasil! ID: ${bookingIdDisplay}`,
-                }).catch(() => {});
-              }
-            }}
-            className="w-10 h-10 rounded-full bg-white shadow-xs border border-neutral-200/80 flex items-center justify-center text-neutral-700 active:scale-95 transition-transform"
-          >
-            <Share2 className="w-4 h-4 text-neutral-800 stroke-[2]" />
-          </button>
-        </header>
-
-        {/* Content */}
-        <div className="px-5 pt-2 pb-4 space-y-4 flex-grow">
-          <div className="flex flex-col items-center text-center pt-2">
-            <div className="w-16 h-16 rounded-full bg-[#EBF8F2] flex items-center justify-center mb-3">
-              <Check className="w-8 h-8 text-[#1DB954] stroke-[3.5]" />
-            </div>
-            <h2 className="text-[21px] font-black text-[#111827] tracking-tight">
-              Bukti DP Berhasil Dikirim
-            </h2>
-            <p className="text-[13px] text-[#6B7280] mt-1 max-w-[320px] leading-relaxed">
-              Pengelola <strong className="text-neutral-900">{activeProp.name}</strong> sedang memverifikasi pembayaran DP Anda.
-            </p>
+        {/* HEADER: Reservasi Berhasil */}
+        <div className="text-center py-1">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EBF8F2] text-[#1DB954] text-xs font-bold border border-[#C6ECD8] shadow-2xs">
+            <Check className="w-3.5 h-3.5 text-[#1DB954] stroke-[3]" />
+            <span>Reservasi Berhasil</span>
           </div>
+        </div>
 
-          {/* Kartu Tiket Digital */}
-          <div className="rounded-[30px] bg-white border border-neutral-200/90 shadow-sm overflow-hidden text-left relative">
-            <div className="p-4 flex items-center gap-3.5 border-b border-neutral-100">
-              <SafeImage
-                src={activeProp.image}
-                alt={activeProp.name}
-                className="w-14 h-14 rounded-2xl object-cover"
-                containerClassName="w-14 h-14 rounded-2xl shrink-0"
-              />
-              <div className="min-w-0">
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                  {bookingIdDisplay}
-                </span>
-                <h3 className="text-[15px] font-black text-[#111827] truncate mt-1">
-                  {activeProp.name}
-                </h3>
-                <span className="text-[12px] text-neutral-500 block truncate">
-                  {bookingChoiceDisplayName}
-                </span>
-              </div>
-            </div>
-
-            <div className="p-4 space-y-3 bg-[#FAFBFD] text-xs">
-              <div className="grid grid-cols-2 gap-2 text-neutral-600">
-                <div>
-                  <span className="text-[10px] text-neutral-400 block font-semibold uppercase">Nama Pemesan</span>
-                  <strong className="text-neutral-900">{namaLengkap} ({asalKota})</strong>
-                </div>
-                <div>
-                  <span className="text-[10px] text-neutral-400 block font-semibold uppercase">Tanggal Menginap</span>
-                  <strong className="text-neutral-900">{checkInDate} s/d {checkOutDate} ({totalNights} Malam)</strong>
-                </div>
-                <div>
-                  <span className="text-[10px] text-neutral-400 block font-semibold uppercase">Total Tamu</span>
-                  <strong className="text-neutral-900">{totalGuests} Orang ({guestRelationship})</strong>
-                </div>
-                <div>
-                  <span className="text-[10px] text-neutral-400 block font-semibold uppercase">Kendaraan</span>
-                  <strong className="text-neutral-900 truncate block">{vehicleDetail}</strong>
-                </div>
-              </div>
-
-              {/* Rincian DP */}
-              <div className="pt-2 border-t border-neutral-200/80 space-y-1">
-                <div className="flex items-center justify-between text-neutral-600">
-                  <span>Total Tagihan Sewa</span>
-                  <span className="font-bold text-neutral-900">Rp {grandTotal.toLocaleString('id-ID')}</span>
-                </div>
-                <div className="flex items-center justify-between text-emerald-800 font-bold">
-                  <span>DP Dibayar ({dpPercentage}%)</span>
-                  <span>Rp {dpAmount.toLocaleString('id-ID')}</span>
-                </div>
-                <div className="flex items-center justify-between text-neutral-500 text-[11px]">
-                  <span>Sisa Pelunasan Saat Check-in</span>
-                  <span>Rp {remainingBalance.toLocaleString('id-ID')}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* QR Code */}
-            <div className="p-5 bg-white flex flex-col items-center justify-center border-t border-dashed border-neutral-200">
-              <div className="p-3 bg-white rounded-2xl border border-neutral-200 shadow-xs">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                    `GBR:BOOKING:${bookingIdDisplay}|HOMESTAY:${activeProp.name}|GUEST:${namaLengkap}|DP:Rp${dpAmount}`
-                  )}`}
-                  alt="QR Fast Pass"
-                  className="w-36 h-36 object-contain"
-                />
-              </div>
-              <span className="text-[11px] font-bold text-neutral-500 mt-2 text-center">
-                Tunjukkan QR Code ini kepada pengelola saat tiba di homestay
+        {/* CARD BOOKING */}
+        <div className="bg-white rounded-2xl p-3 sm:p-3.5 border border-neutral-200/90 shadow-xs space-y-2.5 my-auto">
+          {/* Foto Penginapan Kecil + Nama & Unit */}
+          <div className="flex items-center gap-2.5 pb-2 border-b border-neutral-100">
+            <SafeImage
+              src={activeProp.image}
+              alt={activeProp.name}
+              className="w-12 h-12 rounded-xl object-cover"
+              containerClassName="w-12 h-12 rounded-xl shrink-0"
+            />
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xs sm:text-[13px] font-black text-neutral-900 leading-tight truncate">
+                {activeProp.name}
+              </h2>
+              <p className="text-[11px] text-emerald-800 font-bold truncate mt-0.5">
+                {isSundak ? 'Satu Rumah Penuh (Full House)' : bookingChoiceDisplayName}
+              </p>
+              <span className="text-[10px] text-neutral-400 block truncate">
+                {activeProp.location}
               </span>
             </div>
           </div>
 
-          {/* Tombol Aksi */}
-          <div className="pt-2 space-y-2.5">
-            <a
-              href={`https://wa.me/6282138613888?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20sudah%20membayar%20DP%20untuk%20Booking%20ID%20${bookingIdDisplay}%20atas%20nama%20${encodeURIComponent(namaLengkap)}`}
-              target="_blank"
-              rel="noreferrer"
-              className="w-full h-[50px] rounded-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors"
+          {/* Rincian Pemesan & Menginap */}
+          <div className="space-y-1.5 text-[11px]">
+            <div className="flex items-center justify-between">
+              <span className="text-neutral-500 font-medium">Nama Pemesan:</span>
+              <strong className="text-neutral-900 font-bold truncate max-w-[190px] text-right">
+                {namaLengkap}
+              </strong>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-neutral-500 font-medium">Jumlah Tamu:</span>
+              <strong className="text-neutral-900 font-bold text-right">
+                {totalGuests} Tamu
+              </strong>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-neutral-500 font-medium">Tanggal Menginap:</span>
+              <strong className="text-neutral-900 font-bold text-right">
+                {checkInDate} s/d {checkOutDate} ({totalNights} Malam)
+              </strong>
+            </div>
+
+            <div className="flex items-center justify-between pt-1 border-t border-neutral-100">
+              <span className="text-neutral-500 font-medium">Status Pembayaran:</span>
+              <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[10px] sm:text-[11px] font-bold border border-emerald-200">
+                {paymentType === 'full_100'
+                  ? `Lunas 100% (Rp ${grandTotal.toLocaleString('id-ID')})`
+                  : `DP 50% (Rp ${dpAmount.toLocaleString('id-ID')})`}
+              </span>
+            </div>
+
+            {/* Kode Booking */}
+            <div className="flex items-center justify-between pt-1 border-t border-neutral-100">
+              <span className="text-neutral-500 font-medium">Kode Booking:</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs sm:text-sm font-black font-mono tracking-wider text-emerald-900">
+                  {bookingIdDisplay}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(bookingIdDisplay);
+                    setSalinStatus(true);
+                    setTimeout(() => setSalinStatus(false), 2000);
+                  }}
+                  className="p-1 rounded bg-neutral-100 border border-neutral-200 text-neutral-600 hover:bg-neutral-200 cursor-pointer"
+                  title="Salin Kode Booking"
+                >
+                  {salinStatus ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* QR CODE Tampil Jelas & Proporsional */}
+          <div className="flex flex-col items-center justify-center pt-1 border-t border-neutral-100">
+            <div className="p-1.5 bg-white rounded-xl border border-neutral-300 shadow-2xs">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(
+                  `GBH:BOOKING:${bookingIdDisplay}|HOMESTAY:${activeProp.name}|GUEST:${namaLengkap}`
+                )}`}
+                alt="QR Code Tiket"
+                className="w-20 h-20 sm:w-22 sm:h-22 object-contain"
+              />
+            </div>
+            <p className="text-[10px] text-neutral-500 mt-1 font-medium text-center">
+              Tunjukkan QR Code kepada resepsionis saat check-in
+            </p>
+          </div>
+        </div>
+
+        {/* TOMBOL: Kembali ke Beranda & Lihat Pesanan Saya */}
+        <div className="space-y-1.5 pt-1 pb-1">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setCurrentView('home')}
+              className="w-full h-10 rounded-xl bg-white border border-neutral-300 text-neutral-800 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-neutral-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
             >
-              <MessageCircle className="w-4 h-4" />
-              <span>Konfirmasi via WhatsApp Pengelola</span>
-            </a>
+              <Home className="w-3.5 h-3.5" />
+              <span>Kembali ke Beranda</span>
+            </button>
 
             <button
-              onClick={() => setCurrentView('home')}
-              className="w-full h-[52px] rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white font-bold text-[14px] flex items-center justify-center gap-2 shadow-md cursor-pointer active:scale-95"
+              type="button"
+              onClick={() => setCurrentView('my_bookings')}
+              className="w-full h-10 rounded-xl bg-[#13281E] hover:bg-[#1A3428] text-white font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs cursor-pointer"
             >
-              <span>Kembali ke Beranda</span>
-              <ArrowRight className="w-4 h-4 text-white" />
+              <span>Lihat Pesanan Saya</span>
+              <ArrowRight className="w-3.5 h-3.5 text-white" />
             </button>
           </div>
         </div>
@@ -585,11 +502,11 @@ export const BookingFlow: React.FC = () => {
 
         <div className="text-center">
           <h1 className="text-[14px] font-black text-neutral-900 tracking-tight">
-            {activeStep === 1 && 'Step 1: Pilih Penginapan'}
-            {activeStep === 2 && (isSundak ? 'Step 2: Paket Homestay Sundak' : 'Step 2: Pilih Kamar Trenggole')}
-            {activeStep === 3 && 'Step 3: Data Pemesan & Tamu'}
-            {activeStep === 4 && 'Step 4: Ringkasan Booking & DP'}
-            {activeStep === 5 && 'Step 5: Pembayaran DP'}
+            {activeStep === 1 && 'Langkah 1: Pilih Penginapan'}
+            {activeStep === 2 && 'Langkah 2: Pilih Tanggal & Ketersediaan'}
+            {activeStep === 3 && 'Langkah 3: Data Pemesan'}
+            {activeStep === 4 && 'Langkah 4: Pilihan Pembayaran'}
+            {activeStep === 5 && 'Langkah 5: Upload Bukti Transfer'}
           </h1>
           <span className="text-[10px] text-emerald-800 font-bold block">
             Tahap {activeStep} dari 5
@@ -619,10 +536,10 @@ export const BookingFlow: React.FC = () => {
         </div>
       )}
 
-      {/* Konten Langkah demi Langkah */}
+      {/* Konten Wizard Langkah demi Langkah */}
       <div className="px-5 pt-3 pb-6 flex-grow">
         {/* ==============================================================
-            STEP 1: PILIH PROPERTI (SUNDAK VS TRENGGOLE)
+            STEP 1: PILIH PENGINAPAN (Setiap Penginapan Memiliki Halaman Pilihan Sendiri)
            ============================================================== */}
         {activeStep === 1 && (
           <div className="space-y-4">
@@ -631,133 +548,164 @@ export const BookingFlow: React.FC = () => {
                 Langkah 1 dari 5
               </span>
               <h2 className="text-lg font-black text-neutral-900">
-                Pilih Tipe & Lokasi Penginapan
+                Pilih Penginapan
               </h2>
               <p className="text-xs text-neutral-500 mt-0.5">
-                Kedua penginapan memiliki tipe dan struktur pemesanan yang berbeda:
+                Pilih salah satu penginapan untuk melanjutkan ke pemilihan tanggal:
               </p>
             </div>
 
-            <div className="space-y-3.5">
-              {/* Properti 1: Griya Barokah Pantai Sundak (Full Homestay / Rumah) */}
-              <div
+            {/* Tab Pemilih Penginapan Bersih */}
+            <div className="flex p-1 bg-neutral-200/90 rounded-2xl gap-1">
+              <button
+                type="button"
                 onClick={() => {
                   setSelectedPropId('homestay-sundak');
-                  setSelectedProperty(accommodations[0]);
+                  setSelectedProperty(accommodations.find((a) => a.id === 'homestay-sundak') || accommodations[0]);
                   setErrorNotice('');
                 }}
-                className={`p-4 rounded-[26px] border transition-all cursor-pointer bg-white ${
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
                   selectedPropId === 'homestay-sundak'
-                    ? 'border-emerald-800 shadow-md ring-2 ring-emerald-800/20'
-                    : 'border-neutral-200/90 shadow-xs hover:border-neutral-300'
+                    ? 'bg-white text-emerald-900 shadow-xs ring-1 ring-black/5'
+                    : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
-                <div className="relative h-44 w-full rounded-2xl overflow-hidden mb-3">
+                Pantai Sundak
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPropId('homestay-trenggole');
+                  setSelectedProperty(accommodations.find((a) => a.id === 'homestay-trenggole') || accommodations[1]);
+                  setErrorNotice('');
+                }}
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
+                  selectedPropId === 'homestay-trenggole'
+                    ? 'bg-white text-sky-900 shadow-xs ring-1 ring-black/5'
+                    : 'text-neutral-600 hover:text-neutral-900'
+                }`}
+              >
+                Pantai Trenggole
+              </button>
+            </div>
+
+            {/* HALAMAN PENGINAPAN 1: GRIYA BAROKAH PANTAI SUNDAK (HANYA FOTO & INFO SUNDAK) */}
+            {selectedPropId === 'homestay-sundak' && (
+              <div className="p-4 rounded-[26px] border border-emerald-800 bg-white shadow-md ring-2 ring-emerald-800/20 space-y-3.5">
+                <div className="relative h-48 w-full rounded-2xl overflow-hidden">
                   <SafeImage
-                    src={accommodations[0]?.image || 'https://images.unsplash.com/photo-1544984243-ec57ea16fe25?auto=format&fit=crop&w=800&q=80'}
+                    src="/src/assets/images/sundak_fullhouse_1790552054893.jpg"
                     alt="Griya Barokah Pantai Sundak"
                     className="w-full h-full object-cover"
                     containerClassName="w-full h-full"
                   />
                   <div className="absolute top-2.5 left-2.5">
                     <span className="px-3 py-1 rounded-full bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
-                      TIPE: FULL HOMESTAY / RUMAH
+                      Satu Rumah Penuh (Full House)
                     </span>
                   </div>
                   <div className="absolute top-2.5 right-2.5">
-                    {selectedPropId === 'homestay-sundak' && (
-                      <span className="w-6 h-6 rounded-full bg-emerald-700 text-white flex items-center justify-center text-xs font-bold shadow-md">
-                        ✓
-                      </span>
-                    )}
+                    <span className="w-6 h-6 rounded-full bg-emerald-700 text-white flex items-center justify-center text-xs font-bold shadow-md">
+                      ✓
+                    </span>
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <div className="flex items-center gap-1.5 text-xs text-emerald-800 font-bold">
                     <Home className="w-3.5 h-3.5" />
-                    <span>Bukan Kamar Terpisah (Sewa Rumah Keluarga)</span>
+                    <span>Konsep: Satu Rumah Penuh (Bukan Per Kamar)</span>
                   </div>
                   <h3 className="font-black text-base text-neutral-900">
                     Griya Barokah Pantai Sundak
                   </h3>
                   <p className="text-[11px] text-neutral-500 leading-relaxed">
-                    Sewa rumah inap untuk keluarga besar & rombongan. Memiliki 4 kamar AC, 3 KM, ruang keluarga luas, dapur lengkap, dan mesin cuci.
+                    Satu rumah utuh untuk keluarga/rombongan dekat pantai pasir putih. 4 kamar tidur AC, 3 KM, ruang keluarga luas, dapur lengkap, alat masak/makan, mesin cuci, dan WiFi.
                   </p>
                 </div>
 
-                <div className="mt-3 p-2.5 rounded-xl bg-neutral-50 border border-neutral-200/80 text-[11px] space-y-1">
+                {/* Informasi Wajib Sesuai Aturan */}
+                <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-neutral-800">• Sewa 2 Kamar (Maks. 6 Orang)</span>
-                    <strong className="text-emerald-800">Rp500.000/malam</strong>
+                    <span className="font-bold text-emerald-950">Konsep Penginapan:</span>
+                    <strong className="text-emerald-900 font-extrabold">Satu Rumah Penuh (Full House)</strong>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-neutral-800">• Sewa 4 Kamar Rumah Penuh (Maks. 12 Orang)</span>
-                    <strong className="text-emerald-800">Rp800.000/malam</strong>
+                    <span className="font-bold text-emerald-950">Tarif Penginapan:</span>
+                    <strong className="text-emerald-800 font-black">Rp75.000 /orang/malam</strong>
                   </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-emerald-200/80">
+                    <span className="font-bold text-emerald-950">Ketentuan Pemesanan:</span>
+                    <strong className="text-emerald-900 font-black">Minimal 4 orang</strong>
+                  </div>
+                  <span className="text-[10px] text-neutral-600 block pt-0.5">
+                    Perhitungan otomatis: Jumlah orang × Jumlah malam × Rp75.000
+                  </span>
                 </div>
               </div>
+            )}
 
-              {/* Properti 2: Griya Barokah Pantai Trenggole (Individual Room) */}
-              <div
-                onClick={() => {
-                  setSelectedPropId('homestay-trenggole');
-                  setSelectedProperty(accommodations[1] || accommodations[0]);
-                  setErrorNotice('');
-                }}
-                className={`p-4 rounded-[26px] border transition-all cursor-pointer bg-white ${
-                  selectedPropId === 'homestay-trenggole'
-                    ? 'border-emerald-800 shadow-md ring-2 ring-emerald-800/20'
-                    : 'border-neutral-200/90 shadow-xs hover:border-neutral-300'
-                }`}
-              >
-                <div className="relative h-44 w-full rounded-2xl overflow-hidden mb-3">
+            {/* HALAMAN PENGINAPAN 2: GRIYA BAROKAH PANTAI TRENGGOLE (HANYA FOTO & INFO TRENGGOLE) */}
+            {selectedPropId === 'homestay-trenggole' && (
+              <div className="p-4 rounded-[26px] border border-sky-800 bg-white shadow-md ring-2 ring-sky-800/20 space-y-3.5">
+                <div className="relative h-48 w-full rounded-2xl overflow-hidden">
                   <SafeImage
-                    src={accommodations[1]?.image || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80'}
+                    src="/src/assets/images/trenggole_house_1790552065368.jpg"
                     alt="Griya Barokah Pantai Trenggole"
                     className="w-full h-full object-cover"
                     containerClassName="w-full h-full"
                   />
                   <div className="absolute top-2.5 left-2.5">
                     <span className="px-3 py-1 rounded-full bg-sky-700 text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
-                      TIPE: INDIVIDUAL ROOM
+                      Pemesanan Berdasarkan Kamar
                     </span>
                   </div>
                   <div className="absolute top-2.5 right-2.5">
-                    {selectedPropId === 'homestay-trenggole' && (
-                      <span className="w-6 h-6 rounded-full bg-emerald-700 text-white flex items-center justify-center text-xs font-bold shadow-md">
-                        ✓
-                      </span>
-                    )}
+                    <span className="w-6 h-6 rounded-full bg-sky-700 text-white flex items-center justify-center text-xs font-bold shadow-md">
+                      ✓
+                    </span>
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <div className="flex items-center gap-1.5 text-xs text-sky-800 font-bold">
                     <Building className="w-3.5 h-3.5" />
-                    <span>Kamar Terpisah (Pilihan 4 Kamar Tepi Pantai)</span>
+                    <span>Pilihan 4 Kamar Tidur AC Tepi Pantai</span>
                   </div>
                   <h3 className="font-black text-base text-neutral-900">
                     Griya Barokah Pantai Trenggole
                   </h3>
                   <p className="text-[11px] text-neutral-500 leading-relaxed">
-                    Setiap kamar memiliki view pantai dan 2 bed ukuran ±130x200 cm (kapasitas 4 orang). Pilihan kloset jongkok & duduk serta dapur mini.
+                    Setiap kamar view pantai, memiliki 2 bed ukuran ±130x200 cm (kapasitas 4 orang). Pilihan lantai 1 & 2 serta opsi dapur mini.
                   </p>
                 </div>
 
-                <div className="mt-3 p-2.5 rounded-xl bg-neutral-50 border border-neutral-200/80 text-[11px] space-y-0.5">
-                  <span className="text-neutral-500 block font-semibold">Tersedia Kamar 1, 2, 3, dan 4:</span>
-                  <span className="font-bold text-emerald-800 block">
-                    Mulai Rp285.000 s/d Rp365.000 /kamar/malam
+                {/* Informasi Wajib Trenggole */}
+                <div className="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-xs space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sky-950">Konsep Pemesanan:</span>
+                    <strong className="text-sky-900 font-extrabold">Pemesanan Berdasarkan Kamar</strong>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sky-950">Tersedia Kamar:</span>
+                    <strong className="text-sky-900 font-bold">Kamar 1, 2, 3, 4</strong>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-sky-200/80">
+                    <span className="font-bold text-sky-950">Tarif per Kamar:</span>
+                    <strong className="text-sky-900 font-black">Rp285.000 s/d Rp365.000 /malam</strong>
+                  </div>
+                  <span className="text-[10px] text-neutral-600 block pt-0.5">
+                    Status kamar dicek otomatis berdasarkan tanggal check-in & check-out aktif.
                   </span>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
         {/* ==============================================================
-            STEP 2: PILIH KAMAR SESUAI TIPE PROPERTI
+            STEP 2: PILIH TANGGAL & SISTEM OTOMATIS MENGECEK KETERSEDIAAN
            ============================================================== */}
         {activeStep === 2 && (
           <div className="space-y-4">
@@ -766,272 +714,186 @@ export const BookingFlow: React.FC = () => {
                 Langkah 2 dari 5
               </span>
               <h2 className="text-lg font-black text-neutral-900">
-                {isSundak ? 'Pilihan Paket Sewa Rumah Sundak' : 'Pilih Kamar Pantai Trenggole'}
+                Pilih Tanggal & Cek Ketersediaan
               </h2>
               <p className="text-xs text-neutral-500 mt-0.5">
-                {isSundak
-                  ? 'Griya Barokah Pantai Sundak adalah satu rumah utuh. Pilih sewa 2 kamar atau 4 kamar penuh.'
-                  : 'Pilih kamar tidur ber-AC sesuai jumlah anggota keluarga (kapasitas 4 orang per kamar).'}
+                Pilih tanggal check-in dan check-out untuk mengecek status ketersediaan unit secara otomatis.
               </p>
             </div>
 
-            {/* JIKA SUNDAK: PILIHAN SEWA 2 KAMAR ATAU SEWA 4 KAMAR (RUMAH PENUH) */}
+            {/* Input Tanggal Menginap */}
+            <div className="bg-white rounded-[26px] p-4.5 shadow-xs border border-neutral-200/90 space-y-3">
+              <div className="grid grid-cols-2 gap-2.5 text-xs">
+                <div>
+                  <label className="font-bold text-neutral-800 block mb-1">
+                    Tanggal Check-in <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={checkInDate}
+                    onChange={(e) => {
+                      setCheckInDate(e.target.value);
+                      setErrorNotice('');
+                    }}
+                    className="w-full h-11 px-3 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-neutral-800 block mb-1">
+                    Tanggal Check-out <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={checkOutDate}
+                    min={checkInDate}
+                    onChange={(e) => {
+                      setCheckOutDate(e.target.value);
+                      setErrorNotice('');
+                    }}
+                    className="w-full h-11 px-3 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
+                  />
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-neutral-100 flex items-center justify-between text-xs text-neutral-700">
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <Calendar className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Durasi Menginap:</span>
+                </span>
+                <strong className="text-neutral-900 font-bold">{totalNights} Malam</strong>
+              </div>
+            </div>
+
+            {/* HASIL PENGECEKAN KETERSEDIAAN OTOMATIS */}
             {isSundak ? (
-              <div className="space-y-3.5">
-                {/* Opsi 1: Sewa 2 Kamar */}
-                <div
-                  onClick={() => {
-                    setSundakPackageId('sundak-2-kamar');
-                    setErrorNotice('');
-                  }}
-                  className={`p-4.5 rounded-[26px] border transition-all cursor-pointer bg-white ${
-                    sundakPackageId === 'sundak-2-kamar'
-                      ? 'border-emerald-800 shadow-md ring-2 ring-emerald-800/20'
-                      : 'border-neutral-200/90 shadow-xs hover:border-neutral-300'
-                  }`}
-                >
+              /* Ketersediaan Full House Sundak */
+              <div className="space-y-3">
+                <span className="text-xs font-bold text-neutral-700 block uppercase tracking-wider">
+                  Status Ketersediaan Pantai Sundak:
+                </span>
+
+                <div className={`p-4 rounded-[26px] border bg-white space-y-3 ${
+                  isSundakAvailable
+                    ? 'border-emerald-700 shadow-sm'
+                    : 'border-rose-300 bg-rose-50/40'
+                }`}>
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">
-                          PAKET A
-                        </span>
+                        <Home className="w-4 h-4 text-emerald-800" />
                         <h3 className="font-black text-base text-neutral-900">
-                          Sewa 2 Kamar
+                          Full House Griya Barokah Sundak
                         </h3>
                       </div>
-                      <span className="text-xs font-bold text-neutral-700 block mt-1">
-                        Rp250.000 /kamar/malam
+                      <span className="text-xs text-neutral-500 block mt-0.5">
+                        Satu rumah penuh (4 Kamar AC, 3 KM, Dapur Lengkap, Mesin Cuci)
                       </span>
                     </div>
 
-                    <div className="text-right">
-                      <span className="text-base font-black text-emerald-800 block">
-                        Rp500.000
-                      </span>
-                      <span className="text-[10px] text-neutral-400">/malam (2 kamar)</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 p-3 rounded-2xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5 text-xs text-neutral-700">
-                    <div className="flex items-center gap-1.5 font-bold text-neutral-900">
-                      <Users className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Kapasitas Standar: 3 orang per kamar</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-rose-800 font-bold bg-rose-50 p-2 rounded-xl border border-rose-200">
-                      <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                      <span>Validasi: Maksimal 6 orang tamu (sebelum extra bed)</span>
-                    </div>
-                    <p className="text-[11px] text-neutral-500 pt-0.5">
-                      Fasilitas: 2 Kamar AC di dalam rumah, akses ruang keluarga luas, kulkas, TV, dapur lengkap, alat masak/makan, mesin cuci, dan teras santai.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Opsi 2: Sewa 4 Kamar (Rumah Penuh) */}
-                <div
-                  onClick={() => {
-                    setSundakPackageId('sundak-4-kamar');
-                    setErrorNotice('');
-                  }}
-                  className={`p-4.5 rounded-[26px] border transition-all cursor-pointer bg-white ${
-                    sundakPackageId === 'sundak-4-kamar'
-                      ? 'border-emerald-800 shadow-md ring-2 ring-emerald-800/20'
-                      : 'border-neutral-200/90 shadow-xs hover:border-neutral-300'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase">
-                          PAKET B (FAVORIT)
+                      {isSundakAvailable ? (
+                        <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-black border border-emerald-300 flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>AVAILABLE</span>
                         </span>
-                        <h3 className="font-black text-base text-neutral-900">
-                          Sewa 4 kamar (Rumah Penuh)
-                        </h3>
-                      </div>
-                      <span className="text-xs font-bold text-neutral-700 block mt-1">
-                        Sewa seluruh rumah inap keluarga
-                      </span>
-                    </div>
-
-                    <div className="text-right">
-                      <span className="text-base font-black text-emerald-800 block">
-                        Rp800.000
-                      </span>
-                      <span className="text-[10px] text-neutral-400">/malam (Rumah Penuh)</span>
+                      ) : (
+                        <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-800 text-[11px] font-black border border-rose-300 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                          <span>FULL / TIDAK TERSEDIA</span>
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  <div className="mt-3 p-3 rounded-2xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5 text-xs text-neutral-700">
-                    <div className="flex items-center gap-1.5 font-bold text-neutral-900">
-                      <Users className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Kapasitas Standar: 21 orang</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-rose-800 font-bold bg-rose-50 p-2 rounded-xl border border-rose-200">
-                      <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                      <span>Validasi: Maksimal 12 orang sebelum extra bed</span>
-                    </div>
-                    <p className="text-[11px] text-neutral-500 pt-0.5">
-                      Tambahan: Extra bed Rp25.000/orang (hingga total 21 orang). Fasilitas: 4 kamar AC, 3 KM, ruang keluarga luas, kulkas, TV, dapur lengkap, mesin cuci, dan WiFi gratis.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Extra Bed Sundak */}
-                {sundakPackageId === 'sundak-4-kamar' ? (
-                  <div className="p-4 rounded-[26px] bg-white border border-neutral-200/90 shadow-xs space-y-2 text-xs">
+                  <div className="p-3 rounded-2xl bg-[#F8F9FA] border border-neutral-200/70 text-xs space-y-1">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <span className="font-bold text-neutral-900 block">Tambah Extra Bed Ruang Keluarga</span>
-                        <span className="text-[11px] text-neutral-500">
-                          Tarif: <strong>Rp25.000 /orang /malam</strong> (tersedia hingga 21 orang)
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => extraBedsCount > 0 && setExtraBedsCount(extraBedsCount - 1)}
-                          disabled={extraBedsCount <= 0}
-                          className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center font-bold disabled:opacity-40"
-                        >
-                          <Minus className="w-3.5 h-3.5" />
-                        </button>
-                        <span className="font-black text-sm w-5 text-center">{extraBedsCount}</span>
-                        <button
-                          type="button"
-                          onClick={() => extraBedsCount < 9 && setExtraBedsCount(extraBedsCount + 1)}
-                          disabled={extraBedsCount >= 9}
-                          className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center font-bold disabled:opacity-40"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      <span className="font-bold text-neutral-800">Tarif per Orang:</span>
+                      <strong className="text-emerald-800 font-bold">Rp75.000 /orang/malam</strong>
                     </div>
+                    <span className="text-[11px] text-neutral-500 block">
+                      Minimal pemesanan 4 orang. Total dihitung otomatis berdasarkan jumlah tamu yang Anda masukkan.
+                    </span>
                   </div>
-                ) : (
-                  <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 font-medium">
-                    ℹ️ <strong>Ketentuan Sewa 2 kamar:</strong> Maksimal 6 orang tamu. Jika rombongan Anda melebihi 6 orang, silakan pilih <strong>Sewa 4 kamar (Rumah Penuh)</strong>.
-                  </div>
-                )}
+
+                  {!isSundakAvailable && (
+                    <div className="p-3 bg-rose-100 text-rose-900 rounded-xl text-xs flex items-center gap-2 font-semibold">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>Pada tanggal ini sudah ada booking Full House Pantai Sundak. Status: FULL. Silakan pilih tanggal lain.</span>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
-              /* JIKA TRENGGOLE: INDIVIDUAL ROOM (4 PILIHAN KAMAR) */
-              <div className="space-y-3.5">
-                <div className="p-3 bg-sky-50 rounded-2xl border border-sky-200 text-xs text-sky-950 font-medium space-y-1">
-                  <div>
-                    💡 <strong>Semua kamar Trenggole:</strong> View pantai, 2 bed ukuran ±130x200 cm (kapasitas standar 4 orang per kamar), dan bisa tambah extra bed.
-                  </div>
-                  <div className="text-[11px] text-sky-800">
-                    Jumlah tamu harus mengikuti kapasitas kamar yang dipilih. Anda dapat memilih lebih dari 1 kamar jika rombongan lebih besar.
-                  </div>
+              /* Ketersediaan 4 Kamar Pantai Trenggole */
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-neutral-700 block uppercase tracking-wider">
+                    Pilih Kamar yang AVAILABLE:
+                  </span>
+                  <span className="text-[11px] text-neutral-500">
+                    Pilih 1 atau lebih kamar
+                  </span>
                 </div>
 
-                {/* 4 Pilihan Kamar Trenggole */}
                 <div className="space-y-2.5">
                   {activeProp.roomTypes.map((room) => {
-                    const isChecked = trenggoleSelectedRooms.includes(room.id);
+                    const isAvail = checkTrenggoleRoomAvailability(room.id, checkInDate, checkOutDate);
+                    const isSelected = trenggoleSelectedRooms.includes(room.id);
 
                     return (
                       <div
                         key={room.id}
-                        onClick={() => toggleTrenggoleRoom(room.id)}
-                        className={`p-4 rounded-[26px] border transition-all cursor-pointer bg-white ${
-                          isChecked
-                            ? 'border-emerald-800 shadow-md ring-2 ring-emerald-800/20'
-                            : 'border-neutral-200/90 shadow-xs hover:border-neutral-300'
+                        onClick={() => isAvail && toggleTrenggoleRoom(room.id)}
+                        className={`p-4 rounded-[26px] border transition-all bg-white ${
+                          !isAvail
+                            ? 'opacity-60 bg-neutral-100 border-neutral-200 cursor-not-allowed'
+                            : isSelected
+                            ? 'border-emerald-800 shadow-md ring-2 ring-emerald-800/20 cursor-pointer'
+                            : 'border-neutral-200 hover:border-neutral-300 cursor-pointer'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2.5">
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => {}} // dikontrol parent div onClick
-                              className="w-4 h-4 rounded text-emerald-800 pointer-events-none"
-                            />
-                            <div>
-                              <h3 className="font-black text-sm text-neutral-900">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-sm text-neutral-900">
                                 {room.name}
-                              </h3>
-                              <span className="text-[11px] text-neutral-500 block">
-                                View pantai • 2 bed ukuran ±130x200 • Kapasitas standar 4 orang
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md bg-neutral-100 text-[10px] font-bold text-neutral-600">
+                                Lantai {room.floor || 1}
                               </span>
                             </div>
+                            <span className="text-[11px] text-neutral-500 block mt-0.5">
+                              {room.description}
+                            </span>
                           </div>
 
                           <div className="text-right shrink-0">
                             <span className="text-sm font-black text-emerald-800 block">
                               Rp {room.pricePerNight.toLocaleString('id-ID')}
                             </span>
-                            <span className="text-[10px] text-neutral-400">/malam</span>
-                          </div>
-                        </div>
+                            <span className="text-[10px] text-neutral-400 block">/malam</span>
 
-                        {/* Fitur Kamar */}
-                        <div className="mt-2.5 flex flex-wrap gap-1">
-                          {room.features.map((feat, fi) => (
-                            <span
-                              key={fi}
-                              className="px-2 py-0.5 rounded-md bg-[#F4F5F7] text-[10px] font-medium text-neutral-700"
-                            >
-                              {feat}
-                            </span>
-                          ))}
+                            <div className="mt-1">
+                              {isAvail ? (
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 justify-end ${
+                                  isSelected
+                                    ? 'bg-emerald-800 text-white'
+                                    : 'bg-emerald-100 text-emerald-800'
+                                }`}>
+                                  {isSelected ? '✓ Terpilih' : 'AVAILABLE'}
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold">
+                                  FULL
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     );
                   })}
-                </div>
-
-                {/* Ringkasan Kamar Terpilih Trenggole */}
-                <div className="p-3.5 rounded-2xl bg-emerald-50/80 border border-emerald-200 flex items-center justify-between text-xs">
-                  <div>
-                    <span className="font-bold text-emerald-950 block">
-                      Total Kamar Dipilih: {trenggoleSelectedRooms.length} Kamar
-                    </span>
-                    <span className="text-[11px] text-emerald-800">
-                      Kapasitas Standar: {trenggoleSelectedRooms.length * 4} orang ({trenggoleSelectedRooms.length * 2} bed)
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-black text-emerald-900 block text-xs">
-                      Rp {baseRoomCostPerNight.toLocaleString('id-ID')}
-                    </span>
-                    <span className="text-[10px] text-emerald-700">/malam</span>
-                  </div>
-                </div>
-
-                {/* Tambahan Extra Bed Trenggole */}
-                <div className="p-4 rounded-[26px] bg-white border border-neutral-200/90 shadow-xs space-y-2 text-xs">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-neutral-900 block">Tambah Extra Bed</span>
-                      <span className="text-[11px] text-neutral-500">
-                        Tarif: <strong>Rp25.000 /orang /malam</strong> (menambah kapasitas)
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => extraBedsCount > 0 && setExtraBedsCount(extraBedsCount - 1)}
-                        disabled={extraBedsCount <= 0}
-                        className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center font-bold disabled:opacity-40"
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                      </button>
-                      <span className="font-black text-sm w-5 text-center">{extraBedsCount}</span>
-                      <button
-                        type="button"
-                        onClick={() => setExtraBedsCount(extraBedsCount + 1)}
-                        className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center font-bold"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
@@ -1039,7 +901,7 @@ export const BookingFlow: React.FC = () => {
         )}
 
         {/* ==============================================================
-            STEP 3: ISI DATA PEMESAN WAJIB (DENGAN VALIDASI KAPASITAS KETAT)
+            STEP 3: ISI DATA PEMESAN (TANPA PEMILIHAN TANGGAL BERULANG!)
            ============================================================== */}
         {activeStep === 3 && (
           <div className="space-y-4">
@@ -1048,15 +910,37 @@ export const BookingFlow: React.FC = () => {
                 Langkah 3 dari 5
               </span>
               <h2 className="text-lg font-black text-neutral-900">
-                Data Pemesan & Jumlah Tamu
+                Isi Data Pemesan
               </h2>
               <p className="text-xs text-neutral-500 mt-0.5">
-                Kapasitas pilihan Anda saat ini: <strong>Maksimal {totalMaxCapacityWithExtraBeds} Orang</strong>
+                Lengkapi identitas pemesan dan jumlah tamu rombongan.
               </p>
             </div>
 
+            {/* Ringkasan Tanggal Tetap dari Step 2 (Tidak Ditanyakan Ulang!) */}
+            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs flex items-center justify-between">
+              <div>
+                <span className="text-[10px] text-emerald-800 font-bold uppercase block">
+                  Tanggal Menginap Terpilih:
+                </span>
+                <span className="font-bold text-neutral-900 text-xs">
+                  {checkInDate} s/d {checkOutDate} ({totalNights} Malam)
+                </span>
+                <span className="text-[11px] text-neutral-600 block mt-0.5">
+                  Unit: {activeProp.name} • {bookingChoiceDisplayName}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveStep(2)}
+                className="px-2.5 py-1 rounded-xl bg-white border border-emerald-300 text-emerald-800 text-[11px] font-bold shadow-2xs hover:bg-emerald-50"
+              >
+                Ubah Tanggal
+              </button>
+            </div>
+
             <div className="bg-white rounded-[28px] p-5 shadow-xs border border-neutral-200/90 space-y-4 text-xs">
-              {/* Nama & Asal */}
+              {/* Nama Pemesan */}
               <div>
                 <label className="font-bold text-neutral-800 block mb-1">
                   1. Nama Lengkap Pemesan <span className="text-rose-500">*</span>
@@ -1064,356 +948,132 @@ export const BookingFlow: React.FC = () => {
                 <input
                   type="text"
                   value={namaLengkap}
-                  onChange={(e) => setNamaLengkap(e.target.value)}
-                  placeholder="Nama sesuai KTP"
-                  className="w-full h-11 px-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none"
+                  onChange={(e) => {
+                    setNamaLengkap(e.target.value);
+                    setErrorNotice('');
+                  }}
+                  placeholder="Nama pemesan sesuai KTP"
+                  className="w-full h-11 px-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
                 />
               </div>
 
+              {/* Kota Asal */}
               <div>
                 <label className="font-bold text-neutral-800 block mb-1">
-                  2. Asal Daerah / Kota Pemesan <span className="text-rose-500">*</span>
+                  2. Kota Asal Pemesan <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={asalKota}
-                  onChange={(e) => setAsalKota(e.target.value)}
-                  placeholder="Contoh: Solo, Jawa Tengah / Sleman, DIY"
-                  className="w-full h-11 px-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none"
+                  onChange={(e) => {
+                    setAsalKota(e.target.value);
+                    setErrorNotice('');
+                  }}
+                  placeholder="Contoh: Yogyakarta, Solo, Jakarta, Semarang"
+                  className="w-full h-11 px-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
                 />
               </div>
 
+              {/* Nomor WhatsApp */}
               <div>
                 <label className="font-bold text-neutral-800 block mb-1">
-                  Nomor WhatsApp / HP Aktif <span className="text-rose-500">*</span>
+                  3. Nomor WhatsApp Aktif <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="tel"
                   value={noHp}
-                  onChange={(e) => setNoHp(e.target.value)}
-                  placeholder="081234567890"
-                  className="w-full h-11 px-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none"
+                  onChange={(e) => {
+                    setNoHp(e.target.value);
+                    setErrorNotice('');
+                  }}
+                  placeholder="Contoh: 081234567890"
+                  className="w-full h-11 px-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
                 />
               </div>
 
-              {/* Tanggal Menginap */}
-              <div className="grid grid-cols-2 gap-2.5 pt-1">
-                <div>
-                  <label className="font-bold text-neutral-800 block mb-1">
-                    3. Tanggal Check-in <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={checkInDate}
-                    onChange={(e) => setCheckInDate(e.target.value)}
-                    className="w-full h-11 px-3 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-neutral-800 block mb-1">
-                    4. Tanggal Check-out <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={checkOutDate}
-                    min={checkInDate}
-                    onChange={(e) => setCheckOutDate(e.target.value)}
-                    className="w-full h-11 px-3 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none"
-                  />
-                </div>
-              </div>
-              <span className="text-[11px] text-emerald-800 font-bold block">
-                Total Menginap: {totalNights} Malam
-              </span>
-
-              {/* Rencana Anggaran */}
+              {/* Dengan Siapa Berkunjung (Wajib Mahrom) */}
               <div>
                 <label className="font-bold text-neutral-800 block mb-1">
-                  5. Rencana Anggaran Tamu <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={budgetPlan}
-                  onChange={(e) => setBudgetPlan(e.target.value)}
-                  placeholder="Contoh: Rp 1.500.000 atau Rp 2.500.000"
-                  className="w-full h-11 px-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none"
-                />
-              </div>
-
-              {/* JUMLAH TAMU DENGAN INDIKATOR VALIDASI KAPASITAS */}
-              <div className="p-3.5 rounded-2xl bg-[#F8F9FA] border border-neutral-200/80 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-black text-neutral-900 block text-xs">
-                    6. Rincian Jumlah Tamu Keluarga <span className="text-rose-500">*</span>
-                  </span>
-                  <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
-                    !checkCapacityValidation().isValid
-                      ? 'bg-rose-100 text-rose-700 border border-rose-300'
-                      : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                  }`}>
-                    {isSundak
-                      ? sundakPackageId === 'sundak-2-kamar'
-                        ? `Total: ${totalGuests} / Maks. 6 Orang`
-                        : `Total: ${totalGuests} / Maks. ${12 + extraBedsCount} Orang (Kapasitas s/d 21)`
-                      : `Total: ${totalGuests} / Kapasitas: ${(trenggoleSelectedRooms.length * 4) + extraBedsCount} Orang`}
-                  </span>
-                </div>
-
-                {/* Peringatan jika melebihi kapasitas */}
-                {!checkCapacityValidation().isValid && (
-                  <div className="p-3 bg-rose-50 border-2 border-rose-300 rounded-2xl text-rose-900 space-y-2">
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                      <span className="text-xs font-bold leading-relaxed">
-                        {checkCapacityValidation().message}
-                      </span>
-                    </div>
-
-                    {/* Tombol Penyelesaian Cepat */}
-                    <div className="pt-1 flex flex-wrap gap-1.5">
-                      {checkCapacityValidation().type === 'trenggole_exceed' && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => setActiveStep(2)}
-                            className="px-3 py-1.5 rounded-full bg-rose-800 text-white text-[11px] font-bold active:scale-95 shadow-xs cursor-pointer"
-                          >
-                            + Pilih Kamar Tambahan
-                          </button>
-                          {activeProp.roomTypes
-                            .filter((r) => !trenggoleSelectedRooms.includes(r.id))
-                            .map((unselectedRoom) => (
-                              <button
-                                key={unselectedRoom.id}
-                                type="button"
-                                onClick={() => toggleTrenggoleRoom(unselectedRoom.id)}
-                                className="px-2.5 py-1 rounded-full bg-white border border-rose-300 text-rose-900 text-[10px] font-bold hover:bg-rose-100 active:scale-95 cursor-pointer shadow-2xs"
-                              >
-                                + {unselectedRoom.name}
-                              </button>
-                            ))}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setExtraBedsCount(extraBedsCount + 1);
-                              setErrorNotice('');
-                            }}
-                            className="px-2.5 py-1 rounded-full bg-emerald-700 text-white text-[10px] font-bold hover:bg-emerald-800 active:scale-95 cursor-pointer shadow-2xs"
-                          >
-                            + Tambah Extra Bed
-                          </button>
-                        </>
-                      )}
-
-                      {checkCapacityValidation().type === 'sundak_2_exceed' && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSundakPackageId('sundak-4-kamar');
-                            setErrorNotice('');
-                          }}
-                          className="px-3 py-1.5 rounded-full bg-emerald-800 text-white text-[11px] font-bold active:scale-95 shadow-xs cursor-pointer"
-                        >
-                          Pindah ke Sewa 4 kamar (Rumah Penuh)
-                        </button>
-                      )}
-
-                      {checkCapacityValidation().type === 'sundak_4_need_extrabed' && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const needed = checkCapacityValidation().neededExtraBeds || Math.max(1, totalGuests - 12);
-                            setExtraBedsCount(Math.min(9, needed));
-                            setErrorNotice('');
-                          }}
-                          className="px-3 py-1.5 rounded-full bg-emerald-800 text-white text-[11px] font-bold active:scale-95 shadow-xs cursor-pointer"
-                        >
-                          + Tambah {checkCapacityValidation().neededExtraBeds || (totalGuests - 12)} Extra Bed Otomatis
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-2 text-[11px]">
-                  {/* Pria Dewasa */}
-                  <div className="bg-white p-2.5 rounded-xl border border-neutral-200 flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-neutral-800 block">Pria Dewasa</span>
-                      <span className="text-[10px] text-neutral-400">&gt; 11 tahun</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => adultMalesCount > 0 && setAdultMalesCount(adultMalesCount - 1)}
-                        className="w-6 h-6 rounded-full bg-neutral-100 flex items-center justify-center font-bold"
-                      >
-                        -
-                      </button>
-                      <span className="font-bold w-4 text-center">{adultMalesCount}</span>
-                      <button
-                        type="button"
-                        onClick={() => setAdultMalesCount(adultMalesCount + 1)}
-                        className="w-6 h-6 rounded-full bg-neutral-100 flex items-center justify-center font-bold"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Wanita Dewasa */}
-                  <div className="bg-white p-2.5 rounded-xl border border-neutral-200 flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-neutral-800 block">Wanita Dewasa</span>
-                      <span className="text-[10px] text-neutral-400">&gt; 11 tahun</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => adultFemalesCount > 0 && setAdultFemalesCount(adultFemalesCount - 1)}
-                        className="w-6 h-6 rounded-full bg-neutral-100 flex items-center justify-center font-bold"
-                      >
-                        -
-                      </button>
-                      <span className="font-bold w-4 text-center">{adultFemalesCount}</span>
-                      <button
-                        type="button"
-                        onClick={() => setAdultFemalesCount(adultFemalesCount + 1)}
-                        className="w-6 h-6 rounded-full bg-neutral-100 flex items-center justify-center font-bold"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Anak 3-11 Tahun */}
-                  <div className="bg-white p-2.5 rounded-xl border border-neutral-200 flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-neutral-800 block">Anak-anak</span>
-                      <span className="text-[10px] text-neutral-400">Usia 3 - 11 tahun</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => childrenCount > 0 && setChildrenCount(childrenCount - 1)}
-                        className="w-6 h-6 rounded-full bg-neutral-100 flex items-center justify-center font-bold"
-                      >
-                        -
-                      </button>
-                      <span className="font-bold w-4 text-center">{childrenCount}</span>
-                      <button
-                        type="button"
-                        onClick={() => setChildrenCount(childrenCount + 1)}
-                        className="w-6 h-6 rounded-full bg-neutral-100 flex items-center justify-center font-bold"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Balita < 3 Tahun */}
-                  <div className="bg-white p-2.5 rounded-xl border border-neutral-200 flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-neutral-800 block">Balita</span>
-                      <span className="text-[10px] text-neutral-400">Usia &lt; 3 tahun</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => toddlerCount > 0 && setToddlerCount(toddlerCount - 1)}
-                        className="w-6 h-6 rounded-full bg-neutral-100 flex items-center justify-center font-bold"
-                      >
-                        -
-                      </button>
-                      <span className="font-bold w-4 text-center">{toddlerCount}</span>
-                      <button
-                        type="button"
-                        onClick={() => setToddlerCount(toddlerCount + 1)}
-                        className="w-6 h-6 rounded-full bg-neutral-100 flex items-center justify-center font-bold"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Hubungan Mahrom */}
-              <div>
-                <label className="font-bold text-neutral-800 block mb-1">
-                  7. Hubungan Antar Tamu (Memastikan Aturan Mahrom) <span className="text-rose-500">*</span>
+                  4. Dengan Siapa Berkunjung (Wajib Mahrom) <span className="text-rose-500">*</span>
                 </label>
                 <select
-                  value={guestRelationship}
-                  onChange={(e) => setGuestRelationship(e.target.value)}
-                  className="w-full h-11 px-3 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none"
+                  value={withWhom}
+                  onChange={(e) => {
+                    setWithWhom(e.target.value);
+                    setErrorNotice('');
+                  }}
+                  className="w-full h-11 px-3 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
                 >
-                  <option value="Keluarga Inti (Suami, Istri & Anak-anak)">
-                    Keluarga Inti (Suami, Istri &amp; Anak-anak)
-                  </option>
-                  <option value="Keluarga Besar (Orang Tua, Anak & Saudara Kandung / Mahrom)">
-                    Keluarga Besar (Orang Tua, Anak &amp; Saudara Kandung / Mahrom)
-                  </option>
-                  <option value="Rombongan Pasutri Resmi & Keluarga">
-                    Rombongan Pasutri Resmi &amp; Keluarga
-                  </option>
-                  <option value="Rombongan Komunitas / Teman (Kamar Terpisah Ikhwan & Akhwat)">
-                    Rombongan Komunitas / Teman (Kamar Terpisah Ikhwan &amp; Akhwat)
-                  </option>
-                  <option value="Lainnya">Lainnya</option>
+                  <option value="">-- Pilih Hubungan Tamu (Wajib Mahrom / Sah) --</option>
+                  <option value="Keluarga Inti (Suami/Istri & Anak)">Keluarga Inti (Suami/Istri & Anak) - Mahrom</option>
+                  <option value="Rombongan Keluarga Besar (Mahrom)">Rombongan Keluarga Besar (Mahrom)</option>
+                  <option value="Pasangan Suami & Istri Sah">Pasangan Suami & Istri Sah (Pasutri)</option>
+                  <option value="Rombongan Teman Sesama Pria (Ikhwan)">Rombongan Teman Sesama Pria (Ikhwan)</option>
+                  <option value="Rombongan Teman Sesama Wanita (Akhwat)">Rombongan Teman Sesama Wanita (Akhwat)</option>
+                  <option value="Komunitas / Lembaga / Majelis">Komunitas / Lembaga / Majelis</option>
                 </select>
-              </div>
-
-              {/* Pilihan Kamar Konfirmasi */}
-              <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-xs">
-                <span className="font-bold text-emerald-950 block">8. Pilihan Kamar / Homestay:</span>
-                <span className="text-neutral-800 font-semibold block mt-0.5">
-                  {activeProp.name} • {bookingChoiceDisplayName}
+                <span className="text-[10px] text-emerald-800 font-semibold block mt-1">
+                  * Sesuai ketentuan homestay syariah barokah, tamu wajib bersama mahrom / keluarga sah atau sesama gender.
                 </span>
               </div>
 
-              {/* Kendaraan */}
-              <div>
-                <label className="font-bold text-neutral-800 block mb-1">
-                  9. Kendaraan (Mobil/Motor dan Jenis Kendaraan) <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={vehicleDetail}
-                  onChange={(e) => setVehicleDetail(e.target.value)}
-                  placeholder="Contoh: Mobil Toyota Avanza (1 Unit) atau 2 Motor Beat"
-                  className="w-full h-11 px-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none"
-                />
+              {/* Jumlah Tamu */}
+              <div className="p-3.5 rounded-2xl bg-[#F8F9FA] border border-neutral-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="font-bold text-neutral-900 block text-xs">
+                      5. Jumlah Tamu <span className="text-rose-500">*</span>
+                    </label>
+                    <span className="text-[11px] text-neutral-500 block">
+                      {isSundak
+                        ? 'Pantai Sundak: Minimal 4 orang (Rp75.000/orang/malam)'
+                        : `Pantai Trenggole: Maksimal ${trenggoleSelectedRooms.length * 4} orang (${trenggoleSelectedRooms.length} kamar)`}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => totalGuests > 1 && setTotalGuests(totalGuests - 1)}
+                      className="w-8 h-8 rounded-full bg-neutral-200 hover:bg-neutral-300 font-bold flex items-center justify-center text-neutral-800 cursor-pointer"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="font-black text-sm w-6 text-center text-neutral-900">
+                      {totalGuests}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setTotalGuests(totalGuests + 1)}
+                      className="w-8 h-8 rounded-full bg-neutral-200 hover:bg-neutral-300 font-bold flex items-center justify-center text-neutral-800 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {isSundak && (
+                  <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-900 font-medium">
+                    Kalkulasi Sundak: <strong>{totalGuests} orang × {totalNights} malam × Rp75.000 = Rp {(totalGuests * totalNights * 75000).toLocaleString('id-ID')}</strong>
+                  </div>
+                )}
               </div>
 
-              {/* Sumber Info */}
-              <div>
-                <label className="font-bold text-neutral-800 block mb-1">
-                  10. Dapat Info Griya Barokah Pantai Sundak/Trenggole dari... <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  value={referralSource}
-                  onChange={(e) => setReferralSource(e.target.value)}
-                  className="w-full h-11 px-3 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none"
-                >
-                  <option value="Google Search / Google Maps">Google Search / Google Maps</option>
-                  <option value="Rekomendasi Teman / Keluarga">Rekomendasi Teman / Keluarga</option>
-                  <option value="Media Sosial (Instagram / TikTok / Facebook)">
-                    Media Sosial (Instagram / TikTok / Facebook)
-                  </option>
-                  <option value="WhatsApp Group Komunitas">WhatsApp Group Komunitas</option>
-                  <option value="Spanduk / Brosur di Lokasi">Spanduk / Brosur di Lokasi</option>
-                  <option value="Pernah Menginap Sebelumnya">Pernah Menginap Sebelumnya</option>
-                  <option value="Lainnya">Lainnya</option>
-                </select>
-              </div>
+              {/* Peringatan Kelengkapan Data */}
+              {!isStep3Valid && (
+                <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span className="font-semibold">
+                    Lengkapi data terlebih dahulu sebelum melanjutkan pemesanan.
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* ==============================================================
-            STEP 4: RINGKASAN BOOKING & PERINGATAN DP HANGUS
+            STEP 4: RINGKASAN HARGA & PILIHAN PEMBAYARAN (DP 50% ATAU LUNAS 100%)
            ============================================================== */}
         {activeStep === 4 && (
           <div className="space-y-4">
@@ -1422,13 +1082,14 @@ export const BookingFlow: React.FC = () => {
                 Langkah 4 dari 5
               </span>
               <h2 className="text-lg font-black text-neutral-900">
-                Ringkasan Booking & Down Payment (DP)
+                Pilihan Pembayaran
               </h2>
               <p className="text-xs text-neutral-500 mt-0.5">
-                Periksa detail biaya dan tentukan nominal DP (minimal &gt; 50%)
+                Pilih opsi pembayaran: Uang Muka (DP 50%) atau Lunas 100%. Nominal otomatis dihitung.
               </p>
             </div>
 
+            {/* Rincian Tagihan */}
             <div className="bg-white rounded-[28px] p-5 shadow-xs border border-neutral-200/90 space-y-3.5 text-xs">
               <div className="pb-3 border-b border-neutral-100 flex items-center justify-between">
                 <div>
@@ -1450,111 +1111,127 @@ export const BookingFlow: React.FC = () => {
                   <strong className="text-neutral-900">{namaLengkap} ({asalKota})</strong>
                 </div>
                 <div>
+                  <span className="text-[10px] text-neutral-400 block font-bold uppercase">Nomor WhatsApp</span>
+                  <strong className="text-neutral-900">{noHp}</strong>
+                </div>
+                <div>
                   <span className="text-[10px] text-neutral-400 block font-bold uppercase">Tanggal Menginap</span>
                   <strong className="text-neutral-900">{checkInDate} s/d {checkOutDate}</strong>
                 </div>
                 <div>
-                  <span className="text-[10px] text-neutral-400 block font-bold uppercase">Total Tamu</span>
+                  <span className="text-[10px] text-neutral-400 block font-bold uppercase">Jumlah Tamu</span>
                   <strong className="text-neutral-900">{totalGuests} Orang</strong>
-                </div>
-                <div>
-                  <span className="text-[10px] text-neutral-400 block font-bold uppercase">Kendaraan</span>
-                  <strong className="text-neutral-900 truncate block">{vehicleDetail}</strong>
                 </div>
               </div>
 
-              {/* Rincian Tarif Otomatis */}
-              <div className="pt-3 border-t border-neutral-100 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-neutral-600">
-                    Sewa ({bookingChoiceDisplayName} × {totalNights} Malam)
-                  </span>
-                  <span className="font-bold text-neutral-900">Rp {baseCostTotal.toLocaleString('id-ID')}</span>
-                </div>
-
-                {extraBedsCount > 0 && (
-                  <div className="flex items-center justify-between text-emerald-800">
-                    <span>Extra Bed ({extraBedsCount} Bed × {totalNights} Malam)</span>
-                    <span className="font-bold">+Rp {extraBedTotal.toLocaleString('id-ID')}</span>
+              {/* Formula & Total */}
+              <div className="pt-3 border-t border-neutral-100 space-y-1">
+                {isSundak ? (
+                  <div className="flex items-center justify-between text-neutral-600">
+                    <span>{totalGuests} orang × {totalNights} malam × Rp75.000</span>
+                    <span className="font-bold text-neutral-900">Rp {grandTotal.toLocaleString('id-ID')}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between text-neutral-600">
+                    <span>Tarif {trenggoleSelectedRooms.length} kamar × {totalNights} malam</span>
+                    <span className="font-bold text-neutral-900">Rp {grandTotal.toLocaleString('id-ID')}</span>
                   </div>
                 )}
 
                 <div className="pt-2 border-t border-neutral-200/80 flex items-baseline justify-between text-sm">
-                  <strong className="text-neutral-900">Total Biaya Menginap</strong>
-                  <strong className="text-emerald-800 font-black text-base">
+                  <strong className="text-neutral-900">Total Biaya Menginap:</strong>
+                  <strong className="text-emerald-800 font-black text-lg">
                     Rp {grandTotal.toLocaleString('id-ID')}
                   </strong>
                 </div>
               </div>
             </div>
 
-            {/* PENGATURAN DP MINIMAL LEBIH DARI 50% */}
+            {/* DUA PILIHAN PEMBAYARAN: DP 50% vs LUNAS 100% */}
             <div className="bg-white rounded-[28px] p-5 shadow-xs border border-emerald-300 space-y-3.5 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="font-black uppercase tracking-wider text-neutral-800 flex items-center gap-1.5">
-                  <CreditCard className="w-4 h-4 text-emerald-700" />
-                  <span>Kalkulasi Down Payment (DP)</span>
-                </span>
-                <span className="text-[10px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                  Minimal &gt; 50%
-                </span>
+              <span className="font-black uppercase tracking-wider text-neutral-900 block">
+                Pilih Tipe Pembayaran:
+              </span>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                {/* Opsi 1: DP 50% */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentType('dp_50')}
+                  className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                    paymentType === 'dp_50'
+                      ? 'border-emerald-800 bg-emerald-50/80 shadow-xs ring-2 ring-emerald-800/20'
+                      : 'border-neutral-200 bg-[#F9FAFB] hover:border-neutral-300'
+                  }`}
+                >
+                  <span className="text-[10px] font-bold text-emerald-800 uppercase block">Opsi 1</span>
+                  <span className="text-sm font-black text-neutral-900 block mt-0.5">
+                    DP 50%
+                  </span>
+                  <span className="text-xs font-black text-emerald-900 block mt-1">
+                    Rp {Math.round(grandTotal * 0.5).toLocaleString('id-ID')}
+                  </span>
+                  <span className="text-[10px] text-neutral-500 block mt-0.5">
+                    Sisa Rp {Math.round(grandTotal * 0.5).toLocaleString('id-ID')} saat check-in
+                  </span>
+                </button>
+
+                {/* Opsi 2: Lunas 100% */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentType('full_100')}
+                  className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                    paymentType === 'full_100'
+                      ? 'border-emerald-800 bg-emerald-50/80 shadow-xs ring-2 ring-emerald-800/20'
+                      : 'border-neutral-200 bg-[#F9FAFB] hover:border-neutral-300'
+                  }`}
+                >
+                  <span className="text-[10px] font-bold text-sky-800 uppercase block">Opsi 2</span>
+                  <span className="text-sm font-black text-neutral-900 block mt-0.5">
+                    Lunas 100%
+                  </span>
+                  <span className="text-xs font-black text-emerald-900 block mt-1">
+                    Rp {grandTotal.toLocaleString('id-ID')}
+                  </span>
+                  <span className="text-[10px] text-neutral-500 block mt-0.5">
+                    Tidak ada sisa pelunasan saat tiba
+                  </span>
+                </button>
               </div>
 
-              <div className="grid grid-cols-4 gap-2">
-                {[55, 60, 75, 100].map((pct) => (
-                  <button
-                    key={pct}
-                    type="button"
-                    onClick={() => setDpPercentage(pct)}
-                    className={`py-2 px-1 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
-                      dpPercentage === pct
-                        ? 'border-emerald-800 bg-emerald-800 text-white shadow-xs'
-                        : 'border-neutral-200 bg-[#F9FAFB] text-neutral-700 hover:bg-neutral-100'
-                    }`}
-                  >
-                    <span>{pct === 100 ? 'Lunas 100%' : `${pct}%`}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-1.5">
+              {/* Rincian Bayar Sekarang */}
+              <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-neutral-700">Nominal DP Dibayar Sekarang:</span>
+                  <span className="font-bold text-neutral-700">Nominal yang Harus Ditransfer:</span>
                   <span className="text-base font-black text-emerald-900">
                     Rp {dpAmount.toLocaleString('id-ID')}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-[11px] text-neutral-600">
-                  <span>Sisa Pelunasan Saat Tiba:</span>
-                  <span className="font-bold text-neutral-900">
-                    Rp {remainingBalance.toLocaleString('id-ID')}
-                  </span>
-                </div>
-              </div>
-
-              {/* PERINGATAN WAJIB DP AKAN HANGUS */}
-              <div className="p-3.5 rounded-2xl bg-rose-50 border-2 border-rose-300 space-y-2">
-                <div className="flex items-start gap-2 text-rose-900">
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="block text-xs font-black">
-                      Peringatan Penting Pembatalan:
-                    </strong>
-                    <span className="text-xs font-extrabold text-rose-700 block mt-0.5">
-                      &quot;DP akan hangus apabila pesanan dibatalkan.&quot;
+                {paymentType === 'dp_50' && (
+                  <div className="flex items-center justify-between text-[11px] text-neutral-600">
+                    <span>Sisa Pelunasan Saat Check-in:</span>
+                    <span className="font-bold text-neutral-900">
+                      Rp {remainingBalance.toLocaleString('id-ID')}
                     </span>
                   </div>
-                </div>
+                )}
+              </div>
 
-                <label className="flex items-start gap-2 pt-1 cursor-pointer">
+              {/* Ketentuan Pembatalan */}
+              <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 space-y-1.5">
+                <div className="flex items-center gap-1.5 text-rose-900 font-bold text-xs">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                  <span>Ketentuan: &quot;DP akan hangus apabila pesanan dibatalkan.&quot;</span>
+                </div>
+                <label className="flex items-start gap-2 pt-0.5 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={dpTermsAccepted}
                     onChange={(e) => setDpTermsAccepted(e.target.checked)}
-                    className="w-4 h-4 mt-0.5 rounded border-rose-300 text-rose-600 focus:ring-rose-500"
+                    className="w-4 h-4 mt-0.5 rounded border-rose-300 text-rose-600"
                   />
-                  <span className="text-[11px] font-semibold text-rose-900 leading-snug">
-                    Saya telah membaca, memahami, dan menyetujui bahwa uang muka (DP) yang telah dibayarkan akan hangus jika pesanan dibatalkan.
+                  <span className="text-[11px] text-rose-900">
+                    Saya menyetujui ketentuan pemesanan dan pembatalan Griya Barokah Homestay.
                   </span>
                 </label>
               </div>
@@ -1563,7 +1240,7 @@ export const BookingFlow: React.FC = () => {
         )}
 
         {/* ==============================================================
-            STEP 5: PEMBAYARAN DP (TRANSFER & BUKTI BAYAR)
+            STEP 5: PEMBAYARAN & UPLOAD BUKTI TRANSFER (WAJIB!)
            ============================================================== */}
         {activeStep === 5 && (
           <div className="space-y-4">
@@ -1572,16 +1249,17 @@ export const BookingFlow: React.FC = () => {
                 Langkah 5 dari 5
               </span>
               <h2 className="text-lg font-black text-neutral-900">
-                Pembayaran DP ({dpPercentage}%)
+                Pembayaran & Bukti Transfer
               </h2>
               <p className="text-xs text-neutral-500 mt-0.5">
-                Transfer nominal DP untuk mengonfirmasi pesanan keluarga Anda
+                Lakukan transfer sejumlah nominal di bawah dan wajib upload bukti transfer.
               </p>
             </div>
 
-            <div className="p-4 rounded-[26px] bg-white border border-emerald-200 shadow-xs space-y-2 text-xs">
+            {/* Total Tagihan Transfer */}
+            <div className="p-4 rounded-[26px] bg-white border border-emerald-300 shadow-xs space-y-2 text-xs">
               <span className="text-[10px] uppercase font-bold text-neutral-500 block">
-                Total Tagihan DP Homestay
+                Nominal Transfer {paymentType === 'full_100' ? '(Lunas 100%)' : '(DP 50%)'}
               </span>
               <div className="flex items-baseline justify-between">
                 <div>
@@ -1596,26 +1274,24 @@ export const BookingFlow: React.FC = () => {
                   <span className="text-lg font-black text-emerald-800 block">
                     Rp {dpAmount.toLocaleString('id-ID')}
                   </span>
-                  <span className="text-[10px] text-neutral-400">DP {dpPercentage}%</span>
+                  <span className="text-[10px] text-neutral-400">
+                    {paymentType === 'full_100' ? 'Lunas' : 'DP 50%'}
+                  </span>
                 </div>
               </div>
             </div>
 
+            {/* Rekening Tujuan */}
             <div className="p-4.5 rounded-[26px] bg-white border border-neutral-200/90 shadow-xs space-y-3.5 text-xs">
-              <div className="flex items-center justify-between pb-1">
-                <span className="font-extrabold text-neutral-900">
-                  Pilih Saluran Transfer DP
-                </span>
-                <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                  Batas: 2 Jam
-                </span>
-              </div>
+              <span className="font-extrabold text-neutral-900 block">
+                Pilih Rekening Tujuan Transfer:
+              </span>
 
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setMetodePembayaran('bca')}
-                  className={`px-3 py-2 rounded-full text-xs font-bold transition-all ${
+                  className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
                     metodePembayaran === 'bca'
                       ? 'bg-[#181C24] text-white shadow-xs'
                       : 'bg-[#F4F5F7] text-neutral-600 hover:bg-neutral-200'
@@ -1627,7 +1303,7 @@ export const BookingFlow: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setMetodePembayaran('mandiri')}
-                  className={`px-3 py-2 rounded-full text-xs font-bold transition-all ${
+                  className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
                     metodePembayaran === 'mandiri'
                       ? 'bg-[#181C24] text-white shadow-xs'
                       : 'bg-[#F4F5F7] text-neutral-600 hover:bg-neutral-200'
@@ -1639,7 +1315,7 @@ export const BookingFlow: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setMetodePembayaran('qris')}
-                  className={`px-3 py-2 rounded-full text-xs font-bold transition-all ${
+                  className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
                     metodePembayaran === 'qris'
                       ? 'bg-[#181C24] text-white shadow-xs'
                       : 'bg-[#F4F5F7] text-neutral-600 hover:bg-neutral-200'
@@ -1653,7 +1329,7 @@ export const BookingFlow: React.FC = () => {
                 <div className="p-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-neutral-500 font-medium">
-                      Nomor Virtual Account
+                      Nomor Rekening / Virtual Account
                     </span>
                     <span className="px-2 py-0.5 rounded bg-white text-[10px] font-bold text-neutral-700 border border-neutral-200 uppercase">
                       {metodePembayaran}
@@ -1673,6 +1349,9 @@ export const BookingFlow: React.FC = () => {
                       <span>{salinStatus ? 'Tersalin' : 'Salin'}</span>
                     </button>
                   </div>
+                  <span className="text-[10px] text-neutral-500 block">
+                    Atas Nama: <strong>Griya Barokah Homestay</strong>
+                  </span>
                 </div>
               ) : (
                 <div className="p-4 rounded-2xl bg-[#F6F7F9] border border-neutral-200 flex flex-col items-center text-center space-y-2">
@@ -1689,42 +1368,89 @@ export const BookingFlow: React.FC = () => {
                 </div>
               )}
 
-              {/* Upload Bukti Pembayaran DP */}
-              <div>
-                <label className="block text-[12px] font-bold text-neutral-800 mb-1.5">
-                  Upload Bukti Transfer DP <span className="text-rose-500">*</span>
-                </label>
-                <div className="p-3 rounded-2xl border border-dashed border-neutral-300 bg-[#FAFBFD] flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white border border-neutral-200 flex items-center justify-center text-neutral-600 shadow-xs">
-                      <CreditCard className="w-5 h-5 text-neutral-700" />
-                    </div>
-                    <div>
-                      <span className="text-[12px] font-bold text-neutral-900 block">
-                        Struk / Resi Transfer DP
-                      </span>
-                      <span className="text-[10px] text-neutral-400 block mt-0.5">
-                        JPG / PNG bukti transfer DP
-                      </span>
-                    </div>
-                  </div>
-
-                  <label className="w-9 h-9 rounded-full bg-[#EBF8F2] flex items-center justify-center text-[#1DB954] cursor-pointer hover:bg-[#d8f3e5] transition-colors">
-                    <input type="file" accept="image/*" className="hidden" />
-                    <Plus className="w-5 h-5 stroke-[2.5]" />
+              {/* UPLOAD BUKTI TRANSFER (WAJIB SESUAI INSTRUKSI) */}
+              <div className="space-y-2 pt-2 border-t border-neutral-100">
+                <div className="flex items-center justify-between">
+                  <label className="font-black text-neutral-900 text-xs flex items-center gap-1.5">
+                    <Upload className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Upload Bukti Transfer</span>
+                    <span className="text-rose-500">* (Wajib)</span>
                   </label>
+                  {paymentProofImage && (
+                    <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      ✓ Foto Terpilih
+                    </span>
+                  )}
                 </div>
+
+                <div className={`p-4 rounded-2xl border-2 border-dashed transition-all ${
+                  paymentProofImage
+                    ? 'border-emerald-500 bg-emerald-50/40'
+                    : 'border-neutral-300 bg-[#FAFBFD] hover:border-neutral-400'
+                }`}>
+                  {paymentProofImage ? (
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={paymentProofImage}
+                        alt="Bukti Transfer"
+                        className="w-16 h-16 rounded-xl object-cover border border-emerald-300"
+                      />
+                      <div className="min-w-0 flex-grow">
+                        <span className="text-xs font-bold text-emerald-950 block">
+                          Bukti transfer berhasil diunggah
+                        </span>
+                        <span className="text-[11px] text-neutral-500 block truncate">
+                          Siap dikirim untuk verifikasi pengelola.
+                        </span>
+                        <label className="text-[11px] text-emerald-700 font-bold hover:underline cursor-pointer block mt-1">
+                          <span>Ganti foto bukti transfer</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center text-center cursor-pointer py-2">
+                      <div className="w-12 h-12 rounded-2xl bg-white border border-neutral-200 flex items-center justify-center text-neutral-700 shadow-xs mb-2">
+                        <Upload className="w-6 h-6 text-emerald-700" />
+                      </div>
+                      <span className="text-xs font-bold text-neutral-900 block">
+                        Pilih Foto Struk / Screenshot Bukti Transfer
+                      </span>
+                      <span className="text-[11px] text-neutral-400 block mt-0.5">
+                        Format JPG atau PNG (Maks. 10MB)
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* Peringatan Wajib Bukti Pembayaran */}
+                {!paymentProofImage && (
+                  <p className="text-[11px] text-rose-700 font-semibold bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+                    ⚠️ <strong>Perhatian:</strong> Upload bukti transfer sebelum booking dikirim. Booking tidak boleh diproses jika bukti pembayaran kosong.
+                  </p>
+                )}
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Sticky Bottom Action Wizard Bar */}
+      {/* Sticky Bottom Wizard Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200/80 px-6 py-3.5 max-w-md mx-auto flex items-center justify-between shadow-lg">
         <div>
           <span className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider block">
-            {activeStep === 5 ? `DP Dibayar (${dpPercentage}%)` : 'Estimasi Tarif'}
+            {activeStep === 5 ? `Total Bayar (${paymentType === 'full_100' ? 'Lunas' : 'DP 50%'})` : 'Total Biaya'}
           </span>
           <span className="text-[16px] font-black text-neutral-900">
             {activeStep === 5
@@ -1739,7 +1465,7 @@ export const BookingFlow: React.FC = () => {
             onClick={() => setActiveStep(2)}
             className="h-12 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
           >
-            <span>Pilih Kamar</span>
+            <span>Pilih Tanggal</span>
             <ArrowRight className="w-4 h-4 text-white" />
           </button>
         )}
@@ -1747,7 +1473,7 @@ export const BookingFlow: React.FC = () => {
         {activeStep === 2 && (
           <button
             type="button"
-            onClick={() => setActiveStep(3)}
+            onClick={handleValidateAndProceedStep2}
             className="h-12 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
           >
             <span>Isi Data Tamu</span>
@@ -1759,15 +1485,10 @@ export const BookingFlow: React.FC = () => {
           <button
             type="button"
             onClick={handleValidateAndProceedStep3}
-            className={`h-12 px-5 rounded-full font-bold text-xs flex items-center gap-1.5 shadow-md transition-all ${
-              !checkCapacityValidation().isValid
-                ? 'bg-rose-700 hover:bg-rose-800 text-white cursor-pointer active:scale-95'
-                : 'bg-[#13281E] hover:bg-[#1A3428] text-white active:scale-[0.98] cursor-pointer'
-            }`}
+            disabled={!isStep3Valid}
+            className="h-12 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <span>
-              {!checkCapacityValidation().isValid ? 'Kapasitas Melebihi' : 'Ringkasan Booking'}
-            </span>
+            <span>Pilih Pembayaran</span>
             <ArrowRight className="w-4 h-4 text-white" />
           </button>
         )}
@@ -1775,10 +1496,10 @@ export const BookingFlow: React.FC = () => {
         {activeStep === 4 && (
           <button
             type="button"
-            onClick={handleNextFromStep4}
+            onClick={handleProceedStep4}
             className="h-12 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
           >
-            <span>Lanjut Bayar DP</span>
+            <span>Lanjut ke Transfer</span>
             <ArrowRight className="w-4 h-4 text-white" />
           </button>
         )}
@@ -1787,10 +1508,10 @@ export const BookingFlow: React.FC = () => {
           <button
             type="button"
             onClick={handleSubmitBooking}
-            disabled={isSubmitting}
-            className="h-12 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer disabled:opacity-50"
+            disabled={isSubmitting || !paymentProofImage}
+            className="h-12 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <span>{isSubmitting ? 'Mengirim...' : 'Konfirmasi DP'}</span>
+            <span>{isSubmitting ? 'Mengirim...' : 'Kirim Booking'}</span>
             <ArrowRight className="w-4 h-4 text-white" />
           </button>
         )}

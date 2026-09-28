@@ -111,7 +111,7 @@ export const CustomerDashboard: React.FC = () => {
         <section className="relative rounded-[30px] overflow-hidden bg-neutral-900 shadow-md">
           <div className="relative h-60 w-full">
             <SafeImage
-              src="https://images.unsplash.com/photo-1544984243-ec57ea16fe25?auto=format&fit=crop&w=1200&q=85"
+              src="/src/assets/images/sundak_fullhouse_1790552054893.jpg"
               alt="Griya Barokah Homestay Pantai Sundak & Trenggole"
               className="w-full h-full object-cover opacity-90"
               containerClassName="w-full h-full"
@@ -307,26 +307,21 @@ export const CustomerDashboard: React.FC = () => {
 
             <div className="px-4 space-y-2.5">
               <p className="text-xs text-neutral-600 leading-relaxed">
-                Penginapan luas berjarak jalan kaki ke pantai pasir putih Sundak. Menyediakan 4 kamar tidur AC, 3 kamar mandi, ruang keluarga luas untuk berkumpul, kulkas, TV, mesin cuci, dapur lengkap dengan alat masak/makan, hingga fasilitas 13 extra bed tambahan.
+                Konsep Satu Rumah Penuh (Full House), bukan sewa per kamar. Berjarak jalan kaki ke pantai pasir putih Sundak, cocok untuk keluarga & rombongan. Memiliki 4 kamar tidur AC, 3 kamar mandi, ruang keluarga luas, kulkas, TV, mesin cuci, dapur lengkap alat masak/makan, WiFi gratis, dan parkir luas.
               </p>
 
-              {/* Pilihan Paket Sundak */}
-              <div className="p-3 rounded-2xl bg-[#F8F9FA] border border-neutral-200/70 space-y-2 text-xs">
+              {/* Rincian Tarif Full House Sundak */}
+              <div className="p-3 rounded-2xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-neutral-900">1. Sewa 2 kamar</span>
-                  <span className="font-black text-emerald-800">Rp250.000 <span className="font-normal text-[10px] text-neutral-400">/kamar/malam</span></span>
+                  <span className="font-bold text-neutral-900">Satu Rumah Penuh (Full House)</span>
+                  <span className="font-black text-emerald-800">Rp75.000 <span className="font-normal text-[10px] text-neutral-400">/orang/malam</span></span>
                 </div>
                 <p className="text-[11px] text-neutral-500">
-                  Kapasitas standar 3 orang/kamar. Maksimal 6 orang.
+                  Minimal pemesanan 4 orang. Total biaya: <strong>Jumlah orang × Jumlah malam × Rp75.000</strong>.
                 </p>
-
-                <div className="pt-1.5 border-t border-neutral-200/60 flex items-center justify-between">
-                  <span className="font-bold text-neutral-900">2. Sewa 4 kamar (Rumah Penuh)</span>
-                  <span className="font-black text-emerald-800">Rp800.000 <span className="font-normal text-[10px] text-neutral-400">/malam</span></span>
+                <div className="p-2 rounded-xl bg-emerald-50 text-[10px] text-emerald-900 font-semibold border border-emerald-200">
+                  Contoh: 4 orang 1 malam = Rp300.000 • 7 orang 1 malam = Rp525.000 • 7 orang 2 malam = Rp1.050.000.
                 </div>
-                <p className="text-[11px] text-neutral-500">
-                  Kapasitas standar 21 orang. Maksimal 12 orang sebelum extra bed. Tambahan Extra bed Rp25.000/orang.
-                </p>
               </div>
 
               <button

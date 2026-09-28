@@ -4,7 +4,7 @@ import { ArrowRight, Home, Wifi, Battery, Signal } from 'lucide-react';
 import { SafeImage } from './common/SafeImage';
 
 export const LandingPage: React.FC = () => {
-  const { setCurrentView, t } = useBooking();
+  const { setCurrentView, t, heroImage } = useBooking();
 
   return (
     <div className="relative w-full h-full min-h-[100dvh] sm:min-h-[850px] bg-[#FBFBFC] text-[#0F141A] flex flex-col justify-between overflow-hidden select-none">
@@ -31,7 +31,7 @@ export const LandingPage: React.FC = () => {
       {/* Hero Image Section - Mobile Aspect Ratio with Complete Building View & Smooth Fade */}
       <div className="relative w-full h-[46dvh] sm:h-[420px] shrink-0 overflow-hidden">
         <SafeImage
-          src="https://images.unsplash.com/photo-1544984243-ec57ea16fe25?auto=format&fit=crop&w=1200&q=85"
+          src={heroImage}
           alt="Griya Barokah Pantai Sundak & Trenggole"
           fallbackText="Griya Barokah Homestay"
           className="w-full h-full object-cover object-[center_30%]"

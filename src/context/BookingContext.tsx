@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Booking, Property, RoomType, UserRole, Language } from '../types';
+import { Booking, Property, RoomType, UserRole, Language, BookingStatus } from '../types';
 import { INITIAL_PROPERTIES } from '../data/properties';
 import { INITIAL_BOOKINGS } from '../data/initialBookings';
 import { generateQrCode } from '../utils/qr';
@@ -50,12 +50,18 @@ interface BookingContextType {
   setActiveBookingId: (id: string | null) => void;
   activeBooking: Booking | null;
 
+  // Ketersediaan Otomatis Berdasarkan Tanggal
+  checkSundakAvailability: (checkIn: string, checkOut: string) => boolean;
+  checkTrenggoleRoomAvailability: (roomId: string, checkIn: string, checkOut: string) => boolean;
+  isDateOverlapping: (startA: string, endA: string, startB: string, endB: string) => boolean;
+
   // Aksi Tamu
   createBooking: (bookingData: Omit<Booking, 'id' | 'status' | 'createdAt'>) => Promise<string>;
 
   // Aksi Admin
   verifyBooking: (id: string, notes?: string) => Promise<boolean>;
   rejectBooking: (id: string, reason?: string) => Promise<boolean>;
+  updateBookingStatus: (id: string, status: BookingStatus, notes?: string) => Promise<boolean>;
 
   // Aksi Resepsionis
   checkInBooking: (id: string) => Promise<{ success: boolean; message: string; booking?: Booking }>;
@@ -69,16 +75,24 @@ interface BookingContextType {
   // Mobile Shell Mode
   mobileFrameMode: boolean;
   setMobileFrameMode: (enabled: boolean) => void;
+
+  // Foto Hero & Kontak WA Admin
+  heroImage: string;
+  updateHeroImage: (url: string) => void;
+  adminWhatsappNumber: string;
+  updateAdminWhatsappNumber: (num: string) => void;
 }
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_PROPERTIES_KEY = 'barokah_accommodations_v7';
-const LOCAL_STORAGE_BOOKINGS_KEY = 'barokah_bookings_v7';
+const LOCAL_STORAGE_PROPERTIES_KEY = 'barokah_accommodations_v9';
+const LOCAL_STORAGE_BOOKINGS_KEY = 'barokah_bookings_v9';
 const LOCAL_STORAGE_LANG_KEY = 'barokah_language_v1';
 const LOCAL_STORAGE_FAV_KEY = 'barokah_favs_v1';
 const LOCAL_STORAGE_ADMIN_AUTH_KEY = 'barokah_admin_auth_v1';
 const LOCAL_STORAGE_RECEPTION_AUTH_KEY = 'barokah_reception_auth_v1';
+const LOCAL_STORAGE_HERO_IMAGE_KEY = 'barokah_hero_img_v2';
+const LOCAL_STORAGE_ADMIN_WA_KEY = 'barokah_admin_wa_v2';
 
 export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // 1. Language State
@@ -256,6 +270,45 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   });
 
+  // 6. Foto Hero & Nomor WhatsApp Admin
+  const [heroImage, setHeroImage] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_HERO_IMAGE_KEY);
+      if (saved) return saved;
+    } catch {
+      // fallback
+    }
+    return 'https://images.unsplash.com/photo-1544984243-ec57ea16fe25?auto=format&fit=crop&w=1200&q=85';
+  });
+
+  const updateHeroImage = (url: string) => {
+    setHeroImage(url);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_HERO_IMAGE_KEY, url);
+    } catch {
+      // ignore
+    }
+  };
+
+  const [adminWhatsappNumber, setAdminWhatsappNumber] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_ADMIN_WA_KEY);
+      if (saved) return saved;
+    } catch {
+      // fallback
+    }
+    return '082138613888';
+  });
+
+  const updateAdminWhatsappNumber = (num: string) => {
+    setAdminWhatsappNumber(num);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_ADMIN_WA_KEY, num);
+    } catch {
+      // ignore
+    }
+  };
+
   // Sync to localStorage
   useEffect(() => {
     try {
@@ -429,11 +482,53 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   // ================= TAMU & BOOKING ACTIONS =================
+  const isDateOverlapping = (startA: string, endA: string, startB: string, endB: string): boolean => {
+    if (!startA || !endA || !startB || !endB) return false;
+    return startA < endB && endA > startB;
+  };
+
+  const checkSundakAvailability = (checkIn: string, checkOut: string): boolean => {
+    if (!checkIn || !checkOut || checkIn >= checkOut) return true;
+    const sundak = accommodations.find((a) => a.id === 'homestay-sundak');
+    if (sundak?.blockedDates) {
+      for (const d of sundak.blockedDates) {
+        if (d >= checkIn && d < checkOut) return false;
+      }
+    }
+    const hasConflict = bookings.some(
+      (b) =>
+        b.propertyId === 'homestay-sundak' &&
+        b.status !== 'rejected' &&
+        isDateOverlapping(checkIn, checkOut, b.checkInDate, b.checkOutDate)
+    );
+    return !hasConflict;
+  };
+
+  const checkTrenggoleRoomAvailability = (roomId: string, checkIn: string, checkOut: string): boolean => {
+    if (!checkIn || !checkOut || checkIn >= checkOut) return true;
+    const trenggole = accommodations.find((a) => a.id === 'homestay-trenggole');
+    const targetRoom = trenggole?.roomTypes.find((r) => r.id === roomId);
+    if (targetRoom && targetRoom.isAvailable === false) return false;
+    if (targetRoom?.blockedDates) {
+      for (const d of targetRoom.blockedDates) {
+        if (d >= checkIn && d < checkOut) return false;
+      }
+    }
+    const hasConflict = bookings.some(
+      (b) =>
+        b.propertyId === 'homestay-trenggole' &&
+        b.status !== 'rejected' &&
+        (b.roomTypeId === roomId || (b.roomChoiceDetail && b.roomChoiceDetail.includes(roomId))) &&
+        isDateOverlapping(checkIn, checkOut, b.checkInDate, b.checkOutDate)
+    );
+    return !hasConflict;
+  };
+
   const createBooking = async (
     bookingData: Omit<Booking, 'id' | 'status' | 'createdAt'>
   ): Promise<string> => {
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const newId = `GBR-2025-${randomSuffix}`;
+    const newId = `GBH-${randomSuffix}`;
 
     const qrDataPayload = `BAROKAH:BOOKING:${newId}|GUEST:${bookingData.guestName}|NIK:${bookingData.guestNik}|ROOM:${bookingData.roomTypeName}`;
     const qrCodeImage = await generateQrCode(qrDataPayload);
@@ -486,6 +581,32 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
             rejectionReason: reason || 'Dokumen KTP atau bukti transfer tidak valid.',
             adminNotes: `Ditolak: ${reason || 'Verifikasi tidak valid'}`,
           };
+        }
+        return b;
+      })
+    );
+    return success;
+  };
+
+  const updateBookingStatus = async (id: string, status: BookingStatus, notes?: string): Promise<boolean> => {
+    let success = false;
+    setBookings((prev) =>
+      prev.map((b) => {
+        if (b.id === id) {
+          success = true;
+          const updated: Booking = {
+            ...b,
+            status,
+          };
+          if (notes !== undefined) {
+            updated.adminNotes = notes;
+          }
+          if (status === 'verified' && !updated.verifiedAt) {
+            updated.verifiedAt = new Date().toISOString();
+          } else if (status === 'checked_in' && !updated.checkedInAt) {
+            updated.checkedInAt = new Date().toISOString();
+          }
+          return updated;
         }
         return b;
       })
@@ -588,9 +709,13 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         activeBookingId,
         setActiveBookingId,
         activeBooking,
+        checkSundakAvailability,
+        checkTrenggoleRoomAvailability,
+        isDateOverlapping,
         createBooking,
         verifyBooking,
         rejectBooking,
+        updateBookingStatus,
         checkInBooking,
         findBookingById,
         favorites,
@@ -598,6 +723,10 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isFavorite,
         mobileFrameMode,
         setMobileFrameMode,
+        heroImage,
+        updateHeroImage,
+        adminWhatsappNumber,
+        updateAdminWhatsappNumber,
       }}
     >
       {children}
