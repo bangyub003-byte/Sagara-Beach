@@ -33,6 +33,7 @@ export const CustomerDashboard: React.FC = () => {
     setSelectedRoomType,
     setCurrentView,
     language,
+    heroImage,
   } = useBooking();
 
   // State Pilihan Singkat di Beranda (Lokasi & Jumlah Tamu saja - TANPA TANGGAL)
@@ -111,7 +112,7 @@ export const CustomerDashboard: React.FC = () => {
         <section className="relative rounded-[30px] overflow-hidden bg-neutral-900 shadow-md">
           <div className="relative h-60 w-full">
             <SafeImage
-              src="/src/assets/images/sundak_fullhouse_1790552054893.jpg"
+              src={heroImage || '/images/sundak_fullhouse_1790552054893.jpg'}
               alt="Griya Barokah Homestay Pantai Sundak & Trenggole"
               className="w-full h-full object-cover opacity-90"
               containerClassName="w-full h-full"

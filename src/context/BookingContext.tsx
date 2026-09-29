@@ -76,9 +76,11 @@ interface BookingContextType {
   mobileFrameMode: boolean;
   setMobileFrameMode: (enabled: boolean) => void;
 
-  // Foto Hero & Kontak WA Admin
+  // Foto Hero, Foto Fasilitas & Kontak WA Admin
   heroImage: string;
   updateHeroImage: (url: string) => void;
+  facilityImage: string;
+  updateFacilityImage: (url: string) => void;
   adminWhatsappNumber: string;
   updateAdminWhatsappNumber: (num: string) => void;
 }
@@ -237,15 +239,55 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [accommodations, setAccommodations] = useState<Property[]>(() => {
     try {
       const stored = localStorage.getItem(LOCAL_STORAGE_PROPERTIES_KEY);
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (
+          Array.isArray(parsed) &&
+          parsed.length > 0 &&
+          parsed.every((p) => p && p.id && Array.isArray(p.roomTypes) && p.roomTypes.length > 0)
+        ) {
+          return parsed;
+        }
+      }
     } catch {
       // fallback
     }
     return INITIAL_PROPERTIES;
   });
 
-  const [selectedProperty, setSelectedProperty] = useState<Property>(() => accommodations[0] || INITIAL_PROPERTIES[0]);
-  const [selectedRoomType, setSelectedRoomType] = useState<RoomType | null>(() => accommodations[0]?.roomTypes[0] || null);
+  const [selectedProperty, setSelectedProperty] = useState<Property>(() => {
+    try {
+      const stored = localStorage.getItem(LOCAL_STORAGE_PROPERTIES_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (
+          Array.isArray(parsed) &&
+          parsed.length > 0 &&
+          parsed.every((p) => p && p.id && Array.isArray(p.roomTypes) && p.roomTypes.length > 0)
+        ) {
+          return parsed[0];
+        }
+      }
+    } catch {}
+    return INITIAL_PROPERTIES[0];
+  });
+
+  const [selectedRoomType, setSelectedRoomType] = useState<RoomType | null>(() => {
+    try {
+      const stored = localStorage.getItem(LOCAL_STORAGE_PROPERTIES_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (
+          Array.isArray(parsed) &&
+          parsed.length > 0 &&
+          parsed[0]?.roomTypes?.[0]
+        ) {
+          return parsed[0].roomTypes[0];
+        }
+      }
+    } catch {}
+    return INITIAL_PROPERTIES[0]?.roomTypes?.[0] || null;
+  });
 
   // 4. Bookings State
   const [bookings, setBookings] = useState<Booking[]>(() => {
@@ -270,21 +312,40 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   });
 
-  // 6. Foto Hero & Nomor WhatsApp Admin
+  // 6. Foto Hero, Foto Fasilitas & Nomor WhatsApp Admin
   const [heroImage, setHeroImage] = useState<string>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_HERO_IMAGE_KEY);
-      if (saved) return saved;
+      if (saved && !saved.includes('unsplash.com')) return saved;
     } catch {
       // fallback
     }
-    return 'https://images.unsplash.com/photo-1544984243-ec57ea16fe25?auto=format&fit=crop&w=1200&q=85';
+    return '/images/sundak_fullhouse_1790552054893.jpg';
   });
 
   const updateHeroImage = (url: string) => {
     setHeroImage(url);
     try {
       localStorage.setItem(LOCAL_STORAGE_HERO_IMAGE_KEY, url);
+    } catch {
+      // ignore
+    }
+  };
+
+  const [facilityImage, setFacilityImage] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('barokah_facility_img_v2');
+      if (saved) return saved;
+    } catch {
+      // fallback
+    }
+    return '/images/trenggole_house_1790552065368.jpg';
+  });
+
+  const updateFacilityImage = (url: string) => {
+    setFacilityImage(url);
+    try {
+      localStorage.setItem('barokah_facility_img_v2', url);
     } catch {
       // ignore
     }
@@ -725,6 +786,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setMobileFrameMode,
         heroImage,
         updateHeroImage,
+        facilityImage,
+        updateFacilityImage,
         adminWhatsappNumber,
         updateAdminWhatsappNumber,
       }}

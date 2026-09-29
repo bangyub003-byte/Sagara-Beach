@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BookingProvider, useBooking } from './context/BookingContext';
 import { HeaderRoleBar } from './components/common/HeaderRoleBar';
 import { LandingPage } from './components/LandingPage';
@@ -9,10 +9,17 @@ import { BookingFlow } from './components/BookingFlow';
 import { MyBookingsView } from './components/MyBookingsView';
 import { ProfileView } from './components/ProfileView';
 import { FavoritesView } from './components/FavoritesView';
-import { AdminDashboard } from './components/AdminDashboard';
 import { AdminLoginPage } from './components/admin/AdminLoginPage';
-import { ReceptionistDashboard } from './components/ReceptionistDashboard';
 import { ReceptionistLoginPage } from './components/receptionist/ReceptionistLoginPage';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+
+// Code-split fitur staf agar logic pemindai kamera tidak dimuat saat alur booking publik dibuka
+const AdminDashboard = React.lazy(() =>
+  import('./components/AdminDashboard').then((m) => ({ default: m.AdminDashboard }))
+);
+const ReceptionistDashboard = React.lazy(() =>
+  import('./components/ReceptionistDashboard').then((m) => ({ default: m.ReceptionistDashboard }))
+);
 
 const MainAppContent: React.FC = () => {
   const {
@@ -37,7 +44,11 @@ const MainAppContent: React.FC = () => {
     // 1. Rute Khusus Admin (/admin)
     if (currentRoute.startsWith('/admin') || role === 'admin' || currentView === 'admin_login') {
       if (isAdminAuthenticated) {
-        return <AdminDashboard />;
+        return (
+          <Suspense fallback={<div className="p-8 text-center text-xs font-bold text-neutral-500">Memuat Admin...</div>}>
+            <AdminDashboard />
+          </Suspense>
+        );
       }
       return <AdminLoginPage />;
     }
@@ -49,7 +60,11 @@ const MainAppContent: React.FC = () => {
       currentView === 'receptionist_login'
     ) {
       if (isReceptionistAuthenticated) {
-        return <ReceptionistDashboard />;
+        return (
+          <Suspense fallback={<div className="p-8 text-center text-xs font-bold text-neutral-500">Memuat Pemindai...</div>}>
+            <ReceptionistDashboard />
+          </Suspense>
+        );
       }
       return <ReceptionistLoginPage />;
     }
@@ -113,8 +128,10 @@ const MainAppContent: React.FC = () => {
 
 export default function App() {
   return (
-    <BookingProvider>
-      <MainAppContent />
-    </BookingProvider>
+    <ErrorBoundary>
+      <BookingProvider>
+        <MainAppContent />
+      </BookingProvider>
+    </ErrorBoundary>
   );
 }

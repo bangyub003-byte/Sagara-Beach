@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
 import { useBooking } from '../context/BookingContext';
 import {
   QrCode,
@@ -45,7 +44,7 @@ export const ReceptionistDashboard: React.FC = () => {
   const [searchError, setSearchError] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string>('');
 
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannerRef = useRef<any>(null);
   const isStartingRef = useRef<boolean>(false);
 
   // Ambil booking aktif dari database
@@ -92,6 +91,9 @@ export const ReceptionistDashboard: React.FC = () => {
     isStartingRef.current = true;
 
     try {
+      // Import library scanner hanya saat resepsionis mengaktifkan scanner
+      const { Html5Qrcode } = await import('html5-qrcode');
+
       // Pastikan scanner instance sebelumnya dibersihkan jika ada
       if (scannerRef.current) {
         if (scannerRef.current.isScanning) {
@@ -116,7 +118,7 @@ export const ReceptionistDashboard: React.FC = () => {
         await scannerRef.current.start(
           { facingMode: 'environment' },
           qrConfig,
-          (decodedText) => {
+          (decodedText: string) => {
             handleQrScanned(decodedText);
           },
           () => {
@@ -140,7 +142,7 @@ export const ReceptionistDashboard: React.FC = () => {
         await scannerRef.current.start(
           { facingMode: 'user' },
           qrConfig,
-          (decodedText) => {
+          (decodedText: string) => {
             handleQrScanned(decodedText);
           },
           () => {}

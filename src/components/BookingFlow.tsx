@@ -62,10 +62,36 @@ export const BookingFlow: React.FC = () => {
     selectedProperty?.id || accommodations[0]?.id || 'homestay-sundak'
   );
 
-  const activeProp: Property =
-    accommodations.find((p) => p.id === selectedPropId) || accommodations[0] || selectedProperty;
+  const fallbackProp: Property = accommodations[0] || selectedProperty || {
+    id: 'homestay-sundak',
+    name: 'Griya Barokah Pantai Sundak',
+    tagline: 'Satu Rumah Penuh (Full House)',
+    taglineEn: 'Full House',
+    category: 'Full House',
+    propertyType: 'full_homestay',
+    location: 'Pantai Sundak, Gunungkidul',
+    fullAddress: 'Pantai Sundak, Sidoharjo, Tepus, Gunungkidul',
+    rating: 4.95,
+    reviewsCount: 168,
+    badge: 'Full House',
+    badgeEn: 'Full House',
+    image: '/images/sundak_fullhouse_1790552054893.jpg',
+    gallery: ['/images/sundak_fullhouse_1790552054893.jpg'],
+    description: 'Satu rumah penuh untuk keluarga/rombongan dekat pantai Sundak.',
+    descriptionEn: 'Entire house for family near Sundak beach.',
+    highlights: ['Full House', '4 Kamar AC', 'WiFi'],
+    highlightsEn: ['Full House', '4 AC Bedrooms', 'WiFi'],
+    whatsappContact: '082138613888',
+    extraServices: [],
+    roomTypes: [],
+  };
 
-  const isSundak = activeProp.id === 'homestay-sundak' || activeProp.propertyType === 'full_homestay';
+  const activeProp: Property =
+    accommodations.find((p) => p.id === selectedPropId) || selectedProperty || fallbackProp;
+
+  const isSundak = activeProp
+    ? activeProp.id === 'homestay-sundak' || activeProp.propertyType === 'full_homestay'
+    : true;
 
   // ==============================================================
   // STEP 2: TANGGAL CHECK-IN / CHECK-OUT & CEK KETERSEDIAAN OTOMATIS
@@ -149,10 +175,10 @@ export const BookingFlow: React.FC = () => {
     grandTotal = effectivePax * totalNights * 75000;
     bookingChoiceDisplayName = `Satu Rumah Penuh (Full House) • ${totalGuests} Tamu`;
   } else {
-    const selectedRoomsList = activeProp.roomTypes.filter((r) =>
+    const selectedRoomsList = (activeProp?.roomTypes || []).filter((r) =>
       trenggoleSelectedRooms.includes(r.id)
     );
-    const roomCostPerNight = selectedRoomsList.reduce((acc, curr) => acc + curr.pricePerNight, 0);
+    const roomCostPerNight = selectedRoomsList.reduce((acc, curr) => acc + (curr.pricePerNight || 0), 0);
     grandTotal = roomCostPerNight * totalNights;
     bookingChoiceDisplayName = selectedRoomsList.map((r) => `${r.name} (Lt.${r.floor || 1})`).join(', ') || 'Kamar Trenggole';
   }
@@ -595,7 +621,7 @@ export const BookingFlow: React.FC = () => {
               <div className="p-4 rounded-[26px] border border-emerald-800 bg-white shadow-md ring-2 ring-emerald-800/20 space-y-3.5">
                 <div className="relative h-48 w-full rounded-2xl overflow-hidden">
                   <SafeImage
-                    src="/src/assets/images/sundak_fullhouse_1790552054893.jpg"
+                    src="/images/sundak_fullhouse_1790552054893.jpg"
                     alt="Griya Barokah Pantai Sundak"
                     className="w-full h-full object-cover"
                     containerClassName="w-full h-full"
@@ -651,7 +677,7 @@ export const BookingFlow: React.FC = () => {
               <div className="p-4 rounded-[26px] border border-sky-800 bg-white shadow-md ring-2 ring-sky-800/20 space-y-3.5">
                 <div className="relative h-48 w-full rounded-2xl overflow-hidden">
                   <SafeImage
-                    src="/src/assets/images/trenggole_house_1790552065368.jpg"
+                    src="/images/trenggole_house_1790552065368.jpg"
                     alt="Griya Barokah Pantai Trenggole"
                     className="w-full h-full object-cover"
                     containerClassName="w-full h-full"
@@ -837,7 +863,7 @@ export const BookingFlow: React.FC = () => {
                 </div>
 
                 <div className="space-y-2.5">
-                  {activeProp.roomTypes.map((room) => {
+                  {(activeProp?.roomTypes || []).map((room) => {
                     const isAvail = checkTrenggoleRoomAvailability(room.id, checkInDate, checkOutDate);
                     const isSelected = trenggoleSelectedRooms.includes(room.id);
 

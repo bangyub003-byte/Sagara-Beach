@@ -14,9 +14,9 @@ export const INITIAL_PROPERTIES: Property[] = [
     reviewsCount: 168,
     badge: 'Satu Rumah Penuh (Full House)',
     badgeEn: 'Full House (Entire Home)',
-    image: '/src/assets/images/sundak_fullhouse_1790552054893.jpg',
+    image: '/images/sundak_fullhouse_1790552054893.jpg',
     gallery: [
-      '/src/assets/images/sundak_fullhouse_1790552054893.jpg',
+      '/images/sundak_fullhouse_1790552054893.jpg',
     ],
     description:
       'Griya Barokah Pantai Sundak mengusung konsep Satu Rumah Penuh (Full House), bukan sewa per kamar. Berlokasi sangat dekat dengan pantai pasir putih Sundak, cocok untuk keluarga dan rombongan. Tarif Rp75.000/orang/malam (minimal pemesanan 4 orang). Total tarif dihitung otomatis: Jumlah orang × Jumlah malam × Rp75.000. Fasilitas meliputi 4 kamar tidur AC, 3 kamar mandi, ruang keluarga luas, kulkas, TV, kipas angin, tikar, setrika, dapur lengkap alat masak dan makan, mesin cuci, teras santai, WiFi gratis, dan parkir luas.',
@@ -74,7 +74,7 @@ export const INITIAL_PROPERTIES: Property[] = [
         bathsCount: 3,
         areaSqft: 2200,
         isAvailable: true,
-        image: '/src/assets/images/sundak_fullhouse_1790552054893.jpg',
+        image: '/images/sundak_fullhouse_1790552054893.jpg',
         features: [
           'Satu Rumah Penuh (Full House) - Bukan Per Kamar',
           'Tarif: Rp75.000 / orang / malam (Min. 4 orang)',
@@ -115,10 +115,10 @@ export const INITIAL_PROPERTIES: Property[] = [
     reviewsCount: 135,
     badge: 'Individual Room (Kamar Terpisah)',
     badgeEn: 'Individual Rooms',
-    image: '/src/assets/images/trenggole_house_1790552065368.jpg',
+    image: '/images/trenggole_house_1790552065368.jpg',
     gallery: [
-      '/src/assets/images/trenggole_house_1790552065368.jpg',
-      '/src/assets/images/trenggole_room_1790552085510.jpg',
+      '/images/trenggole_house_1790552065368.jpg',
+      '/images/trenggole_room_1790552085510.jpg',
     ],
     description:
       'Griya Barokah Pantai Trenggole bertipe Individual Room (kamar terpisah) dengan 4 pilihan kamar tidur ber-AC berjarak jalan kaki ke bibir pantai. Semua kamar memiliki view pantai, 2 bed ukuran ±130x200 cm (1 bed ranjang kayu + 1 bed lantai, kapasitas standar 4 orang), kamar mandi dalam, perlengkapan mandi, dan WiFi. Bisa tambah extra bed Rp25.000/orang. Jumlah tamu harus mengikuti kapasitas kamar yang dipilih.',
@@ -173,7 +173,7 @@ export const INITIAL_PROPERTIES: Property[] = [
         bathsCount: 1,
         areaSqft: 350,
         isAvailable: true,
-        image: '/src/assets/images/trenggole_room_1790552085510.jpg',
+        image: '/images/trenggole_room_1790552085510.jpg',
         features: [
           'Lantai 1 • Rp285.000/malam',
           'View Pantai',
@@ -213,7 +213,7 @@ export const INITIAL_PROPERTIES: Property[] = [
         bathsCount: 1,
         areaSqft: 400,
         isAvailable: true,
-        image: '/src/assets/images/trenggole_room_1790552085510.jpg',
+        image: '/images/trenggole_room_1790552085510.jpg',
         features: [
           'Lantai 1 • Rp335.000/malam',
           'View Pantai',
@@ -255,7 +255,7 @@ export const INITIAL_PROPERTIES: Property[] = [
         bathsCount: 1,
         areaSqft: 360,
         isAvailable: true,
-        image: '/src/assets/images/trenggole_room_1790552085510.jpg',
+        image: '/images/trenggole_room_1790552085510.jpg',
         features: [
           'Lantai 2 • Rp315.000/malam',
           'View Pantai',
@@ -295,7 +295,7 @@ export const INITIAL_PROPERTIES: Property[] = [
         bathsCount: 1,
         areaSqft: 410,
         isAvailable: true,
-        image: '/src/assets/images/trenggole_room_1790552085510.jpg',
+        image: '/images/trenggole_room_1790552085510.jpg',
         features: [
           'Lantai 2 • Rp365.000/malam',
           'View Pantai',

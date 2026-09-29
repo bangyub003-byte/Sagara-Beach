@@ -65,6 +65,8 @@ export const AdminDashboard: React.FC = () => {
     t,
     heroImage,
     updateHeroImage,
+    facilityImage,
+    updateFacilityImage,
     adminWhatsappNumber,
     updateAdminWhatsappNumber,
   } = useBooking();
@@ -131,6 +133,10 @@ export const AdminDashboard: React.FC = () => {
   const trenggoleProp = accommodations.find((p) => p.id === 'homestay-trenggole') || accommodations[1];
   const [editTrenggoleUrl, setEditTrenggoleUrl] = useState<string>(trenggoleProp?.image || '');
   const [trenggolePreview, setTrenggolePreview] = useState<string>(trenggoleProp?.image || '');
+
+  // Foto Fasilitas Homestay
+  const [editFacilityUrl, setEditFacilityUrl] = useState<string>(facilityImage);
+  const [facilityPreview, setFacilityPreview] = useState<string>(facilityImage);
 
   // Room Image edit states map: { [roomId]: { url: string, preview: string } }
   const [roomImageStates, setRoomImageStates] = useState<Record<string, { url: string; preview: string }>>({});
@@ -393,6 +399,16 @@ export const AdminDashboard: React.FC = () => {
     if (finalUrl) {
       updateRoomType(propId, roomId, { image: finalUrl });
       setApprovedToast('✓ Foto tipe kamar berhasil diperbarui!');
+      setTimeout(() => setApprovedToast(''), 3000);
+    }
+  };
+
+  // Simpan Foto Fasilitas (Requirement 5)
+  const handleSaveFacilityImage = () => {
+    const finalUrl = facilityPreview || editFacilityUrl;
+    if (finalUrl) {
+      updateFacilityImage(finalUrl);
+      setApprovedToast('✓ Foto fasilitas homestay berhasil diperbarui!');
       setTimeout(() => setApprovedToast(''), 3000);
     }
   };
@@ -1171,12 +1187,14 @@ export const AdminDashboard: React.FC = () => {
 
               {/* Preview Gambar Hero */}
               <div className="relative w-full h-32 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200">
-                <img
+                <SafeImage
                   src={heroPreview || heroImage}
                   alt="Preview Hero"
+                  fallbackText="Hero Griya Barokah"
                   className="w-full h-full object-cover"
+                  containerClassName="w-full h-full"
                 />
-                <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[9px] font-bold">
+                <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[9px] font-bold z-30">
                   Preview
                 </div>
               </div>
@@ -1231,12 +1249,14 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div className="relative w-full h-32 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200">
-                <img
+                <SafeImage
                   src={sundakPreview || sundakProp?.image}
                   alt="Preview Sundak"
+                  fallbackText="Griya Barokah Pantai Sundak"
                   className="w-full h-full object-cover"
+                  containerClassName="w-full h-full"
                 />
-                <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[9px] font-bold">
+                <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[9px] font-bold z-30">
                   Preview
                 </div>
               </div>
@@ -1290,12 +1310,14 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div className="relative w-full h-32 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200">
-                <img
+                <SafeImage
                   src={trenggolePreview || trenggoleProp?.image}
                   alt="Preview Trenggole"
+                  fallbackText="Griya Barokah Pantai Trenggole"
                   className="w-full h-full object-cover"
+                  containerClassName="w-full h-full"
                 />
-                <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[9px] font-bold">
+                <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[9px] font-bold z-30">
                   Preview
                 </div>
               </div>
@@ -1361,10 +1383,12 @@ export const AdminDashboard: React.FC = () => {
                         className="p-2.5 rounded-xl bg-neutral-50 border border-neutral-200/80 space-y-2"
                       >
                         <div className="flex items-center gap-2.5">
-                          <img
+                          <SafeImage
                             src={currentRoomState.preview || room.image}
                             alt={room.name}
-                            className="w-14 h-14 rounded-lg object-cover shrink-0 border border-neutral-200"
+                            fallbackText={room.name}
+                            className="w-full h-full object-cover"
+                            containerClassName="w-14 h-14 rounded-lg shrink-0 border border-neutral-200"
                           />
                           <div className="min-w-0 flex-1">
                             <strong className="block text-xs font-bold text-neutral-900 truncate">
@@ -1408,6 +1432,67 @@ export const AdminDashboard: React.FC = () => {
                     );
                   })
                 )}
+              </div>
+            </div>
+
+            {/* ================= EDIT FOTO FASILITAS HOMESTAY ================= */}
+            <div className="p-3.5 rounded-2xl bg-white border border-neutral-200/90 shadow-2xs space-y-2.5">
+              <div className="flex items-center justify-between pb-1.5 border-b border-neutral-100">
+                <div className="flex items-center gap-1.5">
+                  <ImageIcon className="w-4 h-4 text-emerald-700" />
+                  <h3 className="text-xs font-bold text-neutral-900">
+                    Foto Fasilitas Homestay
+                  </h3>
+                </div>
+                <span className="text-[10px] text-neutral-400">Fasilitas</span>
+              </div>
+
+              <div className="relative w-full h-32 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200">
+                <SafeImage
+                  src={facilityPreview || facilityImage}
+                  alt="Preview Fasilitas"
+                  fallbackText="Fasilitas Griya Barokah"
+                  className="w-full h-full object-cover"
+                  containerClassName="w-full h-full"
+                />
+                <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[9px] font-bold z-30">
+                  Preview
+                </div>
+              </div>
+
+              <div className="space-y-1.5 text-xs">
+                <div className="flex gap-2">
+                  <label className="flex-1 h-9 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-[11px] font-bold flex items-center justify-center gap-1.5 cursor-pointer border border-neutral-200">
+                    <Upload className="w-3.5 h-3.5 text-neutral-600" />
+                    <span>Upload Foto Fasilitas</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleImageFileUpload(e, (url) => setFacilityPreview(url))}
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveFacilityImage}
+                    className="h-9 px-4 rounded-xl bg-[#13281E] hover:bg-[#1A3428] text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-2xs cursor-pointer active:scale-95 transition-all"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Simpan</span>
+                  </button>
+                </div>
+
+                <input
+                  type="url"
+                  value={editFacilityUrl}
+                  onChange={(e) => {
+                    setEditFacilityUrl(e.target.value);
+                    setFacilityPreview(e.target.value);
+                  }}
+                  placeholder="Atau tempel URL gambar baru..."
+                  className="w-full h-8 px-2.5 rounded-lg bg-[#F6F7F9] border border-neutral-200 text-[11px] text-neutral-800 focus:outline-none"
+                />
               </div>
             </div>
 
