@@ -7,6 +7,8 @@ import {
   ChevronLeft,
   X,
   Share2,
+  Heart,
+  Star,
   Calendar,
   Check,
   Copy,
@@ -31,6 +33,10 @@ import {
   Home,
   Upload,
   CheckCircle2,
+  Palmtree,
+  Wind,
+  Eye,
+  UtensilsCrossed,
 } from 'lucide-react';
 
 export const BookingFlow: React.FC = () => {
@@ -89,6 +95,12 @@ export const BookingFlow: React.FC = () => {
   const activeProp: Property =
     accommodations.find((p) => p.id === selectedPropId) || selectedProperty || fallbackProp;
 
+  const sundakProp: Property =
+    accommodations.find((p) => p.id === 'homestay-sundak') || fallbackProp;
+
+  const trenggoleProp: Property =
+    accommodations.find((p) => p.id === 'homestay-trenggole') || accommodations[1] || fallbackProp;
+
   const isSundak = activeProp
     ? activeProp.id === 'homestay-sundak' || activeProp.propertyType === 'full_homestay'
     : true;
@@ -106,6 +118,17 @@ export const BookingFlow: React.FC = () => {
     }
     return ['trenggole-kamar-1'];
   });
+
+  // State tampilan showcase kamar di Step 2 (Sesuai Referensi Gambar #2)
+  const [activePreviewRoomId, setActivePreviewRoomId] = useState<string>(() => {
+    if (selectedRoomType && selectedRoomType.id.startsWith('trenggole-')) {
+      return selectedRoomType.id;
+    }
+    return 'trenggole-kamar-1';
+  });
+  const [isRoomHearted, setIsRoomHearted] = useState<boolean>(false);
+  const [shareToastText, setShareToastText] = useState<string>('');
+  const [showDateSettings, setShowDateSettings] = useState<boolean>(false);
 
   // Hitung jumlah malam menginap
   const calculateNights = (cin: string, cout: string): number => {
@@ -183,9 +206,9 @@ export const BookingFlow: React.FC = () => {
     bookingChoiceDisplayName = selectedRoomsList.map((r) => `${r.name} (Lt.${r.floor || 1})`).join(', ') || 'Kamar Trenggole';
   }
 
-  // Pilihan Pembayaran: DP 50% atau Lunas 100%
-  const [paymentType, setPaymentType] = useState<'dp_50' | 'full_100'>('dp_50');
-  const dpAmount = paymentType === 'dp_50' ? Math.round(grandTotal * 0.5) : grandTotal;
+  // Pilihan Pembayaran: DP 30% atau Lunas 100%
+  const [paymentType, setPaymentType] = useState<'dp_30' | 'full_100'>('dp_30');
+  const dpAmount = paymentType === 'dp_30' ? Math.round(grandTotal * 0.3) : grandTotal;
   const remainingBalance = Math.max(0, grandTotal - dpAmount);
   const [dpTermsAccepted, setDpTermsAccepted] = useState<boolean>(true);
 
@@ -329,14 +352,14 @@ export const BookingFlow: React.FC = () => {
         baseRoomCost: grandTotal,
         totalAmount: grandTotal,
         paymentType,
-        dpPercentage: paymentType === 'full_100' ? 100 : 50,
+        dpPercentage: paymentType === 'full_100' ? 100 : 30,
         dpAmount,
         remainingBalance,
         paymentProofUrl: paymentProofImage || SAMPLE_PAYMENT_SVG,
         paymentMethod: metodePembayaran === 'qris' ? 'qris' : metodePembayaran === 'mandiri' ? 'mandiri_va' : 'bca_va',
         adminNotes: isSundak
-          ? `Full House Sundak: ${totalGuests} orang x ${totalNights} malam x Rp75.000 = Rp${grandTotal.toLocaleString('id-ID')}. Mahrom: ${withWhom}. Pembayaran: ${paymentType === 'full_100' ? 'Lunas 100%' : 'DP 50%'}.`
-          : `Trenggole: ${bookingChoiceDisplayName} x ${totalNights} malam = Rp${grandTotal.toLocaleString('id-ID')}. Mahrom: ${withWhom}. Pembayaran: ${paymentType === 'full_100' ? 'Lunas 100%' : 'DP 50%'}.`,
+          ? `Full House Sundak: ${totalGuests} orang x ${totalNights} malam x Rp75.000 = Rp${grandTotal.toLocaleString('id-ID')}. Mahrom: ${withWhom}. Pembayaran: ${paymentType === 'full_100' ? 'Lunas 100%' : 'DP 30%'}.`
+          : `Trenggole: ${bookingChoiceDisplayName} x ${totalNights} malam = Rp${grandTotal.toLocaleString('id-ID')}. Mahrom: ${withWhom}. Pembayaran: ${paymentType === 'full_100' ? 'Lunas 100%' : 'DP 30%'}.`,
       });
 
       setActiveBookingId(newId);
@@ -529,7 +552,7 @@ export const BookingFlow: React.FC = () => {
         <div className="text-center">
           <h1 className="text-[14px] font-black text-neutral-900 tracking-tight">
             {activeStep === 1 && 'Langkah 1: Pilih Penginapan'}
-            {activeStep === 2 && 'Langkah 2: Pilih Tanggal & Ketersediaan'}
+            {activeStep === 2 && 'Langkah 2: Pilih Kamar'}
             {activeStep === 3 && 'Langkah 3: Data Pemesan'}
             {activeStep === 4 && 'Langkah 4: Pilihan Pembayaran'}
             {activeStep === 5 && 'Langkah 5: Upload Bukti Transfer'}
@@ -563,36 +586,38 @@ export const BookingFlow: React.FC = () => {
       )}
 
       {/* Konten Wizard Langkah demi Langkah */}
-      <div className="px-5 pt-3 pb-6 flex-grow">
+      <div className="px-4 sm:px-5 pt-3 pb-6 flex-grow max-w-md mx-auto w-full">
         {/* ==============================================================
-            STEP 1: PILIH PENGINAPAN (Setiap Penginapan Memiliki Halaman Pilihan Sendiri)
+            STEP 1: PILIH PENGINAPAN (Sesuai Referensi Gambar #1)
            ============================================================== */}
         {activeStep === 1 && (
           <div className="space-y-4">
             <div className="text-left">
-              <span className="text-xs font-black uppercase tracking-wider text-neutral-500 block">
+              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 block">
                 Langkah 1 dari 5
               </span>
-              <h2 className="text-lg font-black text-neutral-900">
-                Pilih Penginapan
+              <h2 className="text-lg sm:text-xl font-black text-neutral-900 tracking-tight">
+                Pilih Penginapan Homestay
               </h2>
               <p className="text-xs text-neutral-500 mt-0.5">
-                Pilih salah satu penginapan untuk melanjutkan ke pemilihan tanggal:
+                Pilih lokasi penginapan untuk melanjutkan ke pemilihan kamar:
               </p>
             </div>
 
-            {/* Tab Pemilih Penginapan Bersih */}
+            {/* Tab Pemilih Penginapan */}
             <div className="flex p-1 bg-neutral-200/90 rounded-2xl gap-1">
               <button
                 type="button"
                 onClick={() => {
                   setSelectedPropId('homestay-sundak');
-                  setSelectedProperty(accommodations.find((a) => a.id === 'homestay-sundak') || accommodations[0]);
+                  setSelectedProperty(
+                    accommodations.find((a) => a.id === 'homestay-sundak') || accommodations[0]
+                  );
                   setErrorNotice('');
                 }}
-                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
                   selectedPropId === 'homestay-sundak'
-                    ? 'bg-white text-emerald-900 shadow-xs ring-1 ring-black/5'
+                    ? 'bg-white text-emerald-900 shadow-2xs ring-1 ring-black/5'
                     : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
@@ -603,12 +628,14 @@ export const BookingFlow: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setSelectedPropId('homestay-trenggole');
-                  setSelectedProperty(accommodations.find((a) => a.id === 'homestay-trenggole') || accommodations[1]);
+                  setSelectedProperty(
+                    accommodations.find((a) => a.id === 'homestay-trenggole') || accommodations[1]
+                  );
                   setErrorNotice('');
                 }}
-                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
                   selectedPropId === 'homestay-trenggole'
-                    ? 'bg-white text-sky-900 shadow-xs ring-1 ring-black/5'
+                    ? 'bg-white text-sky-900 shadow-2xs ring-1 ring-black/5'
                     : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
@@ -616,114 +643,162 @@ export const BookingFlow: React.FC = () => {
               </button>
             </div>
 
-            {/* HALAMAN PENGINAPAN 1: GRIYA BAROKAH PANTAI SUNDAK (HANYA FOTO & INFO SUNDAK) */}
+            {/* CARD PENGINAPAN 1: GRIYA BAROKAH PANTAI SUNDAK */}
             {selectedPropId === 'homestay-sundak' && (
-              <div className="p-4 rounded-[26px] border border-emerald-800 bg-white shadow-md ring-2 ring-emerald-800/20 space-y-3.5">
-                <div className="relative h-48 w-full rounded-2xl overflow-hidden">
+              <div className="bg-white rounded-[24px] sm:rounded-[26px] overflow-hidden border border-neutral-200/90 shadow-sm transition-all flex flex-col">
+                <div className="relative h-52 sm:h-56 w-full overflow-hidden bg-neutral-900">
                   <SafeImage
-                    src="/images/sundak_fullhouse_1790552054893.jpg"
-                    alt="Griya Barokah Pantai Sundak"
+                    src={sundakProp?.image || '/images/sundak_fullhouse_1790552054893.jpg'}
+                    alt={sundakProp?.name || 'Griya Barokah Pantai Sundak'}
+                    fallbackText={sundakProp?.name || 'Griya Barokah Pantai Sundak'}
                     className="w-full h-full object-cover"
                     containerClassName="w-full h-full"
                   />
-                  <div className="absolute top-2.5 left-2.5">
-                    <span className="px-3 py-1 rounded-full bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
-                      Satu Rumah Penuh (Full House)
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/10 pointer-events-none" />
+
+                  {/* Badges Atas */}
+                  <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between gap-2 z-10">
+                    <span className="px-3 py-1 rounded-full bg-emerald-600 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-sm">
+                      {sundakProp?.badge || 'Satu Rumah Penuh (Full House)'}
                     </span>
+                    <div className="bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1 text-xs font-bold text-amber-300 shadow-sm">
+                      <span>★</span>
+                      <span>{sundakProp?.rating || 4.9}</span>
+                      <span className="text-[10px] text-white/85 font-medium">({sundakProp?.reviewsCount || 168} Ulasan)</span>
+                    </div>
                   </div>
-                  <div className="absolute top-2.5 right-2.5">
-                    <span className="w-6 h-6 rounded-full bg-emerald-700 text-white flex items-center justify-center text-xs font-bold shadow-md">
-                      ✓
-                    </span>
+
+                  {/* Lokasi & Judul Bawah Gambar */}
+                  <div className="absolute bottom-3.5 left-4 right-4 text-white z-10">
+                    <div className="flex items-center gap-1.5 text-xs text-emerald-300 font-semibold mb-1">
+                      <MapPin className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{sundakProp?.location || 'Pantai Sundak, Gunungkidul, Yogyakarta'}</span>
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-black text-white tracking-tight leading-snug drop-shadow-sm">
+                      {sundakProp?.name || 'Griya Barokah Pantai Sundak'}
+                    </h3>
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5 text-xs text-emerald-800 font-bold">
-                    <Home className="w-3.5 h-3.5" />
-                    <span>Konsep: Satu Rumah Penuh (Bukan Per Kamar)</span>
+                <div className="p-4 space-y-3.5">
+                  {/* Kotak Konsep */}
+                  <div className="p-3 bg-[#F4F8F5] rounded-2xl border border-emerald-200/70 flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-white text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-200/80 shadow-2xs mt-0.5">
+                      <Home className="w-4 h-4 text-emerald-700" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-xs font-extrabold text-neutral-900 leading-snug">
+                        Konsep: Satu Rumah Penuh (Bukan Per Kamar)
+                      </h4>
+                      <p className="text-[11px] text-neutral-600 mt-1 leading-relaxed">
+                        {(sundakProp as any)?.concept || 'Tarif Rp75.000/orang/malam (minimal 4 orang). Total biaya: Jumlah orang × Jumlah malam × Rp75.000.'}
+                      </p>
+                    </div>
                   </div>
-                  <h3 className="font-black text-base text-neutral-900">
-                    Griya Barokah Pantai Sundak
-                  </h3>
-                  <p className="text-[11px] text-neutral-500 leading-relaxed">
-                    Satu rumah utuh untuk keluarga/rombongan dekat pantai pasir putih. 4 kamar tidur AC, 3 KM, ruang keluarga luas, dapur lengkap, alat masak/makan, mesin cuci, dan WiFi.
+
+                  {/* Deskripsi Singkat */}
+                  <p className="text-xs text-neutral-600 leading-relaxed font-normal line-clamp-3">
+                    {sundakProp?.description || 'Satu rumah penuh untuk keluarga/rombongan dekat pantai pasir putih Sundak. 4 kamar tidur AC, 3 kamar mandi, ruang keluarga luas, dapur lengkap alat masak & makan, mesin cuci, dan WiFi.'}
                   </p>
-                </div>
 
-                {/* Informasi Wajib Sesuai Aturan */}
-                <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-950">Konsep Penginapan:</span>
-                    <strong className="text-emerald-900 font-extrabold">Satu Rumah Penuh (Full House)</strong>
+                  {/* Fasilitas Utama */}
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {(sundakProp?.highlights && sundakProp.highlights.length > 0 ? sundakProp.highlights.slice(0, 4) : ['4 Kamar AC', '3 KM Dalam', 'Dapur Lengkap', 'WiFi Gratis']).map((f: string, fIdx: number) => (
+                      <span key={fIdx} className="px-2.5 py-1 rounded-lg bg-neutral-100 text-neutral-700 text-[11px] font-semibold flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-emerald-700" /> {f}
+                      </span>
+                    ))}
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-emerald-950">Tarif Penginapan:</span>
-                    <strong className="text-emerald-800 font-black">Rp75.000 /orang/malam</strong>
-                  </div>
-                  <div className="flex items-center justify-between pt-1 border-t border-emerald-200/80">
-                    <span className="font-bold text-emerald-950">Ketentuan Pemesanan:</span>
-                    <strong className="text-emerald-900 font-black">Minimal 4 orang</strong>
-                  </div>
-                  <span className="text-[10px] text-neutral-600 block pt-0.5">
-                    Perhitungan otomatis: Jumlah orang × Jumlah malam × Rp75.000
-                  </span>
+
+                  {/* Button Pilih & Lanjut */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveStep(2)}
+                    className="w-full h-11 px-4 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer mt-1"
+                  >
+                    <span>Lanjut ke Pilih Kamar &amp; Tanggal</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* HALAMAN PENGINAPAN 2: GRIYA BAROKAH PANTAI TRENGGOLE (HANYA FOTO & INFO TRENGGOLE) */}
+            {/* CARD PENGINAPAN 2: GRIYA BAROKAH PANTAI TRENGGOLE */}
             {selectedPropId === 'homestay-trenggole' && (
-              <div className="p-4 rounded-[26px] border border-sky-800 bg-white shadow-md ring-2 ring-sky-800/20 space-y-3.5">
-                <div className="relative h-48 w-full rounded-2xl overflow-hidden">
+              <div className="bg-white rounded-[24px] sm:rounded-[26px] overflow-hidden border border-neutral-200/90 shadow-sm transition-all flex flex-col">
+                <div className="relative h-52 sm:h-56 w-full overflow-hidden bg-neutral-900">
                   <SafeImage
-                    src="/images/trenggole_house_1790552065368.jpg"
-                    alt="Griya Barokah Pantai Trenggole"
+                    src={trenggoleProp?.image || '/images/trenggole_house_1790552065368.jpg'}
+                    alt={trenggoleProp?.name || 'Griya Barokah Pantai Trenggole'}
+                    fallbackText={trenggoleProp?.name || 'Griya Barokah Pantai Trenggole'}
                     className="w-full h-full object-cover"
                     containerClassName="w-full h-full"
                   />
-                  <div className="absolute top-2.5 left-2.5">
-                    <span className="px-3 py-1 rounded-full bg-sky-700 text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
-                      Pemesanan Berdasarkan Kamar
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/10 pointer-events-none" />
+
+                  {/* Badges Atas */}
+                  <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between gap-2 z-10">
+                    <span className="px-3 py-1 rounded-full bg-emerald-600 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-sm">
+                      {trenggoleProp?.badge || 'Penginapan Kamar & Full House'}
                     </span>
+                    <div className="bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1 text-xs font-bold text-amber-300 shadow-sm">
+                      <span>★</span>
+                      <span>{trenggoleProp?.rating || 4.8}</span>
+                      <span className="text-[10px] text-white/85 font-medium">({trenggoleProp?.reviewsCount || 96} Ulasan)</span>
+                    </div>
                   </div>
-                  <div className="absolute top-2.5 right-2.5">
-                    <span className="w-6 h-6 rounded-full bg-sky-700 text-white flex items-center justify-center text-xs font-bold shadow-md">
-                      ✓
-                    </span>
+
+                  {/* Lokasi & Judul Bawah Gambar */}
+                  <div className="absolute bottom-3.5 left-4 right-4 text-white z-10">
+                    <div className="flex items-center gap-1.5 text-xs text-emerald-300 font-semibold mb-1">
+                      <MapPin className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{trenggoleProp?.location || 'Pantai Trenggole, Gunungkidul, Yogyakarta'}</span>
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-black text-white tracking-tight leading-snug drop-shadow-sm">
+                      {trenggoleProp?.name || 'Griya Barokah Pantai Trenggole'}
+                    </h3>
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5 text-xs text-sky-800 font-bold">
-                    <Building className="w-3.5 h-3.5" />
-                    <span>Pilihan 4 Kamar Tidur AC Tepi Pantai</span>
+                <div className="p-4 space-y-3.5">
+                  {/* Kotak Konsep */}
+                  <div className="p-3 bg-[#F4F8FA] rounded-2xl border border-sky-200/70 flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-white text-sky-800 flex items-center justify-center shrink-0 border border-sky-200/80 shadow-2xs mt-0.5">
+                      <Bed className="w-4 h-4 text-sky-700" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-xs font-extrabold text-neutral-900 leading-snug">
+                        Konsep: Kamar Individual (Sewa Per Kamar)
+                      </h4>
+                      <p className="text-[11px] text-neutral-600 mt-1 leading-relaxed">
+                        {(trenggoleProp as any)?.concept || 'Tersedia 4 pilihan kamar AC view pantai. Mulai Rp285.000/malam. Kapasitas 4 orang per kamar (2 bed: ranjang + bed lantai).'}
+                      </p>
+                    </div>
                   </div>
-                  <h3 className="font-black text-base text-neutral-900">
-                    Griya Barokah Pantai Trenggole
-                  </h3>
-                  <p className="text-[11px] text-neutral-500 leading-relaxed">
-                    Setiap kamar view pantai, memiliki 2 bed ukuran ±130x200 cm (kapasitas 4 orang). Pilihan lantai 1 & 2 serta opsi dapur mini.
+
+                  {/* Deskripsi Singkat */}
+                  <p className="text-xs text-neutral-600 leading-relaxed font-normal line-clamp-3">
+                    {trenggoleProp?.description || 'Penginapan nyaman langsung dekat bibir pantai Trenggole. 4 pilihan kamar AC view pantai, 2 bed per kamar, kamar mandi dalam, perlengkapan mandi, dan WiFi.'}
                   </p>
-                </div>
 
-                {/* Informasi Wajib Trenggole */}
-                <div className="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-xs space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-sky-950">Konsep Pemesanan:</span>
-                    <strong className="text-sky-900 font-extrabold">Pemesanan Berdasarkan Kamar</strong>
+                  {/* Fasilitas Utama */}
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {(trenggoleProp?.highlights && trenggoleProp.highlights.length > 0 ? trenggoleProp.highlights.slice(0, 4) : ['View Pantai', 'AC Dingin', '2 Bed / Kamar', 'WiFi Cepat']).map((f: string, fIdx: number) => (
+                      <span key={fIdx} className="px-2.5 py-1 rounded-lg bg-neutral-100 text-neutral-700 text-[11px] font-semibold flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-sky-600" /> {f}
+                      </span>
+                    ))}
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-sky-950">Tersedia Kamar:</span>
-                    <strong className="text-sky-900 font-bold">Kamar 1, 2, 3, 4</strong>
-                  </div>
-                  <div className="flex items-center justify-between pt-1 border-t border-sky-200/80">
-                    <span className="font-bold text-sky-950">Tarif per Kamar:</span>
-                    <strong className="text-sky-900 font-black">Rp285.000 s/d Rp365.000 /malam</strong>
-                  </div>
-                  <span className="text-[10px] text-neutral-600 block pt-0.5">
-                    Status kamar dicek otomatis berdasarkan tanggal check-in & check-out aktif.
-                  </span>
+
+                  {/* Button Pilih & Lanjut */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveStep(2)}
+                    className="w-full h-11 px-4 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer mt-1"
+                  >
+                    <span>Lanjut ke Pilih Kamar &amp; Tanggal</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             )}
@@ -731,195 +806,482 @@ export const BookingFlow: React.FC = () => {
         )}
 
         {/* ==============================================================
-            STEP 2: PILIH TANGGAL & SISTEM OTOMATIS MENGECEK KETERSEDIAAN
+            STEP 2: PILIH KAMAR (PERSIS REFERENSI GAMBAR #2 HOTEL MODERN)
            ============================================================== */}
         {activeStep === 2 && (
           <div className="space-y-4">
-            <div className="text-left">
-              <span className="text-xs font-black uppercase tracking-wider text-neutral-500 block">
-                Langkah 2 dari 5
-              </span>
-              <h2 className="text-lg font-black text-neutral-900">
-                Pilih Tanggal & Cek Ketersediaan
-              </h2>
-              <p className="text-xs text-neutral-500 mt-0.5">
-                Pilih tanggal check-in dan check-out untuk mengecek status ketersediaan unit secara otomatis.
-              </p>
+            {/* Banner Penginapan Aktif */}
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center border border-emerald-200/80 shadow-2xs shrink-0">
+                  <Palmtree className="w-4 h-4 text-emerald-700" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-neutral-900 leading-tight">
+                    {activeProp.name}
+                  </h3>
+                  <p className="text-[11px] text-neutral-500 flex items-center gap-1 mt-0.5">
+                    <MapPin className="w-3 h-3 text-emerald-700" />
+                    <span>{activeProp.location}</span>
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveStep(1)}
+                className="px-2.5 py-1 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-[10px] font-bold border border-neutral-200/80"
+              >
+                Ganti Lokasi
+              </button>
             </div>
 
-            {/* Input Tanggal Menginap */}
-            <div className="bg-white rounded-[26px] p-4.5 shadow-xs border border-neutral-200/90 space-y-3">
-              <div className="grid grid-cols-2 gap-2.5 text-xs">
-                <div>
-                  <label className="font-bold text-neutral-800 block mb-1">
-                    Tanggal Check-in <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={checkInDate}
-                    onChange={(e) => {
-                      setCheckInDate(e.target.value);
-                      setErrorNotice('');
-                    }}
-                    className="w-full h-11 px-3 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
-                  />
+            {/* Bar Tanggal Menginap Kompak & Responsif */}
+            <div className="p-3 bg-white rounded-2xl border border-neutral-200/90 shadow-2xs space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <span className="text-xs font-bold text-neutral-900">
+                    Jadwal Menginap:
+                  </span>
                 </div>
-
-                <div>
-                  <label className="font-bold text-neutral-800 block mb-1">
-                    Tanggal Check-out <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={checkOutDate}
-                    min={checkInDate}
-                    onChange={(e) => {
-                      setCheckOutDate(e.target.value);
-                      setErrorNotice('');
-                    }}
-                    className="w-full h-11 px-3 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
-                  />
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowDateSettings(!showDateSettings)}
+                  className="text-[11px] text-emerald-800 font-bold hover:underline cursor-pointer"
+                >
+                  {showDateSettings ? 'Tutup Pengaturan Tanggal' : 'Ubah Tanggal'}
+                </button>
               </div>
 
-              <div className="p-2.5 rounded-xl bg-neutral-100 flex items-center justify-between text-xs text-neutral-700">
-                <span className="flex items-center gap-1.5 font-semibold">
-                  <Calendar className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Durasi Menginap:</span>
+              {/* Tanggal Terpilih & Durasi */}
+              <div className="flex items-center justify-between text-xs bg-[#F6F7F9] px-3 py-2 rounded-xl">
+                <div className="flex items-center gap-2 font-bold text-neutral-800">
+                  <span>{checkInDate}</span>
+                  <span className="text-neutral-400">→</span>
+                  <span>{checkOutDate}</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
+                  {totalNights} Malam
                 </span>
-                <strong className="text-neutral-900 font-bold">{totalNights} Malam</strong>
               </div>
+
+              {/* Collapsible Date Picker Input */}
+              {showDateSettings && (
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-neutral-100">
+                  <div>
+                    <label className="text-[10px] font-bold text-neutral-600 block mb-1">
+                      Check-in
+                    </label>
+                    <input
+                      type="date"
+                      value={checkInDate}
+                      onChange={(e) => {
+                        setCheckInDate(e.target.value);
+                        setErrorNotice('');
+                      }}
+                      className="w-full h-9 px-2 rounded-xl bg-white border border-neutral-200 text-xs font-semibold text-neutral-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-neutral-600 block mb-1">
+                      Check-out
+                    </label>
+                    <input
+                      type="date"
+                      value={checkOutDate}
+                      min={checkInDate}
+                      onChange={(e) => {
+                        setCheckOutDate(e.target.value);
+                        setErrorNotice('');
+                      }}
+                      className="w-full h-9 px-2 rounded-xl bg-white border border-neutral-200 text-xs font-semibold text-neutral-900"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* HASIL PENGECEKAN KETERSEDIAAN OTOMATIS */}
-            {isSundak ? (
-              /* Ketersediaan Full House Sundak */
-              <div className="space-y-3">
-                <span className="text-xs font-bold text-neutral-700 block uppercase tracking-wider">
-                  Status Ketersediaan Pantai Sundak:
-                </span>
-
-                <div className={`p-4 rounded-[26px] border bg-white space-y-3 ${
-                  isSundakAvailable
-                    ? 'border-emerald-700 shadow-sm'
-                    : 'border-rose-300 bg-rose-50/40'
-                }`}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Home className="w-4 h-4 text-emerald-800" />
-                        <h3 className="font-black text-base text-neutral-900">
-                          Full House Griya Barokah Sundak
-                        </h3>
-                      </div>
-                      <span className="text-xs text-neutral-500 block mt-0.5">
-                        Satu rumah penuh (4 Kamar AC, 3 KM, Dapur Lengkap, Mesin Cuci)
-                      </span>
-                    </div>
-
-                    <div>
-                      {isSundakAvailable ? (
-                        <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-black border border-emerald-300 flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>AVAILABLE</span>
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-800 text-[11px] font-black border border-rose-300 flex items-center gap-1">
-                          <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
-                          <span>FULL / TIDAK TERSEDIA</span>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-2xl bg-[#F8F9FA] border border-neutral-200/70 text-xs space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-neutral-800">Tarif per Orang:</span>
-                      <strong className="text-emerald-800 font-bold">Rp75.000 /orang/malam</strong>
-                    </div>
-                    <span className="text-[11px] text-neutral-500 block">
-                      Minimal pemesanan 4 orang. Total dihitung otomatis berdasarkan jumlah tamu yang Anda masukkan.
-                    </span>
-                  </div>
-
-                  {!isSundakAvailable && (
-                    <div className="p-3 bg-rose-100 text-rose-900 rounded-xl text-xs flex items-center gap-2 font-semibold">
-                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                      <span>Pada tanggal ini sudah ada booking Full House Pantai Sundak. Status: FULL. Silakan pilih tanggal lain.</span>
-                    </div>
-                  )}
-                </div>
+            {/* Share Toast */}
+            {shareToastText && (
+              <div className="p-2.5 bg-neutral-900 text-white rounded-xl text-xs text-center">
+                {shareToastText}
               </div>
-            ) : (
-              /* Ketersediaan 4 Kamar Pantai Trenggole */
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-neutral-700 block uppercase tracking-wider">
-                    Pilih Kamar yang AVAILABLE:
-                  </span>
-                  <span className="text-[11px] text-neutral-500">
-                    Pilih 1 atau lebih kamar
-                  </span>
-                </div>
+            )}
 
-                <div className="space-y-2.5">
-                  {(activeProp?.roomTypes || []).map((room) => {
-                    const isAvail = checkTrenggoleRoomAvailability(room.id, checkInDate, checkOutDate);
-                    const isSelected = trenggoleSelectedRooms.includes(room.id);
+            {/* ================= CASE A: PANTAI TRENGGOLE (KAMAR INDIVIDUAL) ================= */}
+            {!isSundak ? (
+              (() => {
+                const rooms = activeProp.roomTypes || [];
+                const currentRoom =
+                  rooms.find((r) => r.id === activePreviewRoomId) || rooms[0] || {
+                    id: 'trenggole-kamar-1',
+                    name: 'Kamar 1',
+                    description: 'Kamar nyaman dengan pemandangan langsung ke arah pantai.',
+                    pricePerNight: 285000,
+                    capacityGuests: 4,
+                    bedsCount: 2,
+                    bathsCount: 1,
+                    areaSqft: 350,
+                    isAvailable: true,
+                    image: '/images/trenggole_room_1790552085510.jpg',
+                    features: ['AC', 'WiFi', 'View Pantai'],
+                  };
+                const currentRoomIndex = Math.max(
+                  0,
+                  rooms.findIndex((r) => r.id === currentRoom.id)
+                );
+                const isAvail = checkTrenggoleRoomAvailability(
+                  currentRoom.id,
+                  checkInDate,
+                  checkOutDate
+                );
+                const isSelected = trenggoleSelectedRooms.includes(currentRoom.id);
 
-                    return (
-                      <div
-                        key={room.id}
-                        onClick={() => isAvail && toggleTrenggoleRoom(room.id)}
-                        className={`p-4 rounded-[26px] border transition-all bg-white ${
-                          !isAvail
-                            ? 'opacity-60 bg-neutral-100 border-neutral-200 cursor-not-allowed'
-                            : isSelected
-                            ? 'border-emerald-800 shadow-md ring-2 ring-emerald-800/20 cursor-pointer'
-                            : 'border-neutral-200 hover:border-neutral-300 cursor-pointer'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-black text-sm text-neutral-900">
-                                {room.name}
-                              </span>
-                              <span className="px-2 py-0.5 rounded-md bg-neutral-100 text-[10px] font-bold text-neutral-600">
-                                Lantai {room.floor || 1}
-                              </span>
-                            </div>
-                            <span className="text-[11px] text-neutral-500 block mt-0.5">
-                              {room.description}
+                return (
+                  <div className="space-y-4">
+                    {/* Chip Pemilih Cepat Kamar */}
+                    <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-1">
+                      {rooms.map((room) => {
+                        const isThisPreview = room.id === currentRoom.id;
+                        const isThisSelected = trenggoleSelectedRooms.includes(room.id);
+                        const isThisAvail = checkTrenggoleRoomAvailability(
+                          room.id,
+                          checkInDate,
+                          checkOutDate
+                        );
+
+                        return (
+                          <button
+                            key={room.id}
+                            type="button"
+                            onClick={() => {
+                              setActivePreviewRoomId(room.id);
+                              setErrorNotice('');
+                            }}
+                            className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                              isThisPreview
+                                ? 'bg-[#13281E] text-white shadow-xs'
+                                : 'bg-white text-neutral-700 border border-neutral-200/90'
+                            }`}
+                          >
+                            <span>{room.name}</span>
+                            {isThisSelected && (
+                              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                            )}
+                            {!isThisAvail && (
+                              <span className="text-[9px] text-rose-500 font-extrabold">(Full)</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* ================= ROOM CARD HOTEL PREMIUM (SESUAI GAMBAR REFERENSI #2) ================= */}
+                    <div className="bg-white rounded-[24px] overflow-hidden border border-neutral-200/90 shadow-sm space-y-4 p-4">
+                      {/* 1. Bagian Foto Kamar Besar Horizontal (Tinggi ~240px, Rounded 24px) */}
+                      <div className="relative h-60 sm:h-64 w-full rounded-[24px] overflow-hidden bg-neutral-900">
+                        <SafeImage
+                          src={currentRoom.image}
+                          alt={currentRoom.name}
+                          fallbackText={currentRoom.name}
+                          className="w-full h-full object-cover"
+                          containerClassName="w-full h-full"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/20 pointer-events-none" />
+
+                        {/* Tombol Aksi Kanan Atas (Share & Heart Bulat) */}
+                        <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (navigator.share) {
+                                navigator.share({
+                                  title: currentRoom.name,
+                                  text: `${currentRoom.name} - Griya Barokah Pantai Trenggole`,
+                                  url: window.location.href,
+                                }).catch(() => {});
+                              } else {
+                                setShareToastText('Tautan disalin ke clipboard!');
+                                setTimeout(() => setShareToastText(''), 2000);
+                              }
+                            }}
+                            className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-md shadow-xs flex items-center justify-center text-neutral-800 active:scale-90 transition-transform cursor-pointer"
+                            aria-label="Bagikan"
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setIsRoomHearted(!isRoomHearted)}
+                            className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-md shadow-xs flex items-center justify-center text-neutral-800 active:scale-90 transition-transform cursor-pointer"
+                            aria-label="Sukai"
+                          >
+                            <Heart
+                              className={`w-4 h-4 transition-colors ${
+                                isRoomHearted
+                                  ? 'fill-rose-500 text-rose-500'
+                                  : 'text-neutral-800'
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* Badge Bawah Foto (⭐ Rating, 🛏 Nama Kamar, & Counter 1/X) */}
+                        <div className="absolute bottom-3.5 left-3.5 right-3.5 z-20 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-amber-300 text-xs font-bold flex items-center gap-1 shadow-sm">
+                              <span>★</span>
+                              <span>4.8</span>
+                            </span>
+
+                            <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                              <Bed className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>{currentRoom.name}</span>
                             </span>
                           </div>
 
-                          <div className="text-right shrink-0">
-                            <span className="text-sm font-black text-emerald-800 block">
-                              Rp {room.pricePerNight.toLocaleString('id-ID')}
-                            </span>
-                            <span className="text-[10px] text-neutral-400 block">/malam</span>
+                          <span className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white/90 text-xs font-semibold shadow-sm">
+                            {currentRoomIndex + 1}/{rooms.length}
+                          </span>
+                        </div>
+                      </div>
 
-                            <div className="mt-1">
-                              {isAvail ? (
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 justify-end ${
-                                  isSelected
-                                    ? 'bg-emerald-800 text-white'
-                                    : 'bg-emerald-100 text-emerald-800'
-                                }`}>
-                                  {isSelected ? '✓ Terpilih' : 'AVAILABLE'}
-                                </span>
-                              ) : (
-                                <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold">
-                                  FULL
-                                </span>
-                              )}
-                            </div>
+                      {/* 2. Bagian Informasi Kamar */}
+                      <div className="space-y-3">
+                        {/* Nama Kamar */}
+                        <div>
+                          <h3 className="text-lg sm:text-xl font-black text-neutral-900 tracking-tight leading-snug">
+                            {currentRoom.name} – Pantai Trenggole
+                          </h3>
+                        </div>
+
+                        {/* Informasi Singkat Horizontal: Kapasitas, Bed, AC, WiFi */}
+                        <div className="flex items-center gap-3.5 text-xs font-semibold text-neutral-700 flex-wrap py-1 border-y border-neutral-100">
+                          <div className="flex items-center gap-1.5">
+                            <Users className="w-4 h-4 text-emerald-700 shrink-0" />
+                            <span>{currentRoom.capacityGuests || 4} orang</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Bed className="w-4 h-4 text-emerald-700 shrink-0" />
+                            <span>
+                              {currentRoom.bedInfo || '1 Queen + 1 Single (2 Bed)'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Wind className="w-4 h-4 text-sky-600 shrink-0" />
+                            <span>AC</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Wifi className="w-4 h-4 text-emerald-700 shrink-0" />
+                            <span>WiFi</span>
+                          </div>
+                        </div>
+
+                        {/* Harga & Button Pilih Kamar */}
+                        <div className="flex items-center justify-between gap-3 pt-1">
+                          <div>
+                            <span className="text-xl font-black text-neutral-900 block leading-tight">
+                              Rp {currentRoom.pricePerNight.toLocaleString('id-ID')}
+                            </span>
+                            <span className="text-[11px] text-neutral-500 font-medium">
+                              per malam / kamar
+                            </span>
+                          </div>
+
+                          <div>
+                            {isAvail ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!isSelected) {
+                                    setTrenggoleSelectedRooms([currentRoom.id]);
+                                  }
+                                  handleValidateAndProceedStep2();
+                                }}
+                                className="h-11 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+                              >
+                                <span>{isSelected ? '✓ Terpilih' : 'Pilih Kamar'}</span>
+                                <ArrowRight className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <span className="px-3.5 py-2 rounded-full bg-rose-100 text-rose-800 text-xs font-bold">
+                                Kamar Full
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Deskripsi Fasilitas Kamar */}
+                        <div className="pt-1">
+                          <p className="text-xs text-neutral-600 leading-relaxed font-normal">
+                            {currentRoom.description ||
+                              'Kamar nyaman dengan pemandangan langsung ke arah pantai. Dilengkapi AC, kamar mandi dalam, WiFi, dan fasilitas lengkap untuk keluarga.'}
+                          </p>
+                        </div>
+
+                        {/* 3. Thumbnail Foto Kamar di Bawah Deskripsi (Galeri Kecil Horizontal) */}
+                        <div className="pt-2">
+                          <span className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider block mb-2">
+                            Pilihan Kamar Lainnya:
+                          </span>
+                          <div className="flex gap-2.5 overflow-x-auto no-scrollbar py-1">
+                            {rooms.map((room, idx) => {
+                              const isCurrent = room.id === currentRoom.id;
+                              return (
+                                <button
+                                  key={room.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setActivePreviewRoomId(room.id);
+                                    setErrorNotice('');
+                                  }}
+                                  className={`relative w-20 h-20 rounded-2xl overflow-hidden shrink-0 border-2 transition-all cursor-pointer ${
+                                    isCurrent
+                                      ? 'border-emerald-800 ring-2 ring-emerald-800/30 scale-102'
+                                      : 'border-neutral-200/80 hover:border-neutral-300 opacity-80'
+                                  }`}
+                                >
+                                  <SafeImage
+                                    src={room.image}
+                                    alt={room.name}
+                                    fallbackText={room.name}
+                                    className="w-full h-full object-cover"
+                                    containerClassName="w-full h-full"
+                                  />
+                                  <div className="absolute inset-x-0 bottom-0 bg-black/60 p-1 text-center">
+                                    <span className="text-[9px] font-bold text-white block truncate">
+                                      {room.name}
+                                    </span>
+                                  </div>
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
-                    );
-                  })}
+                    </div>
+                  </div>
+                );
+              })()
+            ) : (
+              /* ================= CASE B: PANTAI SUNDAK (FULL HOUSE) ================= */
+              <div className="space-y-4">
+                <div className="bg-white rounded-[24px] overflow-hidden border border-neutral-200/90 shadow-sm space-y-4 p-4">
+                  {/* Foto Full House Besar */}
+                  <div className="relative h-60 sm:h-64 w-full rounded-[24px] overflow-hidden bg-neutral-900">
+                    <SafeImage
+                      src={activeProp?.image || sundakProp?.image || '/images/sundak_fullhouse_1790552054893.jpg'}
+                      alt={activeProp?.name || 'Full House Griya Barokah Sundak'}
+                      fallbackText={activeProp?.name || 'Full House Sundak'}
+                      className="w-full h-full object-cover"
+                      containerClassName="w-full h-full"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/20 pointer-events-none" />
+
+                    {/* Tombol Aksi Kanan Atas */}
+                    <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShareToastText('Tautan disalin ke clipboard!');
+                          setTimeout(() => setShareToastText(''), 2000);
+                        }}
+                        className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-md shadow-xs flex items-center justify-center text-neutral-800 active:scale-90 transition-transform cursor-pointer"
+                        aria-label="Bagikan"
+                      >
+                        <Share2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsRoomHearted(!isRoomHearted)}
+                        className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-md shadow-xs flex items-center justify-center text-neutral-800 active:scale-90 transition-transform cursor-pointer"
+                        aria-label="Sukai"
+                      >
+                        <Heart
+                          className={`w-4 h-4 transition-colors ${
+                            isRoomHearted ? 'fill-rose-500 text-rose-500' : 'text-neutral-800'
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Badge Bawah Foto */}
+                    <div className="absolute bottom-3.5 left-3.5 right-3.5 z-20 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-amber-300 text-xs font-bold flex items-center gap-1 shadow-sm">
+                          <span>★</span>
+                          <span>{activeProp?.rating || sundakProp?.rating || 4.9}</span>
+                        </span>
+                        <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                          <Home className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{activeProp?.badge || 'Satu Rumah Penuh'}</span>
+                        </span>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white/90 text-xs font-semibold shadow-sm">
+                        1/1
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Informasi Full House */}
+                  <div className="space-y-3">
+                    <h3 className="text-lg sm:text-xl font-black text-neutral-900 tracking-tight leading-snug">
+                      {activeProp?.name || 'Full House Griya Barokah Sundak'}
+                    </h3>
+
+                    <div className="flex items-center gap-3.5 text-xs font-semibold text-neutral-700 flex-wrap py-1 border-y border-neutral-100">
+                      <div className="flex items-center gap-1.5">
+                        <Users className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <span>Min. 4 orang</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Bed className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <span>4 Kamar AC</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Bath className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <span>3 Kamar Mandi</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Wifi className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <span>WiFi</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 pt-1">
+                      <div>
+                        <span className="text-xl font-black text-emerald-800 block leading-tight">
+                          Rp {(sundakProp?.roomTypes?.[0]?.pricePerPersonNight || 75000).toLocaleString('id-ID')}
+                        </span>
+                        <span className="text-[11px] text-neutral-500 font-medium">
+                          per orang / malam (min. 4 orang)
+                        </span>
+                      </div>
+
+                      <div>
+                        {isSundakAvailable ? (
+                          <button
+                            type="button"
+                            onClick={handleValidateAndProceedStep2}
+                            className="h-11 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+                          >
+                            <span>Pilih Unit Sundak</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <span className="px-3.5 py-2 rounded-full bg-rose-100 text-rose-800 text-xs font-bold">
+                            Full / Terisi
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-neutral-600 leading-relaxed font-normal pt-1">
+                      Satu rumah utuh untuk keluarga/rombongan dekat pantai pasir putih Sundak. 4 kamar tidur AC, 3 KM, ruang keluarga luas, dapur lengkap alat masak/makan, mesin cuci, dan WiFi.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -1111,7 +1473,7 @@ export const BookingFlow: React.FC = () => {
                 Pilihan Pembayaran
               </h2>
               <p className="text-xs text-neutral-500 mt-0.5">
-                Pilih opsi pembayaran: Uang Muka (DP 50%) atau Lunas 100%. Nominal otomatis dihitung.
+                Pilih opsi pembayaran: Uang Muka (DP 30%) atau Lunas 100%. Nominal otomatis dihitung.
               </p>
             </div>
 
@@ -1180,25 +1542,25 @@ export const BookingFlow: React.FC = () => {
               </span>
 
               <div className="grid grid-cols-2 gap-2.5">
-                {/* Opsi 1: DP 50% */}
+                {/* Opsi 1: DP 30% */}
                 <button
                   type="button"
-                  onClick={() => setPaymentType('dp_50')}
+                  onClick={() => setPaymentType('dp_30')}
                   className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
-                    paymentType === 'dp_50'
+                    paymentType === 'dp_30'
                       ? 'border-emerald-800 bg-emerald-50/80 shadow-xs ring-2 ring-emerald-800/20'
                       : 'border-neutral-200 bg-[#F9FAFB] hover:border-neutral-300'
                   }`}
                 >
                   <span className="text-[10px] font-bold text-emerald-800 uppercase block">Opsi 1</span>
                   <span className="text-sm font-black text-neutral-900 block mt-0.5">
-                    DP 50%
+                    DP 30%
                   </span>
                   <span className="text-xs font-black text-emerald-900 block mt-1">
-                    Rp {Math.round(grandTotal * 0.5).toLocaleString('id-ID')}
+                    Rp {Math.round(grandTotal * 0.3).toLocaleString('id-ID')}
                   </span>
                   <span className="text-[10px] text-neutral-500 block mt-0.5">
-                    Sisa Rp {Math.round(grandTotal * 0.5).toLocaleString('id-ID')} saat check-in
+                    Sisa Rp {Math.round(grandTotal * 0.7).toLocaleString('id-ID')} saat check-in
                   </span>
                 </button>
 
@@ -1233,7 +1595,7 @@ export const BookingFlow: React.FC = () => {
                     Rp {dpAmount.toLocaleString('id-ID')}
                   </span>
                 </div>
-                {paymentType === 'dp_50' && (
+                {paymentType === 'dp_30' && (
                   <div className="flex items-center justify-between text-[11px] text-neutral-600">
                     <span>Sisa Pelunasan Saat Check-in:</span>
                     <span className="font-bold text-neutral-900">
@@ -1285,7 +1647,7 @@ export const BookingFlow: React.FC = () => {
             {/* Total Tagihan Transfer */}
             <div className="p-4 rounded-[26px] bg-white border border-emerald-300 shadow-xs space-y-2 text-xs">
               <span className="text-[10px] uppercase font-bold text-neutral-500 block">
-                Nominal Transfer {paymentType === 'full_100' ? '(Lunas 100%)' : '(DP 50%)'}
+                Nominal Transfer {paymentType === 'full_100' ? '(Lunas 100%)' : '(DP 30%)'}
               </span>
               <div className="flex items-baseline justify-between">
                 <div>
@@ -1301,7 +1663,7 @@ export const BookingFlow: React.FC = () => {
                     Rp {dpAmount.toLocaleString('id-ID')}
                   </span>
                   <span className="text-[10px] text-neutral-400">
-                    {paymentType === 'full_100' ? 'Lunas' : 'DP 50%'}
+                    {paymentType === 'full_100' ? 'Lunas' : 'DP 30%'}
                   </span>
                 </div>
               </div>
@@ -1476,7 +1838,7 @@ export const BookingFlow: React.FC = () => {
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200/80 px-6 py-3.5 max-w-md mx-auto flex items-center justify-between shadow-lg">
         <div>
           <span className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider block">
-            {activeStep === 5 ? `Total Bayar (${paymentType === 'full_100' ? 'Lunas' : 'DP 50%'})` : 'Total Biaya'}
+            {activeStep === 5 ? `Total Bayar (${paymentType === 'full_100' ? 'Lunas' : 'DP 30%'})` : 'Total Biaya'}
           </span>
           <span className="text-[16px] font-black text-neutral-900">
             {activeStep === 5

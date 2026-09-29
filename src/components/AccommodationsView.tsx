@@ -10,8 +10,6 @@ import {
   Bed,
   Bath,
   ArrowRight,
-  Maximize2,
-  CheckCircle2,
   Palmtree,
   Sparkles,
   Wind,
@@ -20,8 +18,10 @@ import {
   Refrigerator,
   UtensilsCrossed,
   Wifi,
+  Home,
+  CheckCircle2,
   ChevronRight,
-  MessageCircle,
+  Eye,
 } from 'lucide-react';
 
 export const AccommodationsView: React.FC = () => {
@@ -32,329 +32,366 @@ export const AccommodationsView: React.FC = () => {
     setSelectedRoomType,
     setCurrentView,
     language,
+    setLanguage,
     t,
+    cmsHomestays,
+    getWebsiteSetting,
   } = useBooking();
 
-  const [selectedAccId, setSelectedAccId] = useState<string>(
-    selectedProperty?.id || 'all'
-  );
+  const [selectedAccId, setSelectedAccId] = useState<string>('all');
+  const [expandedRoomsPropId, setExpandedRoomsPropId] = useState<string | null>(null);
 
   const displayedAccommodations =
     selectedAccId === 'all'
       ? accommodations
       : accommodations.filter((a) => a.id === selectedAccId);
 
-  const handleSelectRoom = (prop: Property, room: RoomType) => {
+  const handleSelectPropertyDetail = (prop: Property) => {
     setSelectedProperty(prop);
-    setSelectedRoomType(room);
+    if (prop.roomTypes.length > 0) {
+      setSelectedRoomType(prop.roomTypes[0]);
+    }
     setCurrentView('detail');
   };
 
-  const handleDirectReserve = (prop: Property, room: RoomType) => {
+  const handleDirectReserve = (prop: Property, room?: RoomType) => {
     setSelectedProperty(prop);
-    setSelectedRoomType(room);
+    if (room) {
+      setSelectedRoomType(room);
+    } else if (prop.roomTypes.length > 0) {
+      setSelectedRoomType(prop.roomTypes[0]);
+    }
     setCurrentView('booking_flow');
   };
 
-  // Facility icon helper
-  const getFacilityIcon = (text: string) => {
-    const lower = text.toLowerCase();
-    if (lower.includes('ac') || lower.includes('kamar tidur')) return <Wind className="w-3.5 h-3.5 text-sky-600" />;
-    if (lower.includes('mandi') || lower.includes('bath') || lower.includes('closed')) return <Bath className="w-3.5 h-3.5 text-blue-600" />;
-    if (lower.includes('kulkas') || lower.includes('fridge')) return <Refrigerator className="w-3.5 h-3.5 text-emerald-600" />;
-    if (lower.includes('tv')) return <Tv className="w-3.5 h-3.5 text-amber-600" />;
-    if (lower.includes('dapur') || lower.includes('kitchen') || lower.includes('gas') || lower.includes('masak')) return <Flame className="w-3.5 h-3.5 text-orange-600" />;
-    if (lower.includes('makan') || lower.includes('dining')) return <UtensilsCrossed className="w-3.5 h-3.5 text-orange-600" />;
-    if (lower.includes('extra bed') || lower.includes('bed') || lower.includes('tidur')) return <Bed className="w-3.5 h-3.5 text-indigo-600" />;
-    if (lower.includes('wifi')) return <Wifi className="w-3.5 h-3.5 text-emerald-600" />;
-    return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />;
-  };
-
   return (
-    <div className="min-h-[100dvh] bg-[#ECEEF2] text-[#12151B] flex flex-col justify-between select-none pb-28">
-      {/* Top Header */}
-      <header className="sticky top-0 z-30 bg-[#ECEEF2]/95 backdrop-blur-md px-5 py-3.5 border-b border-neutral-300/70">
+    <div className="min-h-[100dvh] bg-[#F6F7F9] text-[#11141A] flex flex-col justify-between select-none pb-28">
+      {/* ==============================================================
+          TOP HEADER (Sesuai Referensi Gambar #1)
+          - Logo Griya Barokah Homestay
+          - Language toggle pill (ID | EN)
+          - Subtitle: 🌴 GRIYA BAROKAH HOMESTAY
+          - Title: Pilihan Penginapan Homestay (2 Lokasi)
+          - Location filter pills: Semua Lokasi, Pantai Sundak, Pantai Trenggole
+         ============================================================== */}
+      <header className="sticky top-0 z-30 bg-[#F6F7F9]/95 backdrop-blur-md px-4 sm:px-5 pt-3.5 pb-2.5 border-b border-neutral-200/80">
+        {/* Brand & Language Row */}
         <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-800 uppercase tracking-wider">
-              <Palmtree className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Griya Barokah Homestay</span>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-800 flex items-center justify-center border border-emerald-200/80 shadow-2xs">
+              <Palmtree className="w-4 h-4 text-emerald-700" />
             </div>
-            <h1 className="text-lg font-black text-neutral-900 tracking-tight mt-0.5">
+            <span className="font-extrabold text-sm text-neutral-900 tracking-tight">
+              Griya Barokah Homestay
+            </span>
+          </div>
+
+          {/* Language Toggle Pill */}
+          <div className="flex items-center p-0.5 rounded-full bg-neutral-200/90 text-[11px] font-bold">
+            <button
+              type="button"
+              onClick={() => setLanguage('id')}
+              className={`px-2.5 py-0.5 rounded-full transition-all cursor-pointer ${
+                language === 'id'
+                  ? 'bg-white text-neutral-900 shadow-2xs'
+                  : 'text-neutral-500 hover:text-neutral-800'
+              }`}
+            >
+              ID
+            </button>
+            <button
+              type="button"
+              onClick={() => setLanguage('en')}
+              className={`px-2.5 py-0.5 rounded-full transition-all cursor-pointer ${
+                language === 'en'
+                  ? 'bg-white text-neutral-900 shadow-2xs'
+                  : 'text-neutral-500 hover:text-neutral-800'
+              }`}
+            >
+              EN
+            </button>
+          </div>
+        </div>
+
+        {/* Section Heading & Location Counter */}
+        <div className="flex items-end justify-between mt-3">
+          <div>
+            <div className="flex items-center gap-1 text-[11px] font-extrabold text-emerald-800 uppercase tracking-wider">
+              <Palmtree className="w-3.5 h-3.5 text-emerald-700" />
+              <span>GRIYA BAROKAH HOMESTAY</span>
+            </div>
+            <h1 className="text-lg sm:text-xl font-black text-neutral-900 tracking-tight mt-0.5">
               Pilihan Penginapan Homestay
             </h1>
           </div>
 
-          <span className="px-3 py-1 rounded-full bg-white text-xs font-bold text-neutral-800 shadow-xs border border-neutral-200">
+          <span className="px-3 py-1 rounded-full bg-white text-xs font-bold text-neutral-800 shadow-2xs border border-neutral-200/90 shrink-0">
             {accommodations.length} Lokasi
           </span>
         </div>
 
-        {/* Accommodation Switcher Tabs (Semua Lokasi, Sundak, Trenggole) */}
+        {/* Filter Chips (Semua Lokasi, Pantai Sundak, Pantai Trenggole) */}
         <div className="flex gap-1.5 mt-3 p-1 bg-neutral-200/80 rounded-2xl">
           <button
+            type="button"
             onClick={() => setSelectedAccId('all')}
             className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all text-center truncate cursor-pointer ${
               selectedAccId === 'all'
-                ? 'bg-white text-neutral-900 shadow-xs ring-1 ring-black/5'
+                ? 'bg-white text-neutral-900 shadow-2xs ring-1 ring-black/5'
                 : 'text-neutral-600 hover:text-neutral-900'
             }`}
           >
-            <span>Semua Lokasi</span>
+            Semua Lokasi
           </button>
           {accommodations.map((acc) => {
             const isSelected = acc.id === selectedAccId;
             return (
               <button
                 key={acc.id}
+                type="button"
                 onClick={() => {
                   setSelectedAccId(acc.id);
                   setSelectedProperty(acc);
                 }}
                 className={`flex-1 py-2 px-2.5 rounded-xl text-xs font-bold transition-all text-center truncate cursor-pointer ${
                   isSelected
-                    ? 'bg-white text-neutral-900 shadow-xs ring-1 ring-black/5'
+                    ? 'bg-white text-neutral-900 shadow-2xs ring-1 ring-black/5'
                     : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
-                <span>{acc.name.replace('Griya Barokah ', '')}</span>
+                {acc.name.replace('Griya Barokah ', '')}
               </button>
             );
           })}
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="px-4 py-4 space-y-6 flex-grow">
-        {displayedAccommodations.map((currentAcc) => (
-          <div key={currentAcc.id} className="space-y-4">
-            {/* Featured Homestay Banner Card */}
-            <div className="relative rounded-[28px] overflow-hidden bg-white shadow-xs border border-neutral-200/90">
-              <div className="relative h-52 sm:h-60 w-full">
+      {/* ==============================================================
+          MAIN CONTENT AREA (CARD PENGINAPAN MODERN MOBILE-FIRST)
+         ============================================================== */}
+      <main className="px-4 py-4 space-y-5 flex-grow max-w-md mx-auto w-full">
+        {displayedAccommodations.map((currentAcc) => {
+          const isSundak =
+            currentAcc.id === 'homestay-sundak' ||
+            currentAcc.propertyType === 'full_homestay';
+          const cmsData = cmsHomestays?.find((h) => h.id === currentAcc.id);
+          const badgeText = cmsData?.badge || currentAcc.badge || (isSundak ? 'Satu Rumah Penuh (Full House)' : 'Penginapan Kamar & Full House');
+          const conceptText = cmsData?.konsep || currentAcc.concept || (isSundak
+            ? 'Konsep: Satu Rumah Penuh (Bukan Per Kamar). Tarif Rp75.000/orang/malam (minimal 4 orang). Total biaya: Jumlah orang × Jumlah malam × Rp75.000.'
+            : 'Konsep: Kamar Individual (Sewa Per Kamar). Tersedia 4 pilihan kamar AC view pantai. Mulai Rp285.000/malam. Kapasitas 4 orang per kamar (2 bed: ranjang + bed lantai).');
+          const descText = cmsData?.deskripsi || currentAcc.description;
+          const facilitiesList = (cmsData?.fasilitas && cmsData.fasilitas.length > 0)
+            ? cmsData.fasilitas.slice(0, 4)
+            : (currentAcc.highlights && currentAcc.highlights.length > 0 ? currentAcc.highlights.slice(0, 4) : []);
+
+          return (
+            <div
+              key={currentAcc.id}
+              className="bg-white rounded-[24px] sm:rounded-[26px] overflow-hidden border border-neutral-200/90 shadow-sm transition-all hover:shadow-md flex flex-col"
+            >
+              {/* ================= 1. FOTO FULL-WIDTH LANDSCAPE (OVERLAY GRADASI) ================= */}
+              <div className="relative h-52 sm:h-56 w-full overflow-hidden bg-neutral-900">
                 <SafeImage
-                  src={currentAcc.image}
-                  alt={currentAcc.name}
+                  src={cmsData?.foto_utama || currentAcc.image}
+                  alt={cmsData?.nama || currentAcc.name}
+                  fallbackText={cmsData?.nama || currentAcc.name}
                   className="w-full h-full object-cover"
+                  containerClassName="w-full h-full"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
 
-                {/* Badges */}
-                <div className="absolute top-3.5 left-3.5">
-                  <span className="px-3 py-1 rounded-full bg-emerald-600 text-white text-[11px] font-bold shadow-xs">
-                    {currentAcc.badge || 'Keluarga'}
+                {/* Overlay Gradasi Halus Transparan */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/10 pointer-events-none" />
+
+                {/* 2. Informasi di Atas Gambar (Badge Tipe & Rating) */}
+                <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between gap-2 z-10">
+                  {/* Badge Tipe Penginapan */}
+                  <span className="px-3 py-1 rounded-full bg-emerald-600 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-sm">
+                    {badgeText}
                   </span>
-                </div>
 
-                <div className="absolute top-3.5 right-3.5 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1 text-xs font-bold text-amber-300">
-                  <span>★</span>
-                  <span>{currentAcc.rating}</span>
-                  <span className="text-[10px] text-white/80">({currentAcc.reviewsCount} Ulasan)</span>
-                </div>
-
-                {/* Homestay Title & Location */}
-                <div className="absolute bottom-3.5 left-4 right-4 text-white">
-                  <div className="flex items-center gap-1 text-xs text-emerald-300 font-semibold mb-0.5">
-                    <MapPin className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">{currentAcc.location}</span>
+                  {/* Rating & Ulasan */}
+                  <div className="bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1 text-xs font-bold text-amber-300 shadow-sm">
+                    <span>★</span>
+                    <span>{cmsData?.rating || currentAcc.rating}</span>
+                    <span className="text-[10px] text-white/85 font-medium">
+                      ({cmsData?.reviews_count || currentAcc.reviewsCount} Ulasan)
+                    </span>
                   </div>
-                  <h2 className="text-xl font-black tracking-tight text-white leading-tight">
-                    {currentAcc.name}
+                </div>
+
+                {/* Informasi Di Bagian Bawah Gambar (Lokasi & Nama Penginapan) */}
+                <div className="absolute bottom-3.5 left-4 right-4 text-white z-10">
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-300 font-semibold mb-1">
+                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{cmsData?.lokasi || currentAcc.location}</span>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-black text-white tracking-tight leading-snug drop-shadow-sm">
+                    {cmsData?.nama || currentAcc.name}
                   </h2>
                 </div>
               </div>
 
-              {/* Deskripsi & Fasilitas Lengkap */}
+              {/* ================= 3. INFORMASI BAWAH GAMBAR ================= */}
               <div className="p-4 space-y-3.5">
-                {currentAcc.id === 'homestay-sundak' && (
-                  <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-950 font-medium">
-                    🏡 <strong>KONSEP FULL HOUSE:</strong> Pantai Sundak adalah <strong>SATU RUMAH PENUH</strong> (bukan per kamar). Tarif Rp75.000/orang/malam (minimal pemesanan 4 orang). Total biaya: Jumlah orang × Jumlah malam × Rp75.000.
+                {/* Kotak Konsep Khusus (Sesuai Referensi Visual) */}
+                <div className={`p-3 rounded-2xl border flex items-start gap-3 ${
+                  isSundak
+                    ? 'bg-[#F4F8F5] border-emerald-200/70'
+                    : 'bg-[#F4F8FA] border-sky-200/70'
+                }`}>
+                  <div className={`w-9 h-9 rounded-xl bg-white flex items-center justify-center shrink-0 border shadow-2xs mt-0.5 ${
+                    isSundak
+                      ? 'text-emerald-800 border-emerald-200/80'
+                      : 'text-sky-800 border-sky-200/80'
+                  }`}>
+                    {isSundak ? <Home className="w-4 h-4 text-emerald-700" /> : <Bed className="w-4 h-4 text-sky-700" />}
                   </div>
-                )}
-                {currentAcc.id === 'homestay-trenggole' && (
-                  <div className="p-3 bg-sky-50 rounded-2xl border border-sky-200 text-xs text-sky-950 font-medium">
-                    🌊 <strong>TIPE INDIVIDUAL ROOM:</strong> Pilihan 4 kamar tidur AC langsung dekat pantai. Semua kamar view pantai, memiliki 2 bed ±130x200 cm (kapasitas 4 orang), dan bisa tambah extra bed.
-                  </div>
-                )}
-
-                <p className="text-xs text-neutral-600 leading-relaxed font-normal">
-                  {language === 'id' ? currentAcc.description : currentAcc.descriptionEn}
-                </p>
-
-                {/* Grid Fasilitas Asli */}
-                <div>
-                  <span className="text-[11px] uppercase font-bold text-neutral-500 tracking-wider block mb-2">
-                    Fasilitas Lengkap Penginapan:
-                  </span>
-                  <div className="grid grid-cols-2 gap-1.5 bg-[#F6F7F9] p-3 rounded-2xl border border-neutral-200/70">
-                    {currentAcc.highlights.map((facility, fIdx) => (
-                      <div key={fIdx} className="flex items-center gap-2 text-[11px] text-neutral-700 font-medium">
-                        {getFacilityIcon(facility)}
-                        <span className="truncate">{facility}</span>
-                      </div>
-                    ))}
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-xs font-extrabold text-neutral-900 leading-snug">
+                      {isSundak
+                        ? 'Konsep: Satu Rumah Penuh (Bukan Per Kamar)'
+                        : 'Konsep: Kamar Individual (Sewa Per Kamar)'}
+                    </h4>
+                    <p className="text-[11px] text-neutral-600 mt-1 leading-relaxed">
+                      {conceptText}
+                    </p>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Room Types / Pilihan Kamar Section */}
-            <div className="space-y-3 pt-1">
-              <div className="flex items-center justify-between px-1">
+                {/* Deskripsi Singkat (Line Clamp Maksimal 3 Baris - Responsive 360px) */}
                 <div>
-                  <h3 className="text-xs font-black uppercase tracking-wider text-neutral-600">
-                    {currentAcc.id === 'homestay-sundak' ? 'Detail Full House Sundak' : 'Pilihan Kamar Trenggole'} ({currentAcc.roomTypes.length})
-                  </h3>
-                  <span className="text-[11px] text-neutral-400">
-                    {currentAcc.id === 'homestay-sundak' ? 'Satu rumah penuh untuk keluarga Anda' : 'Pilih kamar ber-AC sesuai kapasitas keluarga'}
-                  </span>
+                  <p className="text-xs text-neutral-600 leading-relaxed font-normal line-clamp-3">
+                    {descText}
+                  </p>
                 </div>
-              </div>
 
-              <div className="space-y-3">
-                {currentAcc.roomTypes.map((room) => (
-                  <div
-                    key={room.id}
-                    className="bg-white rounded-[24px] p-4 shadow-xs border border-neutral-200/90 space-y-3 transition-all hover:border-neutral-300"
+                {/* Fasilitas Utama Chips Dinamis */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {facilitiesList.map((f, fIdx) => (
+                    <span
+                      key={fIdx}
+                      className="px-2.5 py-1 rounded-lg bg-neutral-100 text-neutral-700 text-[11px] font-semibold flex items-center gap-1"
+                    >
+                      <Sparkles className="w-3 h-3 text-emerald-700" /> {f}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Tombol Aksi Bawah: Detail & Pesan */}
+                <div className="pt-2.5 border-t border-neutral-100 flex items-center justify-between gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectPropertyDetail(currentAcc)}
+                    className="flex-1 h-10 px-4 rounded-full bg-neutral-100 hover:bg-neutral-200/80 text-neutral-800 text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-neutral-200/60"
                   >
-                    <div className="flex gap-3.5">
-                      <SafeImage
-                        src={room.image}
-                        alt={room.name}
-                        className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover shrink-0"
-                        containerClassName="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl shrink-0 overflow-hidden"
+                    <Eye className="w-3.5 h-3.5 text-neutral-600" />
+                    <span>Lihat Detail</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDirectReserve(currentAcc)}
+                    className="flex-1 h-10 px-4 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                  >
+                    <span>Pilih &amp; Pesan</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Quick Toggle Pilihan Kamar untuk Trenggole */}
+                {!isSundak && currentAcc.roomTypes.length > 0 && (
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedRoomsPropId(
+                          expandedRoomsPropId === currentAcc.id ? null : currentAcc.id
+                        )
+                      }
+                      className="w-full py-2 px-3 rounded-xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/80 text-xs font-semibold text-neutral-700 flex items-center justify-between cursor-pointer transition-colors"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <Bed className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>Lihat 4 Pilihan Kamar Trenggole</span>
+                      </span>
+                      <ChevronRight
+                        className={`w-4 h-4 text-neutral-400 transition-transform ${
+                          expandedRoomsPropId === currentAcc.id ? 'rotate-90' : ''
+                        }`}
                       />
+                    </button>
 
-                      <div className="min-w-0 flex-grow flex flex-col justify-between">
-                        <div>
-                          <div className="flex items-start justify-between gap-1">
-                            <h4 className="font-extrabold text-sm text-neutral-900 leading-snug">
-                              {language === 'id' ? room.name : room.nameEn || room.name}
-                            </h4>
-                          </div>
-
-                          <p className="text-[11px] text-neutral-500 line-clamp-2 mt-1 leading-snug">
-                            {language === 'id' ? room.description : room.descriptionEn || room.description}
-                          </p>
-
-                          {/* Info Bed Spesifik */}
-                          {room.bedInfo && (
-                            <div className="mt-1.5 text-[10px] text-amber-900 font-semibold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/70 inline-block">
-                              🛏️ {room.bedInfo}
+                    {expandedRoomsPropId === currentAcc.id && (
+                      <div className="mt-2.5 space-y-2 pt-1 border-t border-neutral-100">
+                        {currentAcc.roomTypes.map((room) => (
+                          <div
+                            key={room.id}
+                            className="p-3 rounded-2xl bg-neutral-50 border border-neutral-200/70 flex items-center justify-between gap-3"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <SafeImage
+                                src={room.image}
+                                alt={room.name}
+                                fallbackText={room.name}
+                                className="w-12 h-12 rounded-xl object-cover shrink-0"
+                                containerClassName="w-12 h-12 rounded-xl shrink-0 overflow-hidden"
+                              />
+                              <div className="min-w-0">
+                                <h5 className="font-extrabold text-xs text-neutral-900 truncate">
+                                  {room.name}
+                                </h5>
+                                <span className="text-[10px] text-neutral-500 block">
+                                  {room.capacityGuests} Tamu • {room.bedsCount} Bed • Lt.{room.floor || 1}
+                                </span>
+                                <span className="text-[11px] font-black text-emerald-800">
+                                  Rp {room.pricePerNight.toLocaleString('id-ID')}
+                                </span>
+                              </div>
                             </div>
-                          )}
-                        </div>
 
-                        {/* Room Amenities specs */}
-                        <div className="flex items-center gap-3 text-[11px] text-neutral-600 mt-2">
-                          <span className="flex items-center gap-1">
-                            <Users className="w-3.5 h-3.5 text-neutral-400" />
-                            <span>{room.capacityGuests} Tamu</span>
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Bed className="w-3.5 h-3.5 text-neutral-400" />
-                            <span>{room.bedsCount} Bed</span>
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Bath className="w-3.5 h-3.5 text-neutral-400" />
-                            <span>{room.bathsCount} KM</span>
-                          </span>
-                        </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDirectReserve(currentAcc, room)}
+                              className="px-3 py-1.5 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white text-[11px] font-bold shrink-0 shadow-2xs cursor-pointer active:scale-95"
+                            >
+                              Pilih Kamar
+                            </button>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-
-                    {/* Features Badges */}
-                    <div className="flex flex-wrap gap-1">
-                      {room.features.map((feat, fidx) => (
-                        <span
-                          key={fidx}
-                          className="px-2 py-0.5 rounded-md bg-[#F4F5F7] border border-neutral-200/60 text-[10px] font-medium text-neutral-700"
-                        >
-                          {feat}
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* Price, Availability and CTA row */}
-                    <div className="pt-2 border-t border-neutral-100 flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          {room.isAvailable ? (
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
-                              ✓ {t.detailAvailable}
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 text-[10px] font-bold border border-rose-200">
-                              {t.detailUnavailable}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex items-baseline gap-1 mt-1">
-                          <span className="text-sm font-black text-emerald-800">
-                            {currentAcc.id === 'homestay-sundak'
-                              ? 'Rp 75.000'
-                              : `Rp ${room.pricePerNight.toLocaleString('id-ID')}`}
-                          </span>
-                          <span className="text-[10px] text-neutral-400 font-normal">
-                            {currentAcc.id === 'homestay-sundak'
-                              ? '/orang/malam (Min. 4 orang)'
-                              : `/${t.perNight}`}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleSelectRoom(currentAcc, room)}
-                          className="px-3 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200/80 text-neutral-800 text-xs font-semibold active:scale-95 transition-all cursor-pointer"
-                        >
-                          Detail
-                        </button>
-                        <button
-                          onClick={() => handleDirectReserve(currentAcc, room)}
-                          disabled={!room.isAvailable}
-                          className="px-3.5 py-1.5 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-bold flex items-center gap-1 active:scale-95 transition-all disabled:opacity-40 shadow-xs cursor-pointer"
-                        >
-                          <span>Pilih &amp; Pesan</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
+                    )}
                   </div>
-                ))}
+                )}
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
-        {/* Banner Layanan Tambahan */}
-        <div className="p-4 rounded-[26px] bg-gradient-to-br from-emerald-50 to-teal-50/50 border border-emerald-200/90 text-xs space-y-2">
+        {/* Layanan Tambahan Banner */}
+        <div className="p-4 rounded-[24px] bg-gradient-to-br from-emerald-50 to-teal-50/50 border border-emerald-200/90 text-xs space-y-2">
           <div className="flex items-center gap-1.5 text-emerald-950 font-bold">
             <Sparkles className="w-4 h-4 text-emerald-700" />
-            <span>Layanan tambahan tersedia:</span>
+            <span>Layanan Tambahan Tersedia:</span>
           </div>
           <ul className="text-neutral-700 text-xs space-y-0.5 list-disc list-inside font-medium pl-1">
-            <li>Pesanan makanan & hidangan pantai</li>
-            <li>Sewa Jeep wisata jelajah pantai & tebing</li>
-            <li>Informasi jual beli tanah / rumah kawasan pantai</li>
+            {getWebsiteSetting?.('footer_extra_info') ? (
+              getWebsiteSetting('footer_extra_info')
+                .split(',')
+                .map((item, idx) => (
+                  <li key={idx}>{item.trim()}</li>
+                ))
+            ) : (
+              <>
+                <li>Pesanan hidangan makanan & seafood pantai</li>
+                <li>Sewa Jeep wisata jelajah pantai & tebing Gunungkidul</li>
+                <li>Informasi jual beli tanah / aset kawasan pantai</li>
+              </>
+            )}
           </ul>
-          <div className="pt-1 flex items-center justify-between text-xs border-t border-emerald-200/60">
-            <span className="text-neutral-600 font-medium">
-              Hubungi WhatsApp: <strong className="text-neutral-900">082138613xxx</strong>
-            </span>
-            <a
-              href="https://wa.me/6282138613888"
-              target="_blank"
-              rel="noreferrer"
-              className="px-3 py-1.5 rounded-full bg-emerald-800 text-white font-bold text-[11px] hover:bg-emerald-900 transition-colors shadow-2xs"
-            >
-              Chat WhatsApp
-            </a>
-          </div>
         </div>
       </main>
 
-      {/* Floating Bottom Navigation Bar: Beranda, Homestay, Pesanan, Profil */}
+      {/* Floating Bottom Navigation Bar: Beranda, Homestay, Pesanan, Akun */}
       <CustomerBottomNav />
     </div>
   );

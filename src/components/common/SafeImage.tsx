@@ -53,7 +53,11 @@ export const SafeImage: React.FC<SafeImageProps> = ({
     setHasError(false);
     setIsLoaded(false);
     setRetryAttempted(false);
-  }, [src]);
+    // Logging sumber gambar saat debugging
+    if (typeof window !== 'undefined') {
+      console.debug(`[SafeImage: ${alt}] Sumber gambar:`, next);
+    }
+  }, [src, alt]);
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     // 6. Tampilkan log error jika URL gambar gagal dipanggil agar mudah debugging

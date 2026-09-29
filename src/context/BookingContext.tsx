@@ -4,6 +4,17 @@ import { INITIAL_PROPERTIES } from '../data/properties';
 import { INITIAL_BOOKINGS } from '../data/initialBookings';
 import { generateQrCode } from '../utils/qr';
 import { translations } from '../utils/translations';
+import {
+  CMSDatabase,
+  convertCmsToProperties,
+  TB_Homepage_Content,
+  TB_Homestay,
+  TB_Room,
+  TB_Media,
+  TB_Website_Settings,
+  TB_User,
+  TB_Activity_Log,
+} from '../db/cmsDatabase';
 
 interface BookingContextType {
   // Bahasa
@@ -83,6 +94,31 @@ interface BookingContextType {
   updateFacilityImage: (url: string) => void;
   adminWhatsappNumber: string;
   updateAdminWhatsappNumber: (num: string) => void;
+
+  // CMS Database Tables & Operations
+  homepageContent: TB_Homepage_Content;
+  updateHomepageContent: (data: Partial<TB_Homepage_Content>) => void;
+  cmsHomestays: TB_Homestay[];
+  addCmsHomestay: (homestay: TB_Homestay) => void;
+  updateCmsHomestay: (id: string, data: Partial<TB_Homestay>) => void;
+  deleteCmsHomestay: (id: string) => void;
+  cmsRooms: TB_Room[];
+  updateCmsRoom: (id: string, data: Partial<TB_Room>) => void;
+  addCmsRoom: (room: TB_Room) => void;
+  deleteCmsRoom: (id: string) => void;
+  cmsMedia: TB_Media[];
+  uploadMedia: (file: File, kategori: TB_Media['kategori']) => Promise<TB_Media>;
+  deleteMedia: (id: string) => void;
+  websiteSettings: Record<string, string>;
+  getWebsiteSetting: (key: string, defaultValue?: string) => string;
+  updateWebsiteSetting: (key: string, value: string, kategori?: TB_Website_Settings['kategori']) => void;
+  updateMultipleSettings: (records: Record<string, { value: string; kategori?: TB_Website_Settings['kategori'] }>) => void;
+  cmsUsers: TB_User[];
+  saveCmsUser: (user: TB_User) => void;
+  deleteCmsUser: (id: string) => void;
+  cmsActivityLogs: TB_Activity_Log[];
+  logActivity: (entry: Omit<TB_Activity_Log, 'id' | 'waktu'>) => void;
+  resetCmsDatabase: () => void;
 }
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
@@ -235,59 +271,84 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  // 3. Accommodations state
+  // 3. CMS Database States
+  const [homepageContent, setHomepageContentState] = useState<TB_Homepage_Content>(() =>
+    CMSDatabase.getHomepageContent()
+  );
+  const [cmsHomestays, setCmsHomestaysState] = useState<TB_Homestay[]>(() =>
+    CMSDatabase.getHomestays()
+  );
+  const [cmsRooms, setCmsRoomsState] = useState<TB_Room[]>(() =>
+    CMSDatabase.getRooms()
+  );
+  const [cmsMedia, setCmsMediaState] = useState<TB_Media[]>(() =>
+    CMSDatabase.getMediaList()
+  );
+  const [websiteSettingsList, setWebsiteSettingsList] = useState<TB_Website_Settings[]>(() =>
+    CMSDatabase.getWebsiteSettings()
+  );
+  const [cmsUsers, setCmsUsers] = useState<TB_User[]>(() => CMSDatabase.getUsers());
+  const [cmsActivityLogs, setCmsActivityLogs] = useState<TB_Activity_Log[]>(() =>
+    CMSDatabase.getActivityLogs()
+  );
+
+  // Sync accommodations from CMSDatabase
   const [accommodations, setAccommodations] = useState<Property[]>(() => {
-    try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_PROPERTIES_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (
-          Array.isArray(parsed) &&
-          parsed.length > 0 &&
-          parsed.every((p) => p && p.id && Array.isArray(p.roomTypes) && p.roomTypes.length > 0)
-        ) {
-          return parsed;
-        }
-      }
-    } catch {
-      // fallback
-    }
+    const homestays = CMSDatabase.getHomestays();
+    const rooms = CMSDatabase.getRooms();
+    const converted = convertCmsToProperties(homestays, rooms);
+    if (converted.length > 0) return converted;
     return INITIAL_PROPERTIES;
   });
 
   const [selectedProperty, setSelectedProperty] = useState<Property>(() => {
-    try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_PROPERTIES_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (
-          Array.isArray(parsed) &&
-          parsed.length > 0 &&
-          parsed.every((p) => p && p.id && Array.isArray(p.roomTypes) && p.roomTypes.length > 0)
-        ) {
-          return parsed[0];
-        }
-      }
-    } catch {}
-    return INITIAL_PROPERTIES[0];
+    const homestays = CMSDatabase.getHomestays();
+    const rooms = CMSDatabase.getRooms();
+    const converted = convertCmsToProperties(homestays, rooms);
+    return converted[0] || INITIAL_PROPERTIES[0];
   });
 
   const [selectedRoomType, setSelectedRoomType] = useState<RoomType | null>(() => {
-    try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_PROPERTIES_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (
-          Array.isArray(parsed) &&
-          parsed.length > 0 &&
-          parsed[0]?.roomTypes?.[0]
-        ) {
-          return parsed[0].roomTypes[0];
-        }
-      }
-    } catch {}
-    return INITIAL_PROPERTIES[0]?.roomTypes?.[0] || null;
+    const homestays = CMSDatabase.getHomestays();
+    const rooms = CMSDatabase.getRooms();
+    const converted = convertCmsToProperties(homestays, rooms);
+    return converted[0]?.roomTypes[0] || null;
   });
+
+  // Listen to CMS Database updates across tabs and components
+  useEffect(() => {
+    const handleCmsUpdate = () => {
+      const freshHome = CMSDatabase.getHomepageContent();
+      const freshHomestays = CMSDatabase.getHomestays();
+      const freshRooms = CMSDatabase.getRooms();
+      const freshMedia = CMSDatabase.getMediaList();
+      const freshSettings = CMSDatabase.getWebsiteSettings();
+      const freshUsers = CMSDatabase.getUsers();
+      const freshLogs = CMSDatabase.getActivityLogs();
+
+      setHomepageContentState(freshHome);
+      setCmsHomestaysState(freshHomestays);
+      setCmsRoomsState(freshRooms);
+      setCmsMediaState(freshMedia);
+      setWebsiteSettingsList(freshSettings);
+      setCmsUsers(freshUsers);
+      setCmsActivityLogs(freshLogs);
+
+      const mapped = convertCmsToProperties(freshHomestays, freshRooms);
+      setAccommodations(mapped);
+
+      // Preserve or update selectedProperty
+      setSelectedProperty((prev) => {
+        const found = mapped.find((m) => m.id === prev.id);
+        return found || mapped[0];
+      });
+    };
+
+    window.addEventListener('cms_database_updated', handleCmsUpdate);
+    return () => {
+      window.removeEventListener('cms_database_updated', handleCmsUpdate);
+    };
+  }, []);
 
   // 4. Bookings State
   const [bookings, setBookings] = useState<Booking[]>(() => {
@@ -735,6 +796,97 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     );
   };
 
+  // CMS Database Handlers
+  const updateHomepageContent = (data: Partial<TB_Homepage_Content>) => {
+    const updated = CMSDatabase.saveHomepageContent(data);
+    setHomepageContentState(updated);
+    if (data.hero_image) {
+      updateHeroImage(data.hero_image);
+    }
+  };
+
+  const updateCmsHomestay = (id: string, data: Partial<TB_Homestay>) => {
+    CMSDatabase.updateHomestay(id, data);
+    setCmsHomestaysState(CMSDatabase.getHomestays());
+  };
+
+  const addCmsHomestay = (homestay: TB_Homestay) => {
+    CMSDatabase.addHomestay(homestay);
+    setCmsHomestaysState(CMSDatabase.getHomestays());
+  };
+
+  const deleteCmsHomestay = (id: string) => {
+    CMSDatabase.deleteHomestay(id);
+    setCmsHomestaysState(CMSDatabase.getHomestays());
+  };
+
+  const updateCmsRoom = (id: string, data: Partial<TB_Room>) => {
+    CMSDatabase.updateRoom(id, data);
+    setCmsRoomsState(CMSDatabase.getRooms());
+  };
+
+  const addCmsRoom = (room: TB_Room) => {
+    CMSDatabase.saveRoom(room);
+    setCmsRoomsState(CMSDatabase.getRooms());
+  };
+
+  const deleteCmsRoom = (id: string) => {
+    CMSDatabase.deleteRoom(id);
+    setCmsRoomsState(CMSDatabase.getRooms());
+  };
+
+  const uploadMedia = async (file: File, kategori: TB_Media['kategori']): Promise<TB_Media> => {
+    const media = await CMSDatabase.uploadMediaFile(file, kategori);
+    setCmsMediaState(CMSDatabase.getMediaList());
+    return media;
+  };
+
+  const deleteMedia = (id: string) => {
+    CMSDatabase.deleteMediaItem(id);
+    setCmsMediaState(CMSDatabase.getMediaList());
+  };
+
+  const websiteSettings: Record<string, string> = React.useMemo(() => {
+    const map: Record<string, string> = {};
+    websiteSettingsList.forEach((s) => {
+      map[s.key] = s.value;
+    });
+    return map;
+  }, [websiteSettingsList]);
+
+  const getWebsiteSetting = (key: string, defaultValue: string = ''): string => {
+    return websiteSettings[key] || defaultValue;
+  };
+
+  const updateWebsiteSetting = (key: string, value: string, kategori?: TB_Website_Settings['kategori']) => {
+    CMSDatabase.saveSetting(key, value, kategori);
+    setWebsiteSettingsList(CMSDatabase.getWebsiteSettings());
+  };
+
+  const updateMultipleSettings = (records: Record<string, { value: string; kategori?: TB_Website_Settings['kategori'] }>) => {
+    CMSDatabase.saveMultipleSettings(records);
+    setWebsiteSettingsList(CMSDatabase.getWebsiteSettings());
+  };
+
+  const saveCmsUser = (user: TB_User) => {
+    CMSDatabase.saveUser(user);
+    setCmsUsers(CMSDatabase.getUsers());
+  };
+
+  const deleteCmsUser = (id: string) => {
+    CMSDatabase.deleteUser(id);
+    setCmsUsers(CMSDatabase.getUsers());
+  };
+
+  const logActivity = (entry: Omit<TB_Activity_Log, 'id' | 'waktu'>) => {
+    CMSDatabase.logActivity(entry);
+    setCmsActivityLogs(CMSDatabase.getActivityLogs());
+  };
+
+  const resetCmsDatabase = () => {
+    CMSDatabase.resetDatabaseToDefaults();
+  };
+
   return (
     <BookingContext.Provider
       value={{
@@ -790,6 +942,29 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updateFacilityImage,
         adminWhatsappNumber,
         updateAdminWhatsappNumber,
+        homepageContent,
+        updateHomepageContent,
+        cmsHomestays,
+        addCmsHomestay,
+        updateCmsHomestay,
+        deleteCmsHomestay,
+        cmsRooms,
+        updateCmsRoom,
+        addCmsRoom,
+        deleteCmsRoom,
+        cmsMedia,
+        uploadMedia,
+        deleteMedia,
+        websiteSettings,
+        getWebsiteSetting,
+        updateWebsiteSetting,
+        updateMultipleSettings,
+        cmsUsers,
+        saveCmsUser,
+        deleteCmsUser,
+        cmsActivityLogs,
+        logActivity,
+        resetCmsDatabase,
       }}
     >
       {children}

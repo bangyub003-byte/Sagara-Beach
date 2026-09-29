@@ -34,6 +34,9 @@ export const CustomerDashboard: React.FC = () => {
     setCurrentView,
     language,
     heroImage,
+    homepageContent,
+    adminWhatsappNumber,
+    getWebsiteSetting,
   } = useBooking();
 
   // State Pilihan Singkat di Beranda (Lokasi & Jumlah Tamu saja - TANPA TANGGAL)
@@ -94,7 +97,7 @@ export const CustomerDashboard: React.FC = () => {
         </div>
 
         <a
-          href="https://wa.me/6282138613888?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20tanya%20informasi%20penginapan"
+          href={`https://wa.me/${(adminWhatsappNumber || getWebsiteSetting?.('footer_whatsapp') || '6282138613888').replace(/\D/g, '')}?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20tanya%20informasi%20penginapan`}
           target="_blank"
           rel="noreferrer"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-neutral-200/90 text-xs font-bold text-neutral-800 shadow-xs hover:bg-neutral-50 active:scale-95 transition-all"
@@ -112,8 +115,8 @@ export const CustomerDashboard: React.FC = () => {
         <section className="relative rounded-[30px] overflow-hidden bg-neutral-900 shadow-md">
           <div className="relative h-60 w-full">
             <SafeImage
-              src={heroImage || '/images/sundak_fullhouse_1790552054893.jpg'}
-              alt="Griya Barokah Homestay Pantai Sundak & Trenggole"
+              src={homepageContent?.hero_image || heroImage || '/images/sundak_fullhouse_1790552054893.jpg'}
+              alt={homepageContent?.hero_title || 'Griya Barokah Homestay Pantai Sundak & Trenggole'}
               className="w-full h-full object-cover opacity-90"
               containerClassName="w-full h-full"
             />
@@ -122,7 +125,7 @@ export const CustomerDashboard: React.FC = () => {
             <div className="absolute inset-0 p-5 flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="px-3 py-1 rounded-full bg-emerald-600/90 backdrop-blur-md text-[10px] font-black text-white uppercase tracking-wider border border-white/20">
-                  HOMESTAY KELUARGA ASLI
+                  {homepageContent?.hero_subtitle || 'HOMESTAY KELUARGA ASLI'}
                 </span>
                 <span className="text-[11px] font-bold text-emerald-200 flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
@@ -132,10 +135,10 @@ export const CustomerDashboard: React.FC = () => {
 
               <div>
                 <h1 className="text-[21px] font-black leading-tight text-white tracking-tight">
-                  Griya Barokah Homestay Pantai Sundak & Trenggole
+                  {homepageContent?.hero_title || 'Griya Barokah Homestay Pantai Sundak & Trenggole'}
                 </h1>
                 <p className="text-xs text-neutral-200 mt-1.5 leading-relaxed font-normal">
-                  Penginapan keluarga nyaman dekat pantai Gunungkidul dengan fasilitas lengkap.
+                  {homepageContent?.hero_description || 'Penginapan keluarga nyaman dekat pantai Gunungkidul dengan fasilitas lengkap.'}
                 </p>
               </div>
             </div>

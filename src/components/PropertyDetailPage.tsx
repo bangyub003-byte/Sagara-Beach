@@ -235,8 +235,8 @@ export const PropertyDetailPage: React.FC = () => {
               </div>
             )}
 
-            {/* List Tipe Kamar Cards */}
-            <div className="space-y-3">
+            {/* List Tipe Kamar Cards (Modern Mobile-First Hotel Cards) */}
+            <div className="space-y-3.5">
               {prop.roomTypes.map((room: RoomType) => {
                 const isSelected = selectedRoomType?.id === room.id;
 
@@ -247,96 +247,95 @@ export const PropertyDetailPage: React.FC = () => {
                       setSelectedRoomType(room);
                       setRoomErrorNotice('');
                     }}
-                    className={`p-3.5 rounded-[24px] border transition-all duration-200 cursor-pointer ${
+                    className={`bg-white rounded-[24px] border overflow-hidden transition-all duration-200 cursor-pointer ${
                       isSelected
-                        ? 'bg-white border-[#13281E] shadow-md ring-2 ring-[#13281E]/15'
-                        : 'bg-white border-neutral-200/90 shadow-xs hover:border-neutral-300'
+                        ? 'border-emerald-800 shadow-md ring-2 ring-emerald-800/15'
+                        : 'border-neutral-200/90 shadow-2xs hover:border-neutral-300'
                     }`}
                   >
-                    {/* Header Kamar: Nama & Harga */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-[15px] font-extrabold text-neutral-900">
-                            {language === 'id' ? room.name : room.nameEn}
-                          </h3>
-                          {isSelected && (
-                            <span className="px-2 py-0.5 rounded-full bg-[#EBF8F2] text-[#1DB954] text-[10px] font-bold">
-                              Terpilih ✓
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-neutral-500 mt-0.5 line-clamp-1">
-                          {language === 'id' ? room.description : room.descriptionEn}
-                        </p>
+                    {/* Foto Kamar Landscape */}
+                    <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-neutral-900">
+                      <SafeImage
+                        src={room.image}
+                        alt={room.name}
+                        fallbackText={room.name}
+                        className="w-full h-full object-cover"
+                        containerClassName="w-full h-full"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
+
+                      {/* Badges Atas Foto */}
+                      <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
+                        <span className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[11px] font-bold flex items-center gap-1 shadow-sm">
+                          <Bed className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>{room.name}</span>
+                        </span>
+
+                        {isSelected && (
+                          <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-black shadow-sm">
+                            ✓ Terpilih
+                          </span>
+                        )}
                       </div>
 
-                      <div className="text-right shrink-0">
-                        <span className="text-[15px] font-extrabold text-neutral-900 block">
+                      {/* Harga di Kanan Bawah Foto */}
+                      <div className="absolute bottom-3 right-3 z-10 text-right">
+                        <span className="text-base sm:text-lg font-black text-white drop-shadow-sm block leading-tight">
                           {prop.id === 'homestay-sundak'
                             ? 'Rp 75.000'
                             : `Rp ${room.pricePerNight.toLocaleString('id-ID')}`}
                         </span>
-                        <span className="text-[10px] text-neutral-400 font-medium">
+                        <span className="text-[10px] text-white/80 font-medium">
                           {prop.id === 'homestay-sundak' ? '/orang/malam' : `/${t.perNight}`}
                         </span>
                       </div>
+
+                      {/* Kapasitas di Kiri Bawah Foto */}
+                      <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 text-white/90 text-xs font-semibold">
+                        <Users className="w-3.5 h-3.5 text-emerald-300" />
+                        <span>{room.capacityGuests} Tamu</span>
+                      </div>
                     </div>
 
-                    {/* Foto Kamar & Spesifikasi Grid */}
-                    <div className="mt-3 flex items-center gap-3">
-                      <SafeImage
-                        src={room.image}
-                        alt={room.name}
-                        className="w-20 h-20 rounded-2xl object-cover"
-                        containerClassName="w-20 h-20 rounded-2xl shrink-0"
-                      />
-
-                      <div className="flex-1 space-y-1.5 text-xs text-neutral-600">
-                        {/* Specs row */}
-                        <div className="flex items-center gap-3 text-[11px] font-medium text-neutral-700">
-                          <div className="flex items-center gap-1">
-                            <Users className="w-3.5 h-3.5 text-neutral-500" />
-                            <span>{room.capacityGuests} {t.detailGuests}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Bed className="w-3.5 h-3.5 text-neutral-500" />
-                            <span>{room.bedsCount} {t.beds}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Maximize2 className="w-3.5 h-3.5 text-neutral-500" />
-                            <span>{room.areaSqft} sqft</span>
-                          </div>
-                        </div>
-
-                        {/* Fitur Kamar */}
+                    {/* Informasi Kamar Bawah Foto */}
+                    <div className="p-3.5 space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-sm font-black text-neutral-900 leading-snug">
+                          {language === 'id' ? room.name : room.nameEn}
+                        </h3>
                         {room.bedInfo && (
-                          <div className="text-[10px] text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/80">
+                          <span className="text-[10px] text-amber-900 font-semibold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/80">
                             {room.bedInfo}
-                          </div>
+                          </span>
                         )}
-                        <div className="flex flex-wrap gap-1">
-                          {(language === 'id' ? room.features : room.featuresEn).slice(0, 3).map((f, fi) => (
-                            <span
-                              key={fi}
-                              className="px-2 py-0.5 rounded-md bg-[#F4F5F7] text-[10px] font-medium text-neutral-600"
-                            >
-                              {f}
-                            </span>
-                          ))}
-                        </div>
+                      </div>
 
-                        {/* Status Ketersediaan */}
-                        <div>
+                      <p className="text-xs text-neutral-600 leading-relaxed font-normal line-clamp-2">
+                        {language === 'id' ? room.description : room.descriptionEn}
+                      </p>
+
+                      {/* Specs Row */}
+                      <div className="flex items-center gap-3 text-[11px] font-semibold text-neutral-600 pt-1 border-t border-neutral-100">
+                        <div className="flex items-center gap-1">
+                          <Bed className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>{room.bedsCount} Bed</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Bath className="w-3.5 h-3.5 text-blue-600" />
+                          <span>{room.bathsCount} KM</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Maximize2 className="w-3.5 h-3.5 text-neutral-400" />
+                          <span>{room.areaSqft} sqft</span>
+                        </div>
+                        <div className="ml-auto">
                           {room.isAvailable ? (
-                            <span className="text-[11px] font-bold text-[#1DB954] flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#1DB954]" />
-                              <span>{t.detailAvailable}</span>
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                              ✓ {t.detailAvailable}
                             </span>
                           ) : (
-                            <span className="text-[11px] font-bold text-rose-500 flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                              <span>{t.detailUnavailable}</span>
+                            <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                              {t.detailUnavailable}
                             </span>
                           )}
                         </div>

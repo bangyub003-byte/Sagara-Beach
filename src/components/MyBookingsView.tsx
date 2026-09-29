@@ -336,10 +336,10 @@ export const MyBookingsView: React.FC = () => {
                     ) : (
                       <div>
                         <span className="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[10px] font-bold">
-                          DP 50% (Rp {(matchedBooking.dpAmount || Math.round(matchedBooking.totalAmount * 0.5)).toLocaleString('id-ID')})
+                          DP {matchedBooking.dpPercentage || 30}% (Rp {(matchedBooking.dpAmount || Math.round(matchedBooking.totalAmount * 0.3)).toLocaleString('id-ID')})
                         </span>
                         <span className="text-[10px] text-neutral-500 block mt-0.5">
-                          Sisa: Rp {(matchedBooking.remainingBalance || (matchedBooking.totalAmount - (matchedBooking.dpAmount || 0))).toLocaleString('id-ID')}
+                          Sisa: Rp {(matchedBooking.remainingBalance || (matchedBooking.totalAmount - (matchedBooking.dpAmount || Math.round(matchedBooking.totalAmount * 0.3)))).toLocaleString('id-ID')}
                         </span>
                       </div>
                     )}

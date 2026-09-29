@@ -645,7 +645,7 @@ Sudah diverifikasi resepsionis.`;
                 <span className="font-bold text-emerald-900 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 text-[10px]">
                   {currentBooking.paymentType === 'full_100' || currentBooking.dpPercentage === 100
                     ? `Lunas 100% (Rp ${currentBooking.totalAmount.toLocaleString('id-ID')})`
-                    : `DP 50% (Rp ${(currentBooking.dpAmount || Math.round(currentBooking.totalAmount * 0.5)).toLocaleString('id-ID')})`}
+                    : `DP ${currentBooking.dpPercentage || 30}% (Rp ${(currentBooking.dpAmount || Math.round(currentBooking.totalAmount * 0.3)).toLocaleString('id-ID')})`}
                 </span>
               </div>
             </div>

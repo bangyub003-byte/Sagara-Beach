@@ -37,6 +37,8 @@ export interface RoomType {
   pricePerPersonNight?: number; // e.g. Rp75.000 for Sundak
   minGuests?: number; // e.g. 4 for Sundak
   floor?: 1 | 2; // Lantai 1 atau Lantai 2
+  stockRooms?: number; // Jumlah unit kamar / stok tersedia
+  gallery?: string[]; // Galeri foto kamar
 }
 
 export interface Property {
@@ -56,6 +58,8 @@ export interface Property {
   gallery: string[];
   description: string;
   descriptionEn: string;
+  concept?: string;
+  conceptEn?: string;
   highlights: string[];
   highlightsEn: string[];
   roomTypes: RoomType[];
@@ -101,7 +105,7 @@ export interface Booking {
   dpAmount?: number;
   dpPercentage?: number;
   remainingBalance?: number;
-  paymentType?: 'dp_50' | 'full_100';
+  paymentType?: 'dp_30' | 'dp_50' | 'full_100';
   paymentProofUrl: string;
   paymentMethod: 'bca_va' | 'mandiri_va' | 'qris' | 'credit_card';
   status: BookingStatus;
@@ -120,3 +124,13 @@ export interface GasIntegrationConfig {
   autoSync: boolean;
   lastSyncedAt?: string;
 }
+
+export type {
+  TB_Homepage_Content,
+  TB_Homestay,
+  TB_Room,
+  TB_Media,
+  TB_Website_Settings,
+  TB_User,
+  TB_Activity_Log,
+} from '../db/cmsDatabase';
