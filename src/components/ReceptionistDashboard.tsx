@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
 import { useBooking } from '../context/BookingContext';
 import {
   QrCode,
@@ -11,11 +12,16 @@ import {
   LogOut,
   Home,
   Phone,
-  Building,
   Calendar,
   CreditCard,
   User,
+  Users,
   AlertCircle,
+  Camera,
+  CameraOff,
+  RefreshCw,
+  Send,
+  Building,
 } from 'lucide-react';
 
 export const ReceptionistDashboard: React.FC = () => {
@@ -27,15 +33,20 @@ export const ReceptionistDashboard: React.FC = () => {
     setRole,
     logoutStaff,
     navigateTo,
-    language,
+    adminWhatsappNumber,
   } = useBooking();
 
   const [bookingIdQuery, setBookingIdQuery] = useState<string>('GBH-2025-9812');
   const [selectedBookingId, setSelectedBookingId] = useState<string>('GBH-2025-9812');
   const [isCheckedInSuccess, setIsCheckedInSuccess] = useState<boolean>(false);
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
+  const [isStartingScanner, setIsStartingScanner] = useState<boolean>(false);
+  const [cameraPermissionError, setCameraPermissionError] = useState<string>('');
   const [searchError, setSearchError] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string>('');
+
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const isStartingRef = useRef<boolean>(false);
 
   // Ambil booking aktif dari database
   const currentBooking =
@@ -44,6 +55,161 @@ export const ReceptionistDashboard: React.FC = () => {
         b.id.toLowerCase() === selectedBookingId.toLowerCase().trim() ||
         b.id.toLowerCase() === bookingIdQuery.toLowerCase().trim()
     ) || bookings[0];
+
+  // Hentikan pemindai kamera
+  const handleStopScanner = async () => {
+    setIsCameraActive(false);
+    if (scannerRef.current) {
+      try {
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop();
+        }
+      } catch (err) {
+        console.warn('Error stopping scanner:', err);
+      }
+    }
+  };
+
+  // Bersihkan pemindai saat unmount
+  useEffect(() => {
+    return () => {
+      if (scannerRef.current) {
+        try {
+          if (scannerRef.current.isScanning) {
+            scannerRef.current.stop().catch(() => {});
+          }
+        } catch {}
+      }
+    };
+  }, []);
+
+  // Mulai pemindai kamera belakang HP real-time
+  const handleStartScanner = async () => {
+    if (isStartingRef.current) return;
+    setCameraPermissionError('');
+    setSearchError('');
+    setIsStartingScanner(true);
+    isStartingRef.current = true;
+
+    try {
+      // Pastikan scanner instance sebelumnya dibersihkan jika ada
+      if (scannerRef.current) {
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop();
+        }
+      } else {
+        scannerRef.current = new Html5Qrcode('qr-scanner-box');
+      }
+
+      const qrConfig = {
+        fps: 10,
+        qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const qrboxEdge = Math.max(160, Math.floor(minEdge * 0.75));
+          return { width: qrboxEdge, height: qrboxEdge };
+        },
+        aspectRatio: 1.0,
+      };
+
+      // Minta izin kamera & aktifkan kamera belakang HP (facingMode: environment)
+      try {
+        await scannerRef.current.start(
+          { facingMode: 'environment' },
+          qrConfig,
+          (decodedText) => {
+            handleQrScanned(decodedText);
+          },
+          () => {
+            // parsing frame ignore
+          }
+        );
+        setIsCameraActive(true);
+      } catch (firstErr: any) {
+        const errStr = String(firstErr?.name || firstErr?.message || firstErr).toLowerCase();
+        // Jika izin kamera ditolak oleh pengguna
+        if (
+          errStr.includes('notallowed') ||
+          errStr.includes('permission') ||
+          errStr.includes('denied') ||
+          errStr.includes('dismissed')
+        ) {
+          throw firstErr;
+        }
+
+        // Fallback jika device tidak mendukung facingMode environment (misal webcam laptop)
+        await scannerRef.current.start(
+          { facingMode: 'user' },
+          qrConfig,
+          (decodedText) => {
+            handleQrScanned(decodedText);
+          },
+          () => {}
+        );
+        setIsCameraActive(true);
+      }
+    } catch (err: any) {
+      console.error('Camera activation error:', err);
+      setIsCameraActive(false);
+      // WAJIB: Tampilkan pesan "Izin kamera diperlukan untuk melakukan scan QR." jika kamera ditolak
+      setCameraPermissionError('Izin kamera diperlukan untuk melakukan scan QR.');
+      if (scannerRef.current && scannerRef.current.isScanning) {
+        try {
+          await scannerRef.current.stop();
+        } catch {}
+      }
+    } finally {
+      isStartingRef.current = false;
+      setIsStartingScanner(false);
+    }
+  };
+
+  // Alur saat QR code berhasil dipindai
+  const handleQrScanned = (decodedText: string) => {
+    if (!decodedText) return;
+
+    // Baca kode booking dari format:
+    // 1) "GBH:BOOKING:GBH-2025-9812|..."
+    // 2) "GBH-2025-9812"
+    // 3) String apapun yang mengandung ID booking
+    let extractedId = '';
+    const colonMatch = decodedText.match(/GBH:BOOKING:([A-Za-z0-9_-]+)/i);
+    if (colonMatch && colonMatch[1]) {
+      extractedId = colonMatch[1].trim();
+    } else {
+      const gbhMatch = decodedText.match(/(GBH-[A-Za-z0-9-]+)/i);
+      if (gbhMatch && gbhMatch[1]) {
+        extractedId = gbhMatch[1].trim();
+      } else {
+        extractedId = decodedText.trim();
+      }
+    }
+
+    const cleanId = extractedId.toUpperCase();
+    const found =
+      bookings.find((b) => b.id.toUpperCase() === cleanId) ||
+      bookings.find((b) => b.id.toUpperCase().includes(cleanId) || cleanId.includes(b.id.toUpperCase()));
+
+    if (found) {
+      setSelectedBookingId(found.id);
+      setBookingIdQuery(found.id);
+      setIsCheckedInSuccess(found.status === 'checked_in');
+      setSearchError('');
+      setToastMessage(`✓ QR Berhasil dipindai! Tamu: ${found.guestName} (${found.id})`);
+      setTimeout(() => setToastMessage(''), 3500);
+
+      // Getar HP haptic feedback jika didukung
+      try {
+        navigator.vibrate?.([80, 40, 80]);
+      } catch {}
+
+      // Tutup kamera setelah berhasil membaca tiket
+      handleStopScanner();
+    } else {
+      setSearchError(`QR terbaca "${decodedText}", namun booking tidak ditemukan.`);
+      setToastMessage(`QR terbaca: ${extractedId}, tidak ada di database.`);
+      setTimeout(() => setToastMessage(''), 3500);
+    }
+  };
 
   const handleConfirmCheckIn = async () => {
     if (!currentBooking) return;
@@ -56,6 +222,31 @@ export const ReceptionistDashboard: React.FC = () => {
       setToastMessage(res.message);
       setTimeout(() => setToastMessage(''), 3500);
     }
+  };
+
+  // Kirim WhatsApp otomatis ke nomor Admin setelah verifikasi check-in
+  const handleSendAdminReport = () => {
+    if (!currentBooking) return;
+    const adminPhone = (adminWhatsappNumber || '081234567890').replace(/\D/g, '');
+    const message = `Verifikasi Check-in Berhasil
+
+Nama Tamu:
+${currentBooking.guestName}
+
+Kode Booking:
+${currentBooking.id}
+
+Penginapan:
+${currentBooking.propertyName}
+
+Tanggal:
+${currentBooking.checkInDate} s/d ${currentBooking.checkOutDate}
+
+Status:
+Sudah diverifikasi resepsionis.`;
+
+    const waUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, '_blank');
   };
 
   const handleSearch = () => {
@@ -81,7 +272,7 @@ export const ReceptionistDashboard: React.FC = () => {
     setBookingIdQuery(id);
     const target = bookings.find((b) => b.id === id);
     setIsCheckedInSuccess(target?.status === 'checked_in');
-    setIsCameraActive(false);
+    handleStopScanner();
     setSearchError('');
     setToastMessage(`✓ Berhasil memindai QR Code tiket ${id}`);
     setTimeout(() => setToastMessage(''), 2500);
@@ -89,6 +280,22 @@ export const ReceptionistDashboard: React.FC = () => {
 
   return (
     <div className="min-h-[100dvh] bg-[#F6F7F9] text-[#11141A] flex flex-col justify-between select-none pb-8 max-w-md mx-auto">
+      {/* Styling untuk injeksi video html5-qrcode */}
+      <style>{`
+        #qr-scanner-box video {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
+          border-radius: 0.75rem;
+        }
+        #qr-scanner-box {
+          border: none !important;
+        }
+        #qr-scanner-box img {
+          display: none !important;
+        }
+      `}</style>
+
       {/* Top Status Bar HP */}
       <div className="sticky top-0 z-30 bg-[#F6F7F9]/95 backdrop-blur-md px-4 pt-2 pb-1 flex items-center justify-between text-neutral-700 text-[11px] font-semibold">
         <span>09:41</span>
@@ -156,42 +363,115 @@ export const ReceptionistDashboard: React.FC = () => {
               <span>SCAN QR CODE</span>
             </span>
             <span className="text-[10px] text-neutral-400">
-              {isCameraActive ? 'Kamera Aktif' : 'Siaga'}
+              {isCameraActive ? 'Kamera Aktif' : isStartingScanner ? 'Memuat Kamera...' : 'Siaga'}
             </span>
           </div>
 
-          {/* Scanner Viewfinder Area */}
-          <div
-            onClick={() => setIsCameraActive(!isCameraActive)}
-            className="relative w-full max-w-[240px] h-32 mx-auto flex flex-col items-center justify-center cursor-pointer hover:opacity-95 transition-opacity bg-neutral-900/60 rounded-xl border border-neutral-800"
-            title="Klik untuk membuka kamera / simulasi scan QR"
-          >
-            {/* 4 Corner Markers */}
-            <div className="absolute top-2 left-2 w-5 h-5 border-t-2 border-l-2 border-[#22C55E] rounded-tl-md" />
-            <div className="absolute top-2 right-2 w-5 h-5 border-t-2 border-r-2 border-[#22C55E] rounded-tr-md" />
-            <div className="absolute bottom-2 left-2 w-5 h-5 border-b-2 border-l-2 border-[#22C55E] rounded-bl-md" />
-            <div className="absolute bottom-2 right-2 w-5 h-5 border-b-2 border-r-2 border-[#22C55E] rounded-br-md" />
+          {/* Scanner Viewfinder Area Real-Time Camera */}
+          <div className="relative w-full max-w-[260px] h-56 mx-auto overflow-hidden rounded-xl bg-neutral-900 border border-neutral-800 flex flex-col items-center justify-center">
+            {/* DOM Container untuk Stream Kamera html5-qrcode */}
+            <div
+              id="qr-scanner-box"
+              className="w-full h-full overflow-hidden rounded-xl flex items-center justify-center bg-black"
+            />
 
-            {/* Glowing Scan Reticle */}
-            <div className="relative">
-              <QrCode className="w-9 h-9 text-[#22C55E]" />
-              <div className="absolute -left-12 -right-12 top-1/2 -translate-y-1/2 h-[2px] bg-gradient-to-r from-transparent via-[#22C55E] to-transparent shadow-[0_0_10px_#22C55E] animate-pulse" />
+            {/* Overlay Ketika Kamera Belum Aktif (Standby) */}
+            {!isCameraActive && (
+              <div
+                onClick={handleStartScanner}
+                className="absolute inset-0 z-20 flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-900/95 transition-all p-3 text-center bg-neutral-900/95"
+                title="Ketuk untuk Buka Pemindai"
+              >
+                {/* 4 Corner Markers */}
+                <div className="absolute top-2 left-2 w-5 h-5 border-t-2 border-l-2 border-[#22C55E] rounded-tl-md" />
+                <div className="absolute top-2 right-2 w-5 h-5 border-t-2 border-r-2 border-[#22C55E] rounded-tr-md" />
+                <div className="absolute bottom-2 left-2 w-5 h-5 border-b-2 border-l-2 border-[#22C55E] rounded-bl-md" />
+                <div className="absolute bottom-2 right-2 w-5 h-5 border-b-2 border-r-2 border-[#22C55E] rounded-br-md" />
+
+                {/* Glowing Scan Reticle */}
+                <div className="relative mb-2">
+                  <div className="w-13 h-13 rounded-2xl bg-emerald-950/70 border border-emerald-500/40 flex items-center justify-center text-[#22C55E] shadow-[0_0_15px_rgba(34,197,94,0.25)]">
+                    <Camera className="w-6 h-6" />
+                  </div>
+                </div>
+
+                <span className="text-xs font-bold text-neutral-100 block">
+                  {isStartingScanner ? 'Meminta Izin Kamera...' : 'Ketuk untuk Buka Pemindai'}
+                </span>
+                <span className="text-[10px] text-emerald-400 mt-0.5 font-medium">
+                  Kamera Belakang HP (Chrome / Safari)
+                </span>
+                <span className="text-[9px] text-neutral-400 mt-1">
+                  atau pilih tiket tamu di bawah untuk simulasi
+                </span>
+              </div>
+            )}
+
+            {/* Overlay Ketika Kamera Aktif Memindai Real-Time */}
+            {isCameraActive && (
+              <div className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-between p-2.5">
+                {/* 4 Corner Markers in Green */}
+                <div className="absolute top-2.5 left-2.5 w-6 h-6 border-t-2 border-l-2 border-[#22C55E] rounded-tl-md" />
+                <div className="absolute top-2.5 right-2.5 w-6 h-6 border-t-2 border-r-2 border-[#22C55E] rounded-tr-md" />
+                <div className="absolute bottom-2.5 left-2.5 w-6 h-6 border-b-2 border-l-2 border-[#22C55E] rounded-bl-md" />
+                <div className="absolute bottom-2.5 right-2.5 w-6 h-6 border-b-2 border-r-2 border-[#22C55E] rounded-br-md" />
+
+                {/* Garis Laser Animasi Scan */}
+                <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-[2px] bg-gradient-to-r from-transparent via-[#22C55E] to-transparent shadow-[0_0_12px_#22C55E] animate-pulse" />
+
+                {/* Badge Status Atas */}
+                <div className="flex justify-center">
+                  <span className="px-2.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md text-emerald-400 text-[9px] font-bold border border-emerald-500/50 flex items-center gap-1.5 shadow-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                    Arahkan ke QR Code Tamu...
+                  </span>
+                </div>
+
+                {/* Tombol Tutup Kamera */}
+                <div className="flex justify-center pointer-events-auto">
+                  <button
+                    type="button"
+                    onClick={handleStopScanner}
+                    className="px-3 py-1 rounded-full bg-black/85 hover:bg-black text-rose-300 text-[10px] font-bold border border-rose-500/60 flex items-center gap-1 cursor-pointer transition-colors shadow-sm"
+                  >
+                    <CameraOff className="w-3 h-3 text-rose-400" />
+                    <span>Tutup Kamera</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Pesan Error Jika Izin Kamera Ditolak */}
+          {cameraPermissionError && (
+            <div className="p-3 rounded-xl bg-rose-950/80 border border-rose-500/70 text-left text-white space-y-1.5 animate-in fade-in">
+              <div className="flex items-center gap-1.5 text-rose-300 font-bold text-xs">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>Izin Kamera Diperlukan</span>
+              </div>
+              <p className="text-[11px] text-rose-200 leading-tight">
+                {cameraPermissionError}
+              </p>
+              <p className="text-[10px] text-neutral-300">
+                Pastikan izin akses kamera telah diaktifkan pada browser Android Chrome atau iPhone Safari Anda.
+              </p>
+              <button
+                type="button"
+                onClick={handleStartScanner}
+                className="mt-1 px-3 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>Coba Buka Kamera Lagi</span>
+              </button>
             </div>
+          )}
 
-            <span className="text-[11px] font-bold text-neutral-200 mt-2 block">
-              {isCameraActive ? 'Arahkan QR ke Kamera...' : 'Ketuk untuk Buka Pemindai'}
-            </span>
-            <span className="text-[9px] text-neutral-400">
-              atau pilih tiket tamu di bawah
-            </span>
-          </div>
-
-          {/* Opsi Cepat Pindai Tiket Booking Tamu */}
+          {/* Opsi Cepat Pindai Tiket Booking Tamu (Simulasi) */}
           <div className="text-left space-y-1.5 pt-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block">
               Pilih Tiket Tamu (Simulasi Scan QR):
             </span>
-            <div className="grid grid-cols-1 gap-1 max-h-28 overflow-y-auto no-scrollbar">
+            <div className="grid grid-cols-1 gap-1 max-h-24 overflow-y-auto no-scrollbar">
               {bookings.map((b) => (
                 <button
                   key={b.id}
@@ -278,44 +558,53 @@ export const ReceptionistDashboard: React.FC = () => {
             </div>
 
             {/* INFORMASI WAJIB TAMPIL:
-                1. Nama tamu
-                2. Nomor HP
+                1. Kode Booking (di header card)
+                2. Nama Tamu
                 3. Penginapan
                 4. Kamar
-                5. Tanggal check-in
-                6. Status pembayaran */}
+                5. Tanggal Menginap
+                6. Jumlah Tamu
+                7. Status Pembayaran */}
             <div className="space-y-2 text-xs">
               {/* 1. Nama Tamu */}
               <div className="flex items-start justify-between">
-                <span className="text-neutral-500 font-medium text-[11px]">Nama Tamu:</span>
+                <span className="text-neutral-500 font-medium text-[11px] flex items-center gap-1">
+                  <User className="w-3 h-3 text-neutral-400" />
+                  <span>Nama Tamu:</span>
+                </span>
                 <strong className="text-neutral-900 font-extrabold text-right text-xs truncate max-w-[200px]">
                   {currentBooking.guestName}
                 </strong>
               </div>
 
-              {/* 2. Nomor HP */}
+              {/* Nomor HP Tamu */}
               <div className="flex items-center justify-between">
-                <span className="text-neutral-500 font-medium text-[11px]">Nomor HP:</span>
+                <span className="text-neutral-500 font-medium text-[11px] flex items-center gap-1">
+                  <Phone className="w-3 h-3 text-neutral-400" />
+                  <span>Nomor HP:</span>
+                </span>
                 <a
                   href={`https://wa.me/${currentBooking.guestPhone.replace(/\D/g, '')}`}
                   target="_blank"
                   rel="noreferrer"
                   className="font-bold text-emerald-700 hover:underline flex items-center gap-1 text-[11px]"
                 >
-                  <Phone className="w-3 h-3" />
                   <span>{currentBooking.guestPhone}</span>
                 </a>
               </div>
 
-              {/* 3. Penginapan */}
+              {/* 2. Penginapan */}
               <div className="flex items-start justify-between">
-                <span className="text-neutral-500 font-medium text-[11px]">Penginapan:</span>
+                <span className="text-neutral-500 font-medium text-[11px] flex items-center gap-1">
+                  <Building className="w-3 h-3 text-neutral-400" />
+                  <span>Penginapan:</span>
+                </span>
                 <strong className="text-neutral-900 font-bold text-right text-[11px] truncate max-w-[210px]">
                   {currentBooking.propertyName}
                 </strong>
               </div>
 
-              {/* 4. Kamar */}
+              {/* 3. Kamar */}
               <div className="flex items-start justify-between">
                 <span className="text-neutral-500 font-medium text-[11px]">Kamar:</span>
                 <strong className="text-emerald-800 font-bold text-right text-[11px] truncate max-w-[210px]">
@@ -323,17 +612,34 @@ export const ReceptionistDashboard: React.FC = () => {
                 </strong>
               </div>
 
-              {/* 5. Tanggal Check-in */}
+              {/* 4. Tanggal Menginap */}
               <div className="flex items-center justify-between">
-                <span className="text-neutral-500 font-medium text-[11px]">Tanggal Check-in:</span>
+                <span className="text-neutral-500 font-medium text-[11px] flex items-center gap-1">
+                  <Calendar className="w-3 h-3 text-neutral-400" />
+                  <span>Tanggal Menginap:</span>
+                </span>
                 <strong className="text-neutral-900 font-bold text-right text-[11px]">
-                  {currentBooking.checkInDate} (s/d {currentBooking.checkOutDate})
+                  {currentBooking.checkInDate} s/d {currentBooking.checkOutDate} ({currentBooking.totalNights} Malam)
+                </strong>
+              </div>
+
+              {/* 5. Jumlah Tamu */}
+              <div className="flex items-center justify-between">
+                <span className="text-neutral-500 font-medium text-[11px] flex items-center gap-1">
+                  <Users className="w-3 h-3 text-neutral-400" />
+                  <span>Jumlah Tamu:</span>
+                </span>
+                <strong className="text-neutral-900 font-bold text-right text-[11px]">
+                  {currentBooking.guestsCount} Tamu / Orang
                 </strong>
               </div>
 
               {/* 6. Status Pembayaran */}
               <div className="flex items-center justify-between pt-1 border-t border-neutral-100">
-                <span className="text-neutral-500 font-medium text-[11px]">Status Pembayaran:</span>
+                <span className="text-neutral-500 font-medium text-[11px] flex items-center gap-1">
+                  <CreditCard className="w-3 h-3 text-neutral-400" />
+                  <span>Status Pembayaran:</span>
+                </span>
                 <span className="font-bold text-emerald-900 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 text-[10px]">
                   {currentBooking.paymentType === 'full_100' || currentBooking.dpPercentage === 100
                     ? `Lunas 100% (Rp ${currentBooking.totalAmount.toLocaleString('id-ID')})`
@@ -343,7 +649,7 @@ export const ReceptionistDashboard: React.FC = () => {
             </div>
 
             {/* TOMBOL: "Konfirmasi Check-in" */}
-            <div className="pt-2">
+            <div className="pt-2 space-y-2">
               <button
                 type="button"
                 onClick={handleConfirmCheckIn}
@@ -360,6 +666,16 @@ export const ReceptionistDashboard: React.FC = () => {
                     : 'Konfirmasi Check-in'}
                 </span>
               </button>
+
+              {/* TOMBOL: "Kirim Laporan Verifikasi ke Admin" (WhatsApp) */}
+              <button
+                type="button"
+                onClick={handleSendAdminReport}
+                className="w-full h-10 rounded-xl bg-white border border-emerald-600/40 text-emerald-900 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-emerald-50 active:scale-[0.98] transition-all cursor-pointer shadow-2xs"
+              >
+                <Send className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Kirim Laporan Verifikasi ke Admin</span>
+              </button>
             </div>
           </div>
         ) : (
@@ -371,3 +687,4 @@ export const ReceptionistDashboard: React.FC = () => {
     </div>
   );
 };
+
