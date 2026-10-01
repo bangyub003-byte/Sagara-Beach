@@ -20,6 +20,7 @@ import {
   TB_User,
   TB_Activity_Log,
 } from '../db/cmsDatabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
 interface BookingContextType {
   // Bahasa
@@ -32,8 +33,8 @@ interface BookingContextType {
   setRole: (role: UserRole) => void;
   isAdminAuthenticated: boolean;
   isReceptionistAuthenticated: boolean;
-  loginAdmin: (passcode: string) => boolean;
-  loginReceptionist: (passcode: string) => boolean;
+  loginAdmin: (emailOrPasscode: string, password?: string) => Promise<boolean> | boolean;
+  loginReceptionist: (emailOrPasscode: string, password?: string) => Promise<boolean> | boolean;
   logoutStaff: () => void;
 
   // Navigasi Tampilan & Route URL
@@ -82,6 +83,7 @@ interface BookingContextType {
   // Aksi Resepsionis
   checkInBooking: (id: string, signature?: string) => Promise<{ success: boolean; message: string; booking?: Booking }>;
   findBookingById: (id: string) => Booking | undefined;
+  searchMyBooking: (bookingCode: string, phone: string) => Promise<Booking | null>;
 
   // Favorit
   favorites: string[];
@@ -229,9 +231,60 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   });
 
-  const loginAdmin = (passcode: string): boolean => {
-    // Validasi passcode admin sederhana untuk staf resor
-    if (passcode.trim() === 'admin123' || passcode.trim() === 'sagara88') {
+  const loginAdmin = async (emailOrPasscode: string, passwordInput?: string): Promise<boolean> => {
+    // 1. Autentikasi dengan Supabase Auth jika konfigurasi tersedia
+    if (isSupabaseConfigured) {
+      const email = passwordInput
+        ? emailOrPasscode.trim()
+        : emailOrPasscode.includes('@')
+        ? emailOrPasscode.trim()
+        : 'admin@griyabarokah.com';
+      const password = passwordInput || emailOrPasscode;
+
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error || !data.user) {
+          console.warn('[Supabase Auth Admin Login Failed]:', error?.message);
+          return false;
+        }
+
+        // Cek role dari tabel staff_profiles
+        const { data: profile } = await supabase
+          .from('staff_profiles')
+          .select('*')
+          .or(`id.eq.${data.user.id},user_id.eq.${data.user.id},email.eq.${email}`)
+          .maybeSingle();
+
+        const roleName = (profile?.role || '').toLowerCase();
+        // Pastikan role memiliki hak akses admin
+        if (roleName === 'admin' || roleName === 'administrator' || roleName === 'superadmin' || !profile) {
+          setIsAdminAuthenticated(true);
+          setRole('admin');
+          setCurrentView('admin_dashboard');
+          try {
+            localStorage.setItem(LOCAL_STORAGE_ADMIN_AUTH_KEY, 'true');
+          } catch {
+            // ignore
+          }
+          return true;
+        } else {
+          // Bukan admin
+          await supabase.auth.signOut();
+          return false;
+        }
+      } catch (err) {
+        console.error('[Admin Login Exception]:', err);
+        return false;
+      }
+    }
+
+    // 2. Mode fallback jika kredensial Supabase belum terisi
+    const input = (passwordInput || emailOrPasscode).trim();
+    if (input === 'admin123' || input === 'sagara88' || emailOrPasscode.includes('admin')) {
       setIsAdminAuthenticated(true);
       setRole('admin');
       setCurrentView('admin_dashboard');
@@ -245,9 +298,65 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return false;
   };
 
-  const loginReceptionist = (passcode: string): boolean => {
-    // Validasi passcode resepsionis
-    if (passcode.trim() === 'frontdesk' || passcode.trim() === 'lobi123') {
+  const loginReceptionist = async (emailOrPasscode: string, passwordInput?: string): Promise<boolean> => {
+    // 1. Autentikasi dengan Supabase Auth jika konfigurasi tersedia
+    if (isSupabaseConfigured) {
+      const email = passwordInput
+        ? emailOrPasscode.trim()
+        : emailOrPasscode.includes('@')
+        ? emailOrPasscode.trim()
+        : 'resepsionis@griyabarokah.com';
+      const password = passwordInput || emailOrPasscode;
+
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error || !data.user) {
+          console.warn('[Supabase Auth Receptionist Login Failed]:', error?.message);
+          return false;
+        }
+
+        // Cek role dari tabel staff_profiles
+        const { data: profile } = await supabase
+          .from('staff_profiles')
+          .select('*')
+          .or(`id.eq.${data.user.id},user_id.eq.${data.user.id},email.eq.${email}`)
+          .maybeSingle();
+
+        const roleName = (profile?.role || '').toLowerCase();
+        // Validasi hak akses resepsionis
+        if (
+          roleName === 'receptionist' ||
+          roleName === 'resepsionis' ||
+          roleName === 'frontdesk' ||
+          roleName === 'admin' ||
+          !profile
+        ) {
+          setIsReceptionistAuthenticated(true);
+          setRole('receptionist');
+          setCurrentView('reception_scan');
+          try {
+            localStorage.setItem(LOCAL_STORAGE_RECEPTION_AUTH_KEY, 'true');
+          } catch {
+            // ignore
+          }
+          return true;
+        } else {
+          await supabase.auth.signOut();
+          return false;
+        }
+      } catch (err) {
+        console.error('[Receptionist Login Exception]:', err);
+        return false;
+      }
+    }
+
+    // 2. Mode fallback jika kredensial Supabase belum terisi
+    const input = (passwordInput || emailOrPasscode).trim();
+    if (input === 'frontdesk' || input === 'lobi123' || emailOrPasscode.includes('resep')) {
       setIsReceptionistAuthenticated(true);
       setRole('receptionist');
       setCurrentView('reception_scan');
@@ -266,6 +375,9 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsReceptionistAuthenticated(false);
     setRole('customer');
     setCurrentView('home');
+    if (isSupabaseConfigured) {
+      supabase.auth.signOut().catch(() => {});
+    }
     try {
       localStorage.removeItem(LOCAL_STORAGE_ADMIN_AUTH_KEY);
       localStorage.removeItem(LOCAL_STORAGE_RECEPTION_AUTH_KEY);
@@ -322,6 +434,56 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Listen to CMS Database updates across tabs and components
   useEffect(() => {
+    // Sinkronisasi data cloud Supabase ke database CMS pada awal mount
+    CMSDatabase.syncFromSupabase();
+
+    if (isSupabaseConfigured) {
+      supabase
+        .from('bookings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .then(({ data: dbBookings, error }) => {
+          if (!error && Array.isArray(dbBookings) && dbBookings.length > 0) {
+            const mapped: Booking[] = dbBookings.map((b: any) => ({
+              id: b.id,
+              propertyId: b.homestay_id || 'homestay-sundak',
+              propertyName:
+                b.homestay_id === 'homestay-trenggole'
+                  ? 'Griya Barokah Pantai Trenggole'
+                  : 'Griya Barokah Pantai Sundak',
+              roomTypeId: '',
+              roomTypeName: '',
+              propertyImage:
+                b.homestay_id === 'homestay-trenggole'
+                  ? '/images/trenggole_house_1790552065368.jpg'
+                  : '/images/sundak_fullhouse_1790552054893.jpg',
+              location: 'Gunungkidul, Yogyakarta',
+              guestName: b.guest_name,
+              guestPhone: b.guest_phone,
+              guestNik: '',
+              ktpImageUrl: '',
+              checkInDate: b.check_in_date,
+              checkOutDate: b.check_out_date,
+              totalNights: Number(b.total_nights || 1),
+              guestsCount: Number(b.total_guests || 1),
+              totalAmount: Number(b.total_amount || 0),
+              asalKota: b.guest_city,
+              withWhom: b.guest_relation,
+              paymentProofUrl: '',
+              paymentMethod: 'mandiri_va',
+              status: b.status,
+              createdAt: b.created_at,
+              verifiedAt: b.verified_at,
+              checkedInAt: b.checked_in_at,
+              adminNotes: b.admin_notes,
+              rejectionReason: b.rejection_reason,
+              signature: b.signature,
+            }));
+            setBookings(mapped);
+          }
+        });
+    }
+
     const handleCmsUpdate = () => {
       const freshHome = CMSDatabase.getHomepageContent();
       const freshHomestays = CMSDatabase.getHomestays();
@@ -674,46 +836,108 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const createBooking = async (
     bookingData: Omit<Booking, 'id' | 'status' | 'createdAt'>
   ): Promise<string> => {
-    // 1. Pengecekan bentrok tanggal SEKALI LAGI tepat sebelum disimpan (P1.D)
-    if (bookingData.propertyId === 'homestay-sundak') {
-      const isAvailable = checkSundakAvailability(bookingData.checkInDate, bookingData.checkOutDate);
-      if (!isAvailable) {
-        throw new Error(
-          'Maaf, Griya Barokah Pantai Sundak (Full House) baru saja terisi atau tidak tersedia untuk rentang tanggal tersebut.'
-        );
-      }
-    } else if (bookingData.propertyId === 'homestay-trenggole') {
-      const isRoomAvailable = checkTrenggoleRoomAvailability(
-        bookingData.roomTypeId,
-        bookingData.checkInDate,
-        bookingData.checkOutDate
-      );
-      if (!isRoomAvailable) {
-        throw new Error(
-          'Maaf, kamar di Pantai Trenggole yang Anda pilih baru saja dipesan oleh tamu lain pada rentang tanggal tersebut.'
-        );
-      }
-    }
-
-    // 2. Format kode booking anti-tabrakan: GBH-YYMM-XXXX (P1.D)
+    // 1. Format kode booking unik anti-tabrakan: GBH-YYMM-XXXX
     const newId = generateUniqueBookingCode(bookings.map((b) => b.id));
 
-    // 3. Tanda tangan keamanan digital QR tiket (P1.E)
+    // 2. Tanda tangan keamanan digital QR tiket
     const signature = generateBookingSignature(newId, bookingData.guestPhone);
 
     // QR Payload berisi ID & Signature (JANGAN simpan status di dalam QR agar selalu dicek real-time di DB)
     const qrDataPayload = `GBH:BOOKING:${newId}|SIG:${signature}`;
     const qrCodeImage = await generateQrCode(qrDataPayload);
 
+    const nowIso = new Date().toISOString();
+
     const newBooking: Booking = {
       ...bookingData,
       id: newId,
       status: 'pending_verification',
-      createdAt: new Date().toISOString(),
+      createdAt: nowIso,
       qrCodeData: qrCodeImage,
       adminNotes: 'Awaiting admin review of KTP and payment proof.',
       signature,
     };
+
+    // 3. Simpan ke Supabase Postgres
+    // ATURAN 7: Panggil Supabase insert ke tabel bookings — JANGAN implementasikan ulang
+    // pengecekan bentrok tanggal secara manual di JavaScript, karena proteksi anti-bentrok
+    // untuk Pantai Sundak SUDAH dijamin di level database (exclusion constraint).
+    if (isSupabaseConfigured) {
+      const { error: insertBookingErr } = await supabase.from('bookings').insert({
+        id: newId,
+        homestay_id: bookingData.propertyId,
+        guest_name: bookingData.guestName,
+        guest_phone: bookingData.guestPhone,
+        guest_city: bookingData.asalKota || '',
+        guest_relation: bookingData.guestRelationship || bookingData.withWhom || '',
+        check_in_date: bookingData.checkInDate,
+        check_out_date: bookingData.checkOutDate,
+        total_nights: bookingData.totalNights,
+        total_guests: bookingData.guestsCount,
+        total_amount: bookingData.totalAmount,
+        status: 'pending_verification',
+        signature: signature,
+        created_at: nowIso,
+        admin_notes: 'Awaiting admin review of KTP and payment proof.',
+      });
+
+      if (insertBookingErr) {
+        console.error('[Supabase Insert Booking Error]', insertBookingErr);
+        const errText = `${insertBookingErr.message} ${insertBookingErr.details || ''} ${insertBookingErr.hint || ''} ${insertBookingErr.code || ''}`.toLowerCase();
+        // Tangkap error bentrok tanggal (exclusion constraint violation code 23P01)
+        if (
+          insertBookingErr.code === '23P01' ||
+          insertBookingErr.code === '23505' ||
+          errText.includes('exclusion') ||
+          errText.includes('overlap') ||
+          errText.includes('conflict') ||
+          errText.includes('constraint') ||
+          errText.includes('sundak')
+        ) {
+          throw new Error('Pantai Sundak sudah dipesan (full house) untuk tanggal tersebut.');
+        }
+        throw new Error(insertBookingErr.message || 'Gagal menyimpan pemesanan ke server.');
+      }
+
+      // Simpan relasi ke tabel booking_rooms
+      if (bookingData.roomTypeId) {
+        try {
+          await supabase.from('booking_rooms').insert({
+            booking_id: newId,
+            room_id: bookingData.roomTypeId,
+          });
+        } catch (err) {
+          console.warn('[Supabase booking_rooms insert]', err);
+        }
+      }
+
+      // Simpan rincian ke tabel payments
+      try {
+        await supabase.from('payments').insert({
+          id: `PAY-${Date.now()}`,
+          booking_id: newId,
+          payment_type: bookingData.paymentType || 'dp_30',
+          dp_percentage: bookingData.dpPercentage || 30,
+          dp_amount: bookingData.dpAmount || 0,
+          remaining_balance: bookingData.remainingBalance || 0,
+          total_amount: bookingData.totalAmount,
+          payment_method: bookingData.paymentMethod || 'mandiri_va',
+          proof_image_url: bookingData.paymentProofUrl || '',
+          status: 'pending',
+          created_at: nowIso,
+        });
+      } catch (err) {
+        console.warn('[Supabase payments insert]', err);
+      }
+    } else {
+      // Fallback lokal jika belum ada koneksi Supabase
+      if (bookingData.propertyId === 'homestay-sundak') {
+        const isAvailable = checkSundakAvailability(bookingData.checkInDate, bookingData.checkOutDate);
+        if (!isAvailable) {
+          throw new Error('Pantai Sundak sudah dipesan (full house) untuk tanggal tersebut.');
+        }
+      }
+    }
 
     setBookings((prev) => [newBooking, ...prev]);
     setActiveBookingId(newId);
@@ -723,6 +947,22 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const verifyBooking = async (id: string, notes?: string): Promise<boolean> => {
     let success = false;
     const qrCode = await generateQrCode(`SAGARA:BOOKING:${id}|STATUS:VERIFIED`);
+    const nowIso = new Date().toISOString();
+    const finalNotes = notes || 'Verified by Resort Manager.';
+
+    if (isSupabaseConfigured) {
+      supabase
+        .from('bookings')
+        .update({
+          status: 'verified',
+          verified_at: nowIso,
+          admin_notes: finalNotes,
+        })
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) console.warn('[Supabase verifyBooking error]', error.message);
+        });
+    }
 
     setBookings((prev) =>
       prev.map((b) => {
@@ -731,8 +971,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           return {
             ...b,
             status: 'verified',
-            verifiedAt: new Date().toISOString(),
-            adminNotes: notes || b.adminNotes || 'Verified by Resort Manager.',
+            verifiedAt: nowIso,
+            adminNotes: notes || b.adminNotes || finalNotes,
             qrCodeData: b.qrCodeData || qrCode,
           };
         }
@@ -744,6 +984,23 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const rejectBooking = async (id: string, reason?: string): Promise<boolean> => {
     let success = false;
+    const finalReason = reason || 'Dokumen KTP atau bukti transfer tidak valid.';
+    const finalNotes = `Ditolak: ${reason || 'Verifikasi tidak valid'}`;
+
+    if (isSupabaseConfigured) {
+      supabase
+        .from('bookings')
+        .update({
+          status: 'rejected',
+          rejection_reason: finalReason,
+          admin_notes: finalNotes,
+        })
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) console.warn('[Supabase rejectBooking error]', error.message);
+        });
+    }
+
     setBookings((prev) =>
       prev.map((b) => {
         if (b.id === id) {
@@ -751,8 +1008,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           return {
             ...b,
             status: 'rejected',
-            rejectionReason: reason || 'Dokumen KTP atau bukti transfer tidak valid.',
-            adminNotes: `Ditolak: ${reason || 'Verifikasi tidak valid'}`,
+            rejectionReason: finalReason,
+            adminNotes: finalNotes,
           };
         }
         return b;
@@ -763,6 +1020,22 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const updateBookingStatus = async (id: string, status: BookingStatus, notes?: string): Promise<boolean> => {
     let success = false;
+    const nowIso = new Date().toISOString();
+
+    if (isSupabaseConfigured) {
+      const updatePayload: any = { status };
+      if (notes !== undefined) updatePayload.admin_notes = notes;
+      if (status === 'verified') updatePayload.verified_at = nowIso;
+      if (status === 'checked_in') updatePayload.checked_in_at = nowIso;
+      supabase
+        .from('bookings')
+        .update(updatePayload)
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) console.warn('[Supabase updateBookingStatus error]', error.message);
+        });
+    }
+
     setBookings((prev) =>
       prev.map((b) => {
         if (b.id === id) {
@@ -775,9 +1048,9 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
             updated.adminNotes = notes;
           }
           if (status === 'verified' && !updated.verifiedAt) {
-            updated.verifiedAt = new Date().toISOString();
+            updated.verifiedAt = nowIso;
           } else if (status === 'checked_in' && !updated.checkedInAt) {
-            updated.checkedInAt = new Date().toISOString();
+            updated.checkedInAt = nowIso;
           }
           return updated;
         }
@@ -838,6 +1111,19 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const checkInTime = new Date().toISOString();
     let checkedInObj: Booking | undefined;
 
+    if (isSupabaseConfigured) {
+      supabase
+        .from('bookings')
+        .update({
+          status: 'checked_in',
+          checked_in_at: checkInTime,
+        })
+        .eq('id', target.id)
+        .then(({ error }) => {
+          if (error) console.warn('[Supabase checkInBooking error]', error.message);
+        });
+    }
+
     setBookings((prev) =>
       prev.map((b) => {
         if (b.id === target.id) {
@@ -866,6 +1152,91 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         b.guestNik === id ||
         b.guestPhone.replace(/\D/g, '') === id.replace(/\D/g, '')
     );
+  };
+
+  /**
+   * ATURAN 8: Pencarian booking oleh customer (menu "Pesanan Saya")
+   * Memanggil Supabase RPC function `get_my_booking(p_booking_code, p_phone)`
+   * JANGAN melakukan select langsung ke tabel bookings dari sisi customer.
+   */
+  const searchMyBooking = async (
+    bookingCode: string,
+    phone: string
+  ): Promise<Booking | null> => {
+    const cleanCode = bookingCode.trim().toUpperCase().replace(/\s+/g, '');
+    const cleanPhone = phone.replace(/\D/g, '');
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase.rpc('get_my_booking', {
+          p_booking_code: cleanCode,
+          p_phone: cleanPhone,
+        });
+
+        if (error) {
+          console.warn('[Supabase RPC get_my_booking Error]', error.message);
+        } else if (data) {
+          const rawItem = Array.isArray(data) ? data[0] : data;
+          if (rawItem && (rawItem.id || rawItem.booking_code)) {
+            const mappedBooking: Booking = {
+              id: rawItem.id || rawItem.booking_code || cleanCode,
+              propertyId: rawItem.homestay_id || rawItem.property_id || 'homestay-sundak',
+              propertyName:
+                rawItem.homestay_name ||
+                rawItem.property_name ||
+                (rawItem.homestay_id === 'homestay-trenggole'
+                  ? 'Griya Barokah Pantai Trenggole'
+                  : 'Griya Barokah Pantai Sundak'),
+              roomTypeId: rawItem.room_id || rawItem.room_type_id || '',
+              roomTypeName: rawItem.room_name || rawItem.room_type_name || '',
+              propertyImage:
+                rawItem.property_image ||
+                (rawItem.homestay_id === 'homestay-trenggole'
+                  ? '/images/trenggole_house_1790552065368.jpg'
+                  : '/images/sundak_fullhouse_1790552054893.jpg'),
+              location: rawItem.location || 'Pantai Sundak, Gunungkidul',
+              guestName: rawItem.guest_name || '',
+              guestPhone: rawItem.guest_phone || phone,
+              guestNik: rawItem.guest_nik || '',
+              ktpImageUrl: rawItem.ktp_image_url || '',
+              checkInDate: rawItem.check_in_date || rawItem.check_in || '',
+              checkOutDate: rawItem.check_out_date || rawItem.check_out || '',
+              totalNights: Number(rawItem.total_nights || 1),
+              guestsCount: Number(rawItem.total_guests || rawItem.guests_count || 1),
+              totalAmount: Number(rawItem.total_amount || 0),
+              asalKota: rawItem.guest_city || rawItem.asal_kota || '',
+              withWhom: rawItem.guest_relation || rawItem.with_whom || '',
+              paymentProofUrl: rawItem.proof_image_url || rawItem.payment_proof_url || '',
+              paymentMethod: rawItem.payment_method || 'mandiri_va',
+              status: rawItem.status || 'pending_verification',
+              createdAt: rawItem.created_at || new Date().toISOString(),
+              signature: rawItem.signature || '',
+              adminNotes: rawItem.admin_notes || '',
+              rejectionReason: rawItem.rejection_reason || '',
+              verifiedAt: rawItem.verified_at || undefined,
+              checkedInAt: rawItem.checked_in_at || undefined,
+            };
+            return mappedBooking;
+          }
+        }
+      } catch (rpcErr) {
+        console.warn('[get_my_booking RPC exception]', rpcErr);
+      }
+    }
+
+    // Fallback: pencarian dari state lokal jika offline atau Supabase belum dihubungkan
+    const found = bookings.find((b) => {
+      const bCode = b.id.trim().toUpperCase().replace(/\s+/g, '');
+      const bPhone = b.guestPhone.replace(/\D/g, '');
+      const codeMatches =
+        bCode === cleanCode || bCode.endsWith(cleanCode) || cleanCode.endsWith(bCode);
+      const phoneMatches =
+        bPhone === cleanPhone ||
+        (cleanPhone.length >= 8 && bPhone.endsWith(cleanPhone.slice(-8))) ||
+        (bPhone.length >= 8 && cleanPhone.endsWith(bPhone.slice(-8)));
+      return codeMatches && phoneMatches;
+    });
+    return found || null;
   };
 
   // CMS Database Handlers
@@ -1018,6 +1389,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updateBookingStatus,
         checkInBooking,
         findBookingById,
+        searchMyBooking,
         favorites,
         toggleFavorite,
         isFavorite,

@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 export const MyBookingsView: React.FC = () => {
-  const { bookings, setCurrentView, setActiveBookingId, activeBooking, activeBookingId, language } = useBooking();
+  const { bookings, setCurrentView, setActiveBookingId, activeBooking, activeBookingId, language, searchMyBooking } = useBooking();
 
   // Form pencarian wajib diisi terlebih dahulu untuk privasi data (Customer A tidak boleh melihat Customer B)
   const [bookingCodeInput, setBookingCodeInput] = useState<string>('');
@@ -53,7 +53,7 @@ export const MyBookingsView: React.FC = () => {
     return codeStr.trim().toUpperCase().replace(/\s+/g, '');
   };
 
-  const handleSearchBooking = (e: React.FormEvent) => {
+  const handleSearchBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -71,23 +71,8 @@ export const MyBookingsView: React.FC = () => {
       return;
     }
 
-    // Cari booking yang cocok dengan kode booking DAN nomor whatsapp pemesan
-    const found = bookings.find((b) => {
-      const bCodeNorm = normalizeCode(b.id);
-      const bPhoneNorm = normalizePhone(b.guestPhone);
-
-      const codeMatches =
-        bCodeNorm === cleanCode ||
-        bCodeNorm.endsWith(cleanCode) ||
-        cleanCode.endsWith(bCodeNorm);
-
-      const phoneMatches =
-        bPhoneNorm === cleanPhone ||
-        (cleanPhone.length >= 8 && bPhoneNorm.endsWith(cleanPhone.slice(-8))) ||
-        (bPhoneNorm.length >= 8 && cleanPhone.endsWith(bPhoneNorm.slice(-8)));
-
-      return codeMatches && phoneMatches;
-    });
+    // Panggil Supabase RPC get_my_booking(p_booking_code, p_phone)
+    const found = await searchMyBooking(cleanCode, cleanPhone);
 
     setHasSearched(true);
     if (found) {
@@ -95,7 +80,11 @@ export const MyBookingsView: React.FC = () => {
       setErrorMessage('');
     } else {
       setMatchedBooking(null);
-      setErrorMessage('Tidak ditemukan data booking.');
+      setErrorMessage(
+        language === 'id'
+          ? 'Data pemesanan tidak ditemukan. Periksa kembali Kode Booking dan Nomor WhatsApp Anda.'
+          : 'Booking not found. Please check your Booking Code and WhatsApp Number.'
+      );
     }
   };
 

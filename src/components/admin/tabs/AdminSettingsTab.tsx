@@ -59,11 +59,17 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
   );
 
   // Pengaturan Rekening Bank, QRIS, & Syariah (P0.B & P2.G)
+  const [bankBcaName, setBankBcaName] = useState(
+    getWebsiteSetting('bank_bca_bank_name', 'BCA')
+  );
   const [bankBcaNo, setBankBcaNo] = useState(
     getWebsiteSetting('bank_bca_number', '8801 2940 1827 0049')
   );
   const [bankBcaHolder, setBankBcaHolder] = useState(
     getWebsiteSetting('bank_bca_holder', 'Griya Barokah Homestay')
+  );
+  const [bankMandiriName, setBankMandiriName] = useState(
+    getWebsiteSetting('bank_mandiri_bank_name', 'Mandiri')
   );
   const [bankMandiriNo, setBankMandiriNo] = useState(
     getWebsiteSetting('bank_mandiri_number', '8920 1829 4819 0021')
@@ -100,8 +106,10 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
       checkout_time: { value: checkOutTime, kategori: 'booking' },
       booking_rules: { value: bookingRules, kategori: 'aturan' },
       extra_services_info: { value: extraInfo, kategori: 'booking' },
+      bank_bca_bank_name: { value: bankBcaName, kategori: 'booking' },
       bank_bca_number: { value: bankBcaNo, kategori: 'booking' },
       bank_bca_holder: { value: bankBcaHolder, kategori: 'booking' },
+      bank_mandiri_bank_name: { value: bankMandiriName, kategori: 'booking' },
       bank_mandiri_number: { value: bankMandiriNo, kategori: 'booking' },
       bank_mandiri_holder: { value: bankMandiriHolder, kategori: 'booking' },
       payment_qris_payload: { value: qrisPayload, kategori: 'booking' },
@@ -257,46 +265,66 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
             </div>
 
             <div className="space-y-2.5">
-              {/* Rekening BCA */}
-              <div className="grid grid-cols-2 gap-2">
+              {/* Rekening 1 */}
+              <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-neutral-700">No. Rekening / VA BCA</label>
+                  <label className="text-[11px] font-bold text-neutral-700">Nama Bank (1)</label>
+                  <input
+                    type="text"
+                    value={bankBcaName}
+                    onChange={(e) => setBankBcaName(e.target.value)}
+                    placeholder="BCA"
+                    className="w-full h-8 px-2 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-bold text-neutral-900 focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-neutral-700">No. Rekening / VA</label>
                   <input
                     type="text"
                     value={bankBcaNo}
                     onChange={(e) => setBankBcaNo(e.target.value)}
-                    className="w-full h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-mono text-neutral-900 focus:outline-none"
+                    className="w-full h-8 px-2 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-mono text-neutral-900 focus:outline-none"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-neutral-700">Atas Nama (BCA)</label>
+                  <label className="text-[11px] font-bold text-neutral-700">Atas Nama</label>
                   <input
                     type="text"
                     value={bankBcaHolder}
                     onChange={(e) => setBankBcaHolder(e.target.value)}
-                    className="w-full h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 focus:outline-none"
+                    className="w-full h-8 px-2 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 focus:outline-none"
                   />
                 </div>
               </div>
 
-              {/* Rekening Mandiri */}
-              <div className="grid grid-cols-2 gap-2">
+              {/* Rekening 2 */}
+              <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-neutral-700">No. Rekening / VA Mandiri</label>
+                  <label className="text-[11px] font-bold text-neutral-700">Nama Bank (2)</label>
+                  <input
+                    type="text"
+                    value={bankMandiriName}
+                    onChange={(e) => setBankMandiriName(e.target.value)}
+                    placeholder="Mandiri"
+                    className="w-full h-8 px-2 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-bold text-neutral-900 focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-neutral-700">No. Rekening / VA</label>
                   <input
                     type="text"
                     value={bankMandiriNo}
                     onChange={(e) => setBankMandiriNo(e.target.value)}
-                    className="w-full h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-mono text-neutral-900 focus:outline-none"
+                    className="w-full h-8 px-2 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-mono text-neutral-900 focus:outline-none"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-neutral-700">Atas Nama (Mandiri)</label>
+                  <label className="text-[11px] font-bold text-neutral-700">Atas Nama</label>
                   <input
                     type="text"
                     value={bankMandiriHolder}
                     onChange={(e) => setBankMandiriHolder(e.target.value)}
-                    className="w-full h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 focus:outline-none"
+                    className="w-full h-8 px-2 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 focus:outline-none"
                   />
                 </div>
               </div>

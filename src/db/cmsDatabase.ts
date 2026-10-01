@@ -17,7 +17,8 @@
  * - Kompatibel 100% Android Chrome, Safari iPhone, dan Vercel.
  */
 
-import { compressImageFile } from '../utils/imageHelper';
+import { compressImageFile, uploadImageToSupabaseStorage } from '../utils/imageHelper';
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
 // ==============================================================
 // 1. DEFINISI TIPE & INTERFACE TABEL
@@ -475,8 +476,10 @@ export const DEFAULT_WEBSITE_SETTINGS: TB_Website_Settings[] = [
   { id: 'set-checkout-time', key: 'rules_checkout_time', value: '12:00 WIB', kategori: 'aturan' },
 
   // Rekening Pembayaran & QRIS
+  { id: 'set-bank-bca-label', key: 'bank_bca_bank_name', value: 'BCA', kategori: 'booking' },
   { id: 'set-bank-bca-no', key: 'bank_bca_number', value: '8801 2940 1827 0049', kategori: 'booking' },
   { id: 'set-bank-bca-name', key: 'bank_bca_holder', value: 'Griya Barokah Homestay', kategori: 'booking' },
+  { id: 'set-bank-man-label', key: 'bank_mandiri_bank_name', value: 'Mandiri', kategori: 'booking' },
   { id: 'set-bank-man-no', key: 'bank_mandiri_number', value: '8920 1829 4819 0021', kategori: 'booking' },
   { id: 'set-bank-man-name', key: 'bank_mandiri_holder', value: 'Griya Barokah Homestay', kategori: 'booking' },
   { id: 'set-qris-code', key: 'payment_qris_payload', value: 'SAGARA_QRIS_GRIYA_BAROKAH', kategori: 'booking' },
@@ -537,6 +540,63 @@ export class CMSDatabase {
     }
   }
 
+  /**
+   * Mengambil data cloud dari Supabase (Postgres) ke cache lokal secara non-blocking
+   * Meliputi tabel: homestays, rooms, website_settings, media, blocked_dates, activity_log
+   */
+  static async syncFromSupabase(): Promise<void> {
+    if (!isSupabaseConfigured) return;
+    try {
+      const [
+        { data: dbHomestays },
+        { data: dbRooms },
+        { data: dbSettings },
+        { data: dbMedia },
+        { data: dbBlocked },
+        { data: dbLogs },
+      ] = await Promise.all([
+        supabase.from('homestays').select('*'),
+        supabase.from('rooms').select('*'),
+        supabase.from('website_settings').select('*'),
+        supabase.from('media').select('*').order('tanggal_upload', { ascending: false }),
+        supabase.from('blocked_dates').select('*'),
+        supabase.from('activity_log').select('*').order('waktu', { ascending: false }).limit(100),
+      ]);
+
+      let hasChanges = false;
+      if (Array.isArray(dbHomestays) && dbHomestays.length > 0) {
+        localStorage.setItem(STORAGE_KEY_HOMESTAY, JSON.stringify(dbHomestays));
+        hasChanges = true;
+      }
+      if (Array.isArray(dbRooms) && dbRooms.length > 0) {
+        localStorage.setItem(STORAGE_KEY_ROOM, JSON.stringify(dbRooms));
+        hasChanges = true;
+      }
+      if (Array.isArray(dbSettings) && dbSettings.length > 0) {
+        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(dbSettings));
+        hasChanges = true;
+      }
+      if (Array.isArray(dbMedia) && dbMedia.length > 0) {
+        localStorage.setItem(STORAGE_KEY_MEDIA, JSON.stringify(dbMedia));
+        hasChanges = true;
+      }
+      if (Array.isArray(dbBlocked) && dbBlocked.length > 0) {
+        localStorage.setItem(STORAGE_KEY_BLOCKED_DATES, JSON.stringify(dbBlocked));
+        hasChanges = true;
+      }
+      if (Array.isArray(dbLogs) && dbLogs.length > 0) {
+        localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(dbLogs));
+        hasChanges = true;
+      }
+
+      if (hasChanges) {
+        this.notifyChange();
+      }
+    } catch (err) {
+      console.warn('[CMSDatabase] Supabase initial sync warning:', err);
+    }
+  }
+
   // --- 1. TB_Homepage_Content ---
   static getHomepageContent(): TB_Homepage_Content {
     try {
@@ -569,6 +629,16 @@ export class CMSDatabase {
     try {
       localStorage.setItem(STORAGE_KEY_HOMEPAGE, JSON.stringify(updated));
       this.notifyChange();
+      if (isSupabaseConfigured && data.hero_image) {
+        supabase.from('website_settings').upsert({
+          id: 'set_hero_image',
+          key: 'hero_image',
+          value: data.hero_image,
+          kategori: 'homepage',
+        }).then(({ error }) => {
+          if (error) console.warn('[Supabase hero_image sync error]', error.message);
+        });
+      }
       this.logActivity({
         user_id: user?.id || 'admin',
         user_nama: user?.nama || 'Admin',
@@ -622,6 +692,11 @@ export class CMSDatabase {
       try {
         localStorage.setItem(STORAGE_KEY_HOMESTAY, JSON.stringify(list));
         this.notifyChange();
+        if (isSupabaseConfigured) {
+          supabase.from('homestays').upsert(list[idx]).then(({ error }) => {
+            if (error) console.warn('[Supabase homestays upsert error]', error.message);
+          });
+        }
         this.logActivity({
           user_id: user?.id || 'admin',
           user_nama: user?.nama || 'Admin',
@@ -657,6 +732,11 @@ export class CMSDatabase {
     try {
       localStorage.setItem(STORAGE_KEY_HOMESTAY, JSON.stringify(list));
       this.notifyChange();
+      if (isSupabaseConfigured) {
+        supabase.from('homestays').insert(newHomestay).then(({ error }) => {
+          if (error) console.warn('[Supabase homestays insert error]', error.message);
+        });
+      }
       this.logActivity({
         user_id: user?.id || 'admin',
         user_nama: user?.nama || 'Admin',
@@ -680,6 +760,11 @@ export class CMSDatabase {
     try {
       localStorage.setItem(STORAGE_KEY_HOMESTAY, JSON.stringify(filtered));
       this.notifyChange();
+      if (isSupabaseConfigured) {
+        supabase.from('homestays').delete().eq('id', id).then(({ error }) => {
+          if (error) console.warn('[Supabase homestays delete error]', error.message);
+        });
+      }
       this.logActivity({
         user_id: user?.id || 'admin',
         user_nama: user?.nama || 'Admin',
@@ -744,6 +829,11 @@ export class CMSDatabase {
     try {
       localStorage.setItem(STORAGE_KEY_ROOM, JSON.stringify(list));
       this.notifyChange();
+      if (isSupabaseConfigured) {
+        supabase.from('rooms').upsert(roomWithNormalizedPhotos).then(({ error }) => {
+          if (error) console.warn('[Supabase rooms upsert error]', error.message);
+        });
+      }
       this.logActivity({
         user_id: user?.id || 'admin',
         user_nama: user?.nama || 'Admin',
@@ -774,6 +864,11 @@ export class CMSDatabase {
       try {
         localStorage.setItem(STORAGE_KEY_ROOM, JSON.stringify(list));
         this.notifyChange();
+        if (isSupabaseConfigured) {
+          supabase.from('rooms').upsert(list[idx]).then(({ error }) => {
+            if (error) console.warn('[Supabase rooms update error]', error.message);
+          });
+        }
         this.logActivity({
           user_id: user?.id || 'admin',
           user_nama: user?.nama || 'Admin',
@@ -798,6 +893,11 @@ export class CMSDatabase {
     try {
       localStorage.setItem(STORAGE_KEY_ROOM, JSON.stringify(filtered));
       this.notifyChange();
+      if (isSupabaseConfigured) {
+        supabase.from('rooms').delete().eq('id', id).then(({ error }) => {
+          if (error) console.warn('[Supabase rooms delete error]', error.message);
+        });
+      }
       this.logActivity({
         user_id: user?.id || 'admin',
         user_nama: user?.nama || 'Admin',
@@ -810,7 +910,7 @@ export class CMSDatabase {
     }
   }
 
-  // --- 4. TB_Media (Sistem Gambar URL Permanen) ---
+  // --- 4. TB_Media (Sistem Gambar URL Cloud Supabase) ---
   static getMediaList(kategori?: string): TB_Media[] {
     try {
       const raw = localStorage.getItem(STORAGE_KEY_MEDIA);
@@ -840,6 +940,18 @@ export class CMSDatabase {
     try {
       localStorage.setItem(STORAGE_KEY_MEDIA, JSON.stringify(list));
       this.notifyChange();
+      if (isSupabaseConfigured) {
+        supabase.from('media').insert({
+          id: newMedia.id,
+          kategori: newMedia.kategori,
+          url: newMedia.url,
+          nama_file: newMedia.nama_file,
+          tanggal_upload: newMedia.tanggal_upload,
+          ukuran: newMedia.ukuran,
+        }).then(({ error }) => {
+          if (error) console.warn('[Supabase media insert error]', error.message);
+        });
+      }
       this.logActivity({
         user_id: user?.id || 'admin',
         user_nama: user?.nama || 'Admin',
@@ -856,8 +968,7 @@ export class CMSDatabase {
 
   /**
    * Upload Media Handler CMS:
-   * Menyimpan URL gambar asli yang diunggah admin (dikompresi halus maks 1400px JPEG)
-   * sehingga langsung tersimpan ke CMS Database dan tampil otomatis di seluruh halaman customer.
+   * Mengunggah gambar ke Supabase Storage (bucket "media") dan menyimpan public URL ke database Supabase
    */
   static async uploadMediaFile(
     file: File,
@@ -865,16 +976,16 @@ export class CMSDatabase {
     user?: { id: string; nama: string; role: 'admin' | 'resepsionis' }
   ): Promise<TB_Media> {
     try {
-      // 1. Kompresi gambar asli menjadi data URL ringan & tajam
-      const compressedDataUrl = await compressImageFile(file, 1400, 0.85);
+      // 1. Upload ke Supabase Storage bucket 'media'
+      const publicUrl = await uploadImageToSupabaseStorage(file, kategori);
 
-      // Hitung perkiraan ukuran setelah kompresi
-      const approximateSizeKb = Math.round((compressedDataUrl.length * 3) / 4 / 1024);
+      // Hitung perkiraan ukuran
+      const approximateSizeKb = Math.round(file.size / 1024);
 
       const media = CMSDatabase.addMediaItem(
         {
           kategori,
-          url: compressedDataUrl,
+          url: publicUrl,
           nama_file: file.name,
           tanggal_upload: new Date().toISOString().split('T')[0],
           ukuran: `${approximateSizeKb} KB`,
@@ -884,7 +995,7 @@ export class CMSDatabase {
       return media;
     } catch (err) {
       console.error('[CMSDatabase Error] Gagal proses upload file:', err);
-      // Fallback: simpan URL objek
+      // Fallback
       let fallbackUrl = '/images/sundak_fullhouse_1790552054893.jpg';
       if (typeof window !== 'undefined' && window.URL && window.URL.createObjectURL) {
         try {
@@ -916,6 +1027,11 @@ export class CMSDatabase {
     try {
       localStorage.setItem(STORAGE_KEY_MEDIA, JSON.stringify(filtered));
       this.notifyChange();
+      if (isSupabaseConfigured) {
+        supabase.from('media').delete().eq('id', id).then(({ error }) => {
+          if (error) console.warn('[Supabase media delete error]', error.message);
+        });
+      }
       this.logActivity({
         user_id: user?.id || 'admin',
         user_nama: user?.nama || 'Admin',
@@ -984,6 +1100,16 @@ export class CMSDatabase {
     try {
       localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(list));
       this.notifyChange();
+      if (isSupabaseConfigured) {
+        supabase.from('website_settings').upsert({
+          id: `set_${key}`,
+          key,
+          value,
+          kategori,
+        }).then(({ error }) => {
+          if (error) console.warn('[Supabase settings upsert error]', error.message);
+        });
+      }
       this.logActivity({
         user_id: user?.id || 'admin',
         user_nama: user?.nama || 'Admin',
@@ -1002,22 +1128,30 @@ export class CMSDatabase {
     user?: { id: string; nama: string; role: 'admin' | 'resepsionis' }
   ): void {
     const list = this.getWebsiteSettings();
+    const rowsToUpsert: any[] = [];
     Object.entries(records).forEach(([key, item]) => {
       const idx = list.findIndex((s) => s.key === key);
+      const rowItem = {
+        id: `set_${key}`,
+        key,
+        value: item.value,
+        kategori: item.kategori || 'homepage',
+      };
       if (idx >= 0) {
         list[idx].value = item.value;
       } else {
-        list.push({
-          id: `set_${key}`,
-          key,
-          value: item.value,
-          kategori: item.kategori || 'homepage',
-        });
+        list.push(rowItem);
       }
+      rowsToUpsert.push(rowItem);
     });
     try {
       localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(list));
       this.notifyChange();
+      if (isSupabaseConfigured && rowsToUpsert.length > 0) {
+        supabase.from('website_settings').upsert(rowsToUpsert).then(({ error }) => {
+          if (error) console.warn('[Supabase multiple settings upsert error]', error.message);
+        });
+      }
       this.logActivity({
         user_id: user?.id || 'admin',
         user_nama: user?.nama || 'Admin',
@@ -1135,6 +1269,20 @@ export class CMSDatabase {
     try {
       localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(trimmed));
       this.notifyChange();
+      if (isSupabaseConfigured) {
+        supabase.from('activity_log').insert({
+          id: newLog.id,
+          user_id: newLog.user_id,
+          user_nama: newLog.user_nama,
+          role: newLog.role,
+          aksi: newLog.aksi,
+          kategori: newLog.kategori,
+          detail: newLog.detail || null,
+          waktu: newLog.waktu,
+        }).then(({ error }) => {
+          if (error) console.warn('[Supabase activity_log insert error]', error.message);
+        });
+      }
     } catch (err) {
       console.error('[CMSDatabase Error] Gagal catat log aktivitas:', err);
     }
@@ -1169,6 +1317,18 @@ export class CMSDatabase {
     try {
       localStorage.setItem(STORAGE_KEY_BLOCKED_DATES, JSON.stringify(list));
       this.notifyChange();
+      if (isSupabaseConfigured) {
+        supabase.from('blocked_dates').insert({
+          id: newEntry.id,
+          homestay_id: newEntry.homestay_id,
+          room_id: newEntry.room_id || null,
+          date: newEntry.date,
+          reason: newEntry.reason || null,
+          created_at: newEntry.created_at,
+        }).then(({ error }) => {
+          if (error) console.warn('[Supabase blocked_dates insert error]', error.message);
+        });
+      }
     } catch (err) {
       console.error('[CMSDatabase Error] Gagal simpan blocked date:', err);
     }
@@ -1185,6 +1345,15 @@ export class CMSDatabase {
     try {
       localStorage.setItem(STORAGE_KEY_BLOCKED_DATES, JSON.stringify(filtered));
       this.notifyChange();
+      if (isSupabaseConfigured) {
+        let q = supabase.from('blocked_dates').delete().eq('homestay_id', homestayId).eq('date', date);
+        if (roomId) {
+          q = q.eq('room_id', roomId);
+        }
+        q.then(({ error }) => {
+          if (error) console.warn('[Supabase blocked_dates delete error]', error.message);
+        });
+      }
     } catch (err) {
       console.error('[CMSDatabase Error] Gagal hapus blocked date:', err);
     }

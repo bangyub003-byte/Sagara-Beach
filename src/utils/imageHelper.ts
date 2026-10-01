@@ -1,8 +1,70 @@
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+
 /**
  * Utility kompresi dan pengelolaan file gambar untuk CMS Griya Barokah.
- * Menghasilkan Data URL resolusi tinggi (maks 1400px, JPEG 0.85) yang ringan (~100-250KB),
- * aman disimpan di localStorage / database, dan langsung dirender di browser smartphone.
+ * Menghasilkan gambar terkompresi resolusi tinggi (maks 1400px, JPEG 0.85) yang ringan (~100-250KB),
+ * diunggah langsung ke Supabase Storage bucket 'media' dan menghasilkan Public URL cloud permanen.
  */
+
+export const dataUrlToBlob = (dataUrl: string): Blob => {
+  const parts = dataUrl.split(';base64,');
+  if (parts.length < 2) {
+    return new Blob([dataUrl], { type: 'image/jpeg' });
+  }
+  const contentType = parts[0].split(':')[1] || 'image/jpeg';
+  const raw = window.atob(parts[1]);
+  const rawLength = raw.length;
+  const uInt8Array = new Uint8Array(rawLength);
+  for (let i = 0; i < rawLength; ++i) {
+    uInt8Array[i] = raw.charCodeAt(i);
+  }
+  return new Blob([uInt8Array], { type: contentType });
+};
+
+/**
+ * Mengunggah file gambar ke Supabase Storage (bucket: "media")
+ * Didahului dengan kompresi halus agar hemat bandwidth dan cepat dimuat.
+ * Mengembalikan Public URL cloud yang valid.
+ */
+export const uploadImageToSupabaseStorage = async (
+  file: File,
+  folder = 'media'
+): Promise<string> => {
+  // 1. Kompresi gambar asli
+  const compressedDataUrl = await compressImageFile(file, 1400, 0.85);
+
+  if (!isSupabaseConfigured) {
+    return compressedDataUrl;
+  }
+
+  try {
+    const blob = dataUrlToBlob(compressedDataUrl);
+    const sanitizedName = file.name
+      .toLowerCase()
+      .replace(/[^a-z0-9.-]/g, '_')
+      .replace(/_{2,}/g, '_');
+    const fileName = `${Date.now()}_${sanitizedName}`;
+    const filePath = folder ? `${folder}/${fileName}` : fileName;
+
+    const { error: uploadError } = await supabase.storage
+      .from('media')
+      .upload(filePath, blob, {
+        contentType: 'image/jpeg',
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.warn('[Supabase Storage Upload Warning]', uploadError.message);
+      return compressedDataUrl;
+    }
+
+    const { data: urlData } = supabase.storage.from('media').getPublicUrl(filePath);
+    return urlData.publicUrl || compressedDataUrl;
+  } catch (err) {
+    console.warn('[Supabase Storage Error] Gagal upload gambar:', err);
+    return compressedDataUrl;
+  }
+};
 
 export const compressImageFile = async (
   file: File,

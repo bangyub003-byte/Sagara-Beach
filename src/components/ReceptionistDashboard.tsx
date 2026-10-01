@@ -22,6 +22,7 @@ import {
   RefreshCw,
   Send,
   Building,
+  ShieldAlert,
 } from 'lucide-react';
 
 export const ReceptionistDashboard: React.FC = () => {
@@ -365,8 +366,18 @@ Sudah diverifikasi resepsionis.`;
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="mx-4 my-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-bold flex items-center gap-2 shadow-2xs animate-in fade-in">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+        <div
+          className={`mx-4 my-2 p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-2xs animate-in fade-in ${
+            toastMessage.includes('⚠️') || toastMessage.includes('Ditolak') || toastMessage.includes('PERINGATAN')
+              ? 'bg-rose-50 border border-rose-300 text-rose-900'
+              : 'bg-emerald-50 border border-emerald-300 text-emerald-900'
+          }`}
+        >
+          {toastMessage.includes('⚠️') || toastMessage.includes('Ditolak') ? (
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          )}
           <span>{toastMessage}</span>
         </div>
       )}
@@ -544,6 +555,24 @@ Sudah diverifikasi resepsionis.`;
               </span>
             )}
           </div>
+
+          {/* Tombol Khusus Mode Pengembangan (Development): Simulasi QR Palsu */}
+          {import.meta.env.DEV && (
+            <div className="pt-2 border-t border-neutral-800 flex justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  const targetBooking = bookings[0] || { id: 'GBH-2609-K8R2' };
+                  handleQrScanned(`GBH:BOOKING:${targetBooking.id}|SIG:PALSU_REKAYASA_INVALID_HASH_999`);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/50 text-rose-300 text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+                title="Hanya tampil di mode pengembangan (development) untuk menguji penolakan tanda tangan QR palsu"
+              >
+                <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span>Simulasikan QR Palsu (Uji Coba)</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ================= 2. SETELAH SCAN: TAMPILKAN DATA TAMU & TOMBOL CHECK-IN ================= */}

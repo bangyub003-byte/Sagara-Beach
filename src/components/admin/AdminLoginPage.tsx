@@ -1,28 +1,33 @@
 import React, { useState } from 'react';
 import { useBooking } from '../../context/BookingContext';
-import { ShieldCheck, Lock, ArrowLeft, Eye, EyeOff, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
+import { ShieldCheck, Lock, Mail, ArrowLeft, Eye, EyeOff, AlertCircle, Sparkles } from 'lucide-react';
 
 export const AdminLoginPage: React.FC = () => {
   const { loginAdmin, setCurrentView, navigateTo, language, t } = useBooking();
-  const [passcode, setPasscode] = useState('');
+  const [email, setEmail] = useState('admin@griyabarokah.com');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!passcode.trim()) {
-      setErrorMsg(language === 'id' ? 'Silakan masukkan kode otorisasi.' : 'Please enter authorization passcode.');
+    if (!email.trim() || !password.trim()) {
+      setErrorMsg(language === 'id' ? 'Silakan masukkan email dan password.' : 'Please enter email and password.');
       return;
     }
 
     setIsSubmitting(true);
     setErrorMsg('');
 
-    setTimeout(() => {
-      const success = loginAdmin(passcode);
+    try {
+      const success = await loginAdmin(email.trim(), password.trim());
       if (!success) {
-        setErrorMsg(t.invalidPasscode);
+        setErrorMsg(
+          language === 'id'
+            ? 'Email atau password salah, atau akun ini bukan Admin.'
+            : 'Invalid email, password, or not an admin account.'
+        );
         setIsSubmitting(false);
       } else {
         setIsSubmitting(false);
@@ -30,11 +35,15 @@ export const AdminLoginPage: React.FC = () => {
           navigateTo('/admin');
         }
       }
-    }, 400);
+    } catch {
+      setErrorMsg(language === 'id' ? 'Gagal melakukan verifikasi.' : 'Authentication error.');
+      setIsSubmitting(false);
+    }
   };
 
-  const handleQuickFill = (code: string) => {
-    setPasscode(code);
+  const handleQuickFill = (emailStr: string, passStr: string) => {
+    setEmail(emailStr);
+    setPassword(passStr);
     setErrorMsg('');
   };
 
@@ -82,9 +91,34 @@ export const AdminLoginPage: React.FC = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Input Email */}
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-neutral-600 uppercase tracking-wider block">
-                {t.passcodeLabel}
+                Email Admin
+              </label>
+
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
+                  <Mail className="w-4 h-4" />
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errorMsg) setErrorMsg('');
+                  }}
+                  placeholder="admin@griyabarokah.com"
+                  className="w-full pl-10 pr-4 py-3 bg-[#F6F7F9] border border-neutral-200 rounded-2xl text-sm font-medium text-neutral-900 focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all placeholder:text-neutral-400"
+                  autoComplete="email"
+                />
+              </div>
+            </div>
+
+            {/* Input Password */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-neutral-600 uppercase tracking-wider block">
+                Password
               </label>
 
               <div className="relative">
@@ -93,12 +127,12 @@ export const AdminLoginPage: React.FC = () => {
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  value={passcode}
+                  value={password}
                   onChange={(e) => {
-                    setPasscode(e.target.value);
+                    setPassword(e.target.value);
                     if (errorMsg) setErrorMsg('');
                   }}
-                  placeholder={t.passcodePlaceholder}
+                  placeholder="Masukkan password admin..."
                   className="w-full pl-10 pr-11 py-3 bg-[#F6F7F9] border border-neutral-200 rounded-2xl text-sm font-medium text-neutral-900 focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all placeholder:text-neutral-400"
                   autoComplete="current-password"
                   autoFocus
@@ -127,7 +161,7 @@ export const AdminLoginPage: React.FC = () => {
               className="w-full py-3.5 rounded-2xl bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-sm shadow-md active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               <ShieldCheck className="w-4 h-4 text-amber-400" />
-              <span>{isSubmitting ? 'Verifying...' : t.loginButton}</span>
+              <span>{isSubmitting ? 'Memverifikasi...' : t.loginButton}</span>
             </button>
           </form>
 
@@ -140,14 +174,14 @@ export const AdminLoginPage: React.FC = () => {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => handleQuickFill('admin123')}
+                onClick={() => handleQuickFill('admin@griyabarokah.com', 'admin123')}
                 className="flex-1 py-1.5 px-2 bg-neutral-100 hover:bg-neutral-200/80 rounded-xl text-[11px] font-mono font-medium text-neutral-700 text-center transition-colors"
               >
                 admin123
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickFill('sagara88')}
+                onClick={() => handleQuickFill('admin@griyabarokah.com', 'sagara88')}
                 className="flex-1 py-1.5 px-2 bg-neutral-100 hover:bg-neutral-200/80 rounded-xl text-[11px] font-mono font-medium text-neutral-700 text-center transition-colors"
               >
                 sagara88

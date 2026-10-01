@@ -234,8 +234,10 @@ export const BookingFlow: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Ambil pengaturan rekening bank & QRIS dinamis dari CMS (P0.B)
+  const bcaBankName = getWebsiteSetting('bank_bca_bank_name', 'BCA');
   const bcaNumber = getWebsiteSetting('bank_bca_number', '8801 2940 1827 0049');
   const bcaHolder = getWebsiteSetting('bank_bca_holder', 'Griya Barokah Homestay');
+  const mandiriBankName = getWebsiteSetting('bank_mandiri_bank_name', 'Mandiri');
   const mandiriNumber = getWebsiteSetting('bank_mandiri_number', '8920 1829 4819 0021');
   const mandiriHolder = getWebsiteSetting('bank_mandiri_holder', 'Griya Barokah Homestay');
   const qrisPayload = getWebsiteSetting('payment_qris_payload', 'SAGARA_QRIS_GRIYA_BAROKAH');
@@ -1827,7 +1829,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                       : 'bg-[#F4F5F7] text-neutral-600 hover:bg-neutral-200'
                   }`}
                 >
-                  BCA VA
+                  {bcaBankName} VA
                 </button>
 
                 <button
@@ -1839,7 +1841,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                       : 'bg-[#F4F5F7] text-neutral-600 hover:bg-neutral-200'
                   }`}
                 >
-                  Mandiri VA
+                  {mandiriBankName} VA
                 </button>
 
                 <button
@@ -1859,10 +1861,10 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                 <div className="p-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-neutral-500 font-medium">
-                      Nomor Rekening / Virtual Account
+                      Nomor Rekening / Virtual Account ({metodePembayaran === 'bca' ? bcaBankName : mandiriBankName})
                     </span>
                     <span className="px-2 py-0.5 rounded bg-white text-[10px] font-bold text-neutral-700 border border-neutral-200 uppercase">
-                      {metodePembayaran}
+                      {metodePembayaran === 'bca' ? bcaBankName : mandiriBankName}
                     </span>
                   </div>
 
