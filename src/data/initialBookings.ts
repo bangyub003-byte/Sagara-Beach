@@ -34,7 +34,8 @@ export const INITIAL_BOOKINGS: Booking[] = [
     status: 'pending_verification',
     createdAt: '2025-09-26T02:30:00.000Z',
     adminNotes: 'Booking Full House Sundak: 4 orang x 2 malam x Rp75.000 = Rp600.000. DP 30% = Rp180.000. Sisa pelunasan Rp420.000 saat check-in.',
-    qrCodeData: 'BAROKAH:BOOKING:GBH-2025-9812|GUEST:Arya Yudhistira|NIK:3403011408920002|PROPERTY:Pantai Sundak',
+    signature: 'EB4F1368',
+    qrCodeData: 'GBH:BOOKING:GBH-2025-9812|SIG:EB4F1368',
   },
   {
     id: 'GBH-2025-8821',
@@ -67,7 +68,8 @@ export const INITIAL_BOOKINGS: Booking[] = [
     createdAt: '2025-09-25T14:10:00.000Z',
     verifiedAt: '2025-09-25T15:00:00.000Z',
     adminNotes: 'Kamar 2 Trenggole: Rp335.000 x 2 malam = Rp670.000 (Lunas 100%). KTP & bukti transfer valid.',
-    qrCodeData: 'BAROKAH:BOOKING:GBH-2025-8821|GUEST:Jessica Tan|NIK:3171055209940003|ROOM:Trenggole Kamar 2',
+    signature: '16114A68',
+    qrCodeData: 'GBH:BOOKING:GBH-2025-8821|SIG:16114A68',
   },
   {
     id: 'GBH-2025-7419',
@@ -101,7 +103,8 @@ export const INITIAL_BOOKINGS: Booking[] = [
     verifiedAt: '2025-09-23T11:45:00.000Z',
     checkedInAt: '2025-09-24T14:05:00.000Z',
     adminNotes: 'Kamar 1 Trenggole: Rp285.000 x 2 malam = Rp570.000. Tamu sudah check-in di lobi.',
-    qrCodeData: 'BAROKAH:BOOKING:GBH-2025-7419|GUEST:Budi Santoso|NIK:3273010507850001|ROOM:Trenggole Kamar 1',
+    signature: '8F473B18',
+    qrCodeData: 'GBH:BOOKING:GBH-2025-7419|SIG:8F473B18',
   },
   {
     id: 'GBH-2025-6120',
@@ -135,7 +138,8 @@ export const INITIAL_BOOKINGS: Booking[] = [
     verifiedAt: '2025-09-15T10:00:00.000Z',
     checkedInAt: '2025-09-18T14:00:00.000Z',
     adminNotes: 'Selesai menginap 8 orang di Sundak. Tamu puas dengan kebersihan dan fasilitas dapur.',
-    qrCodeData: 'BAROKAH:BOOKING:GBH-2025-6120|GUEST:Hendra Gunawan|NIK:3302011906800005|PROPERTY:Pantai Sundak',
+    signature: 'C6EB9510',
+    qrCodeData: 'GBH:BOOKING:GBH-2025-6120|SIG:C6EB9510',
   },
   {
     id: 'GBH-2025-5431',
@@ -168,6 +172,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
     createdAt: '2025-09-27T08:00:00.000Z',
     verifiedAt: '2025-09-27T08:30:00.000Z',
     adminNotes: 'Kamar 3 Trenggole: DP 30% (Rp177.000) terverifikasi. Sisa pelunasan Rp413.000 dibayar saat check-in.',
-    qrCodeData: 'BAROKAH:BOOKING:GBH-2025-5431|GUEST:Rina Marlina|NIK:3174092503910008|ROOM:Trenggole Kamar 3',
+    signature: '58166318',
+    qrCodeData: 'GBH:BOOKING:GBH-2025-5431|SIG:58166318',
   },
 ];

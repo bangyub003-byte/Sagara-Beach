@@ -840,7 +840,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const newId = generateUniqueBookingCode(bookings.map((b) => b.id));
 
     // 2. Tanda tangan keamanan digital QR tiket
-    const signature = generateBookingSignature(newId, bookingData.guestPhone);
+    const signature = await generateBookingSignature(newId, bookingData.guestPhone);
 
     // QR Payload berisi ID & Signature (JANGAN simpan status di dalam QR agar selalu dicek real-time di DB)
     const qrDataPayload = `GBH:BOOKING:${newId}|SIG:${signature}`;
@@ -946,7 +946,10 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const verifyBooking = async (id: string, notes?: string): Promise<boolean> => {
     let success = false;
-    const qrCode = await generateQrCode(`SAGARA:BOOKING:${id}|STATUS:VERIFIED`);
+    const targetBooking = bookings.find((b) => b.id === id);
+    const bookingPhone = targetBooking?.guestPhone || '';
+    const bookingSig = targetBooking?.signature || (await generateBookingSignature(id, bookingPhone));
+    const qrCode = await generateQrCode(`GBH:BOOKING:${id}|SIG:${bookingSig}`);
     const nowIso = new Date().toISOString();
     const finalNotes = notes || 'Verified by Resort Manager.';
 
@@ -972,8 +975,9 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
             ...b,
             status: 'verified',
             verifiedAt: nowIso,
+            signature: b.signature || bookingSig,
             adminNotes: notes || b.adminNotes || finalNotes,
-            qrCodeData: b.qrCodeData || qrCode,
+            qrCodeData: qrCode,
           };
         }
         return b;
@@ -1072,7 +1076,12 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     // Verifikasi tanda tangan digital QR tiket jika signature disertakan (P1.E)
     if (signature) {
-      const isValidSig = verifyBookingSignature(target.id, target.guestPhone, signature);
+      const isValidSig = await verifyBookingSignature(
+        target.id,
+        target.guestPhone,
+        signature,
+        target.signature
+      );
       if (!isValidSig) {
         return {
           success: false,

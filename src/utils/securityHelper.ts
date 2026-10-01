@@ -14,7 +14,10 @@ const SECRET_SALT = 'GBH_BAROKAH_SECURE_KEY_2026';
  */
 export function generateBookingSignature(bookingId: string, guestPhone: string = ''): string {
   const cleanId = (bookingId || '').trim().toUpperCase();
-  const cleanPhone = (guestPhone || '').replace(/\D/g, '');
+  let cleanPhone = (guestPhone || '').replace(/\D/g, '');
+  if (cleanPhone.startsWith('62')) {
+    cleanPhone = '0' + cleanPhone.slice(2);
+  }
   const raw = `${cleanId}:${cleanPhone}:${SECRET_SALT}`;
 
   // DJB2 + FNV-1a hybrid hash algorithm
@@ -34,15 +37,47 @@ export function generateBookingSignature(bookingId: string, guestPhone: string =
 
 /**
  * Memverifikasi apakah tanda tangan QR valid dan cocok dengan data di database.
+ * Mendukung pencocokan langsung dengan storedSignature di data booking,
+ * serta kalkulasi ulang dengan normalisasi nomor WhatsApp / telepon.
  */
 export function verifyBookingSignature(
   bookingId: string,
   guestPhone: string,
-  providedSignature: string
+  providedSignature: string,
+  storedSignature?: string
 ): boolean {
   if (!providedSignature || !bookingId) return false;
+  const prov = providedSignature.trim().toUpperCase();
+
+  // 1. Verifikasi langsung dengan tanda tangan yang tersimpan di database
+  if (storedSignature && storedSignature.trim().toUpperCase() === prov) {
+    return true;
+  }
+
+  // 2. Verifikasi dengan kalkulasi ulang hash (dengan nomor HP ternormalisasi)
   const expected = generateBookingSignature(bookingId, guestPhone);
-  return expected.toUpperCase() === providedSignature.trim().toUpperCase();
+  if (expected.toUpperCase() === prov) {
+    return true;
+  }
+
+  // 3. Fallback backward-compatibility jika nomor HP disimpan tanpa normalisasi 62/0
+  const cleanId = (bookingId || '').trim().toUpperCase();
+  const rawPhone = (guestPhone || '').replace(/\D/g, '');
+  const rawFallback = `${cleanId}:${rawPhone}:${SECRET_SALT}`;
+  let hash1 = 5381;
+  let hash2 = 2166136261;
+  for (let i = 0; i < rawFallback.length; i++) {
+    const char = rawFallback.charCodeAt(i);
+    hash1 = ((hash1 << 5) + hash1) ^ char;
+    hash2 = (hash2 ^ char) * 16777619;
+  }
+  const hex1 = Math.abs(hash1).toString(16).padStart(8, '0').slice(-4);
+  const hex2 = Math.abs(hash2).toString(16).padStart(8, '0').slice(-4);
+  if (`${hex1}${hex2}`.toUpperCase() === prov) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
