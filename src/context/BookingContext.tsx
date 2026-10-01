@@ -5,6 +5,11 @@ import { INITIAL_BOOKINGS } from '../data/initialBookings';
 import { generateQrCode } from '../utils/qr';
 import { translations } from '../utils/translations';
 import {
+  generateUniqueBookingCode,
+  generateBookingSignature,
+  verifyBookingSignature,
+} from '../utils/securityHelper';
+import {
   CMSDatabase,
   convertCmsToProperties,
   TB_Homepage_Content,
@@ -75,7 +80,7 @@ interface BookingContextType {
   updateBookingStatus: (id: string, status: BookingStatus, notes?: string) => Promise<boolean>;
 
   // Aksi Resepsionis
-  checkInBooking: (id: string) => Promise<{ success: boolean; message: string; booking?: Booking }>;
+  checkInBooking: (id: string, signature?: string) => Promise<{ success: boolean; message: string; booking?: Booking }>;
   findBookingById: (id: string) => Booking | undefined;
 
   // Favorit
@@ -376,6 +381,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // 6. Foto Hero, Foto Fasilitas & Nomor WhatsApp Admin
   const [heroImage, setHeroImage] = useState<string>(() => {
     try {
+      const cmsHero = CMSDatabase.getHomepageContent()?.hero_image;
+      if (cmsHero) return cmsHero;
       const saved = localStorage.getItem(LOCAL_STORAGE_HERO_IMAGE_KEY);
       if (saved && !saved.includes('unsplash.com')) return saved;
     } catch {
@@ -386,6 +393,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const updateHeroImage = (url: string) => {
     setHeroImage(url);
+    CMSDatabase.saveHomepageContent({ hero_image: url });
+    setHomepageContentState(CMSDatabase.getHomepageContent());
     try {
       localStorage.setItem(LOCAL_STORAGE_HERO_IMAGE_KEY, url);
     } catch {
@@ -395,16 +404,22 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const [facilityImage, setFacilityImage] = useState<string>(() => {
     try {
+      const setting = CMSDatabase.getWebsiteSetting('facility_image');
+      if (setting) return setting;
+      const mediaFacility = CMSDatabase.getMediaList('fasilitas')?.[0]?.url;
+      if (mediaFacility) return mediaFacility;
       const saved = localStorage.getItem('barokah_facility_img_v2');
       if (saved) return saved;
     } catch {
       // fallback
     }
-    return '/images/trenggole_house_1790552065368.jpg';
+    return '/images/living_room_1790552074900.jpg';
   });
 
   const updateFacilityImage = (url: string) => {
     setFacilityImage(url);
+    CMSDatabase.saveWebsiteSetting('facility_image', url, 'homepage');
+    setWebsiteSettingsList(CMSDatabase.getWebsiteSettings());
     try {
       localStorage.setItem('barokah_facility_img_v2', url);
     } catch {
@@ -611,6 +626,10 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const checkSundakAvailability = (checkIn: string, checkOut: string): boolean => {
     if (!checkIn || !checkOut || checkIn >= checkOut) return true;
+    // Cek entitas tabel blocked dates di CMS
+    if (CMSDatabase.isDateRangeBlocked('homestay-sundak', checkIn, checkOut)) {
+      return false;
+    }
     const sundak = accommodations.find((a) => a.id === 'homestay-sundak');
     if (sundak?.blockedDates) {
       for (const d of sundak.blockedDates) {
@@ -621,6 +640,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       (b) =>
         b.propertyId === 'homestay-sundak' &&
         b.status !== 'rejected' &&
+        b.status !== 'cancelled' &&
         isDateOverlapping(checkIn, checkOut, b.checkInDate, b.checkOutDate)
     );
     return !hasConflict;
@@ -628,6 +648,10 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const checkTrenggoleRoomAvailability = (roomId: string, checkIn: string, checkOut: string): boolean => {
     if (!checkIn || !checkOut || checkIn >= checkOut) return true;
+    // Cek entitas tabel blocked dates di CMS
+    if (CMSDatabase.isDateRangeBlocked('homestay-trenggole', checkIn, checkOut, roomId)) {
+      return false;
+    }
     const trenggole = accommodations.find((a) => a.id === 'homestay-trenggole');
     const targetRoom = trenggole?.roomTypes.find((r) => r.id === roomId);
     if (targetRoom && targetRoom.isAvailable === false) return false;
@@ -640,6 +664,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       (b) =>
         b.propertyId === 'homestay-trenggole' &&
         b.status !== 'rejected' &&
+        b.status !== 'cancelled' &&
         (b.roomTypeId === roomId || (b.roomChoiceDetail && b.roomChoiceDetail.includes(roomId))) &&
         isDateOverlapping(checkIn, checkOut, b.checkInDate, b.checkOutDate)
     );
@@ -649,10 +674,35 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const createBooking = async (
     bookingData: Omit<Booking, 'id' | 'status' | 'createdAt'>
   ): Promise<string> => {
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const newId = `GBH-${randomSuffix}`;
+    // 1. Pengecekan bentrok tanggal SEKALI LAGI tepat sebelum disimpan (P1.D)
+    if (bookingData.propertyId === 'homestay-sundak') {
+      const isAvailable = checkSundakAvailability(bookingData.checkInDate, bookingData.checkOutDate);
+      if (!isAvailable) {
+        throw new Error(
+          'Maaf, Griya Barokah Pantai Sundak (Full House) baru saja terisi atau tidak tersedia untuk rentang tanggal tersebut.'
+        );
+      }
+    } else if (bookingData.propertyId === 'homestay-trenggole') {
+      const isRoomAvailable = checkTrenggoleRoomAvailability(
+        bookingData.roomTypeId,
+        bookingData.checkInDate,
+        bookingData.checkOutDate
+      );
+      if (!isRoomAvailable) {
+        throw new Error(
+          'Maaf, kamar di Pantai Trenggole yang Anda pilih baru saja dipesan oleh tamu lain pada rentang tanggal tersebut.'
+        );
+      }
+    }
 
-    const qrDataPayload = `BAROKAH:BOOKING:${newId}|GUEST:${bookingData.guestName}|NIK:${bookingData.guestNik}|ROOM:${bookingData.roomTypeName}`;
+    // 2. Format kode booking anti-tabrakan: GBH-YYMM-XXXX (P1.D)
+    const newId = generateUniqueBookingCode(bookings.map((b) => b.id));
+
+    // 3. Tanda tangan keamanan digital QR tiket (P1.E)
+    const signature = generateBookingSignature(newId, bookingData.guestPhone);
+
+    // QR Payload berisi ID & Signature (JANGAN simpan status di dalam QR agar selalu dicek real-time di DB)
+    const qrDataPayload = `GBH:BOOKING:${newId}|SIG:${signature}`;
     const qrCodeImage = await generateQrCode(qrDataPayload);
 
     const newBooking: Booking = {
@@ -662,6 +712,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       createdAt: new Date().toISOString(),
       qrCodeData: qrCodeImage,
       adminNotes: 'Awaiting admin review of KTP and payment proof.',
+      signature,
     };
 
     setBookings((prev) => [newBooking, ...prev]);
@@ -737,12 +788,25 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const checkInBooking = async (
-    id: string
+    id: string,
+    signature?: string
   ): Promise<{ success: boolean; message: string; booking?: Booking }> => {
     const target = bookings.find((b) => b.id.trim().toUpperCase() === id.trim().toUpperCase());
 
     if (!target) {
       return { success: false, message: `Booking ID "${id}" tidak ditemukan dalam database resor.` };
+    }
+
+    // Verifikasi tanda tangan digital QR tiket jika signature disertakan (P1.E)
+    if (signature) {
+      const isValidSig = verifyBookingSignature(target.id, target.guestPhone, signature);
+      if (!isValidSig) {
+        return {
+          success: false,
+          message: 'Peringatan Keamanan: Tanda tangan digital QR Code tidak cocok (terdeteksi tidak resmi/palsu).',
+          booking: target,
+        };
+      }
     }
 
     if (target.status === 'checked_in') {
@@ -758,7 +822,15 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (target.status === 'pending_verification') {
       return {
         success: false,
-        message: `Booking ${target.id} masih dalam antrean verifikasi Admin.`,
+        message: `Booking ${target.id} masih berstatus Menunggu Verifikasi Admin. Silakan verifikasi bukti transfer terlebih dahulu.`,
+        booking: target,
+      };
+    }
+
+    if (target.status === 'rejected' || target.status === 'cancelled') {
+      return {
+        success: false,
+        message: `Booking ${target.id} berstatus ${target.status === 'rejected' ? 'DITOLAK' : 'DIBATALKAN'}, tidak dapat melakukan check-in.`,
         booking: target,
       };
     }
@@ -797,42 +869,57 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   // CMS Database Handlers
+  const syncAccommodationsFromCms = () => {
+    const freshHomestays = CMSDatabase.getHomestays();
+    const freshRooms = CMSDatabase.getRooms();
+    setCmsHomestaysState(freshHomestays);
+    setCmsRoomsState(freshRooms);
+    const mapped = convertCmsToProperties(freshHomestays, freshRooms);
+    setAccommodations(mapped);
+    setSelectedProperty((prev) => mapped.find((m) => m.id === prev?.id) || mapped[0]);
+  };
+
   const updateHomepageContent = (data: Partial<TB_Homepage_Content>) => {
     const updated = CMSDatabase.saveHomepageContent(data);
     setHomepageContentState(updated);
     if (data.hero_image) {
-      updateHeroImage(data.hero_image);
+      setHeroImage(data.hero_image);
+      try {
+        localStorage.setItem(LOCAL_STORAGE_HERO_IMAGE_KEY, data.hero_image);
+      } catch {
+        // ignore
+      }
     }
   };
 
   const updateCmsHomestay = (id: string, data: Partial<TB_Homestay>) => {
     CMSDatabase.updateHomestay(id, data);
-    setCmsHomestaysState(CMSDatabase.getHomestays());
+    syncAccommodationsFromCms();
   };
 
   const addCmsHomestay = (homestay: TB_Homestay) => {
     CMSDatabase.addHomestay(homestay);
-    setCmsHomestaysState(CMSDatabase.getHomestays());
+    syncAccommodationsFromCms();
   };
 
   const deleteCmsHomestay = (id: string) => {
     CMSDatabase.deleteHomestay(id);
-    setCmsHomestaysState(CMSDatabase.getHomestays());
+    syncAccommodationsFromCms();
   };
 
   const updateCmsRoom = (id: string, data: Partial<TB_Room>) => {
     CMSDatabase.updateRoom(id, data);
-    setCmsRoomsState(CMSDatabase.getRooms());
+    syncAccommodationsFromCms();
   };
 
   const addCmsRoom = (room: TB_Room) => {
     CMSDatabase.saveRoom(room);
-    setCmsRoomsState(CMSDatabase.getRooms());
+    syncAccommodationsFromCms();
   };
 
   const deleteCmsRoom = (id: string) => {
     CMSDatabase.deleteRoom(id);
-    setCmsRoomsState(CMSDatabase.getRooms());
+    syncAccommodationsFromCms();
   };
 
   const uploadMedia = async (file: File, kategori: TB_Media['kategori']): Promise<TB_Media> => {

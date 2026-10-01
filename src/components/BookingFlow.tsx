@@ -3,6 +3,7 @@ import { useBooking } from '../context/BookingContext';
 import { Property, RoomType } from '../types';
 import { SAMPLE_KTP_SVG, SAMPLE_PAYMENT_SVG } from '../data/mockAssets';
 import { SafeImage } from './common/SafeImage';
+import { generateBookingSignature } from '../utils/securityHelper';
 import {
   ChevronLeft,
   X,
@@ -54,12 +55,19 @@ export const BookingFlow: React.FC = () => {
     checkSundakAvailability,
     checkTrenggoleRoomAvailability,
     language,
+    cmsHomestays,
+    cmsRooms,
+    adminWhatsappNumber,
+    getWebsiteSetting,
   } = useBooking();
 
   // Wizard Step: 1 | 2 | 3 | 4 | 5
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [isSuccessView, setIsSuccessView] = useState<boolean>(false);
   const [errorNotice, setErrorNotice] = useState<string>('');
+
+  const sundakCms = cmsHomestays?.find((h) => h.id === 'homestay-sundak') || cmsHomestays?.[0];
+  const trenggoleCms = cmsHomestays?.find((h) => h.id === 'homestay-trenggole') || cmsHomestays?.[1];
 
   // ==============================================================
   // STEP 1: PILIH PENGINAPAN (Sundak vs Trenggole)
@@ -81,8 +89,8 @@ export const BookingFlow: React.FC = () => {
     reviewsCount: 168,
     badge: 'Full House',
     badgeEn: 'Full House',
-    image: '/images/sundak_fullhouse_1790552054893.jpg',
-    gallery: ['/images/sundak_fullhouse_1790552054893.jpg'],
+    image: sundakCms?.foto_utama || '/images/sundak_fullhouse_1790552054893.jpg',
+    gallery: [sundakCms?.foto_utama || '/images/sundak_fullhouse_1790552054893.jpg'],
     description: 'Satu rumah penuh untuk keluarga/rombongan dekat pantai Sundak.',
     descriptionEn: 'Entire house for family near Sundak beach.',
     highlights: ['Full House', '4 Kamar AC', 'WiFi'],
@@ -169,10 +177,14 @@ export const BookingFlow: React.FC = () => {
   const [namaLengkap, setNamaLengkap] = useState<string>('Arya Yudhistira');
   const [asalKota, setAsalKota] = useState<string>('Yogyakarta');
   const [noHp, setNoHp] = useState<string>('081234567890');
-  const [withWhom, setWithWhom] = useState<string>('Keluarga Inti (Suami/Istri & Anak)');
-  const [totalGuests, setTotalGuests] = useState<number>(4); // Default 4 tamu
+  const [withWhom, setWithWhom] = useState<string>('Keluarga Inti (Suami/Istri & Anak) - Mahrom');
+  const [totalGuests, setTotalGuests] = useState<number>(() => (isSundak ? 6 : 4));
 
   // Validasi Step 3 Wajib Lengkap
+  const isSundakGuestValid = isSundak
+    ? totalGuests >= 6 && totalGuests <= 21
+    : totalGuests >= 1 && totalGuests <= (trenggoleSelectedRooms.length * 4);
+
   const isStep3Valid = Boolean(
     namaLengkap.trim() &&
     asalKota.trim() &&
@@ -180,21 +192,22 @@ export const BookingFlow: React.FC = () => {
     withWhom.trim() &&
     checkInDate &&
     checkOutDate &&
-    (isSundak ? totalGuests >= 4 : (trenggoleSelectedRooms.length > 0 && totalGuests >= 1))
+    isSundakGuestValid &&
+    (isSundak || trenggoleSelectedRooms.length > 0)
   );
 
   // ==============================================================
   // STEP 4: PERHITUNGAN BIAYA & PILIHAN PEMBAYARAN (DP 50% ATAU LUNAS 100%)
   // ==============================================================
   // Aturan Harga:
-  // 1. Sundak: Rp75.000 / orang / malam. Minimal 4 orang.
+  // 1. Sundak: Rp75.000 / orang / malam. Minimal 6 orang, maksimal 21 orang.
   //    Harga = Jumlah orang × jumlah malam × Rp75.000
   // 2. Trenggole: Harga kamar × jumlah malam.
   let grandTotal = 0;
   let bookingChoiceDisplayName = '';
 
   if (isSundak) {
-    const effectivePax = Math.max(4, totalGuests);
+    const effectivePax = totalGuests >= 6 && totalGuests <= 21 ? totalGuests : 0;
     grandTotal = effectivePax * totalNights * 75000;
     bookingChoiceDisplayName = `Satu Rumah Penuh (Full House) • ${totalGuests} Tamu`;
   } else {
@@ -220,8 +233,15 @@ export const BookingFlow: React.FC = () => {
   const [paymentProofImage, setPaymentProofImage] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
+  // Ambil pengaturan rekening bank & QRIS dinamis dari CMS (P0.B)
+  const bcaNumber = getWebsiteSetting('bank_bca_number', '8801 2940 1827 0049');
+  const bcaHolder = getWebsiteSetting('bank_bca_holder', 'Griya Barokah Homestay');
+  const mandiriNumber = getWebsiteSetting('bank_mandiri_number', '8920 1829 4819 0021');
+  const mandiriHolder = getWebsiteSetting('bank_mandiri_holder', 'Griya Barokah Homestay');
+  const qrisPayload = getWebsiteSetting('payment_qris_payload', 'SAGARA_QRIS_GRIYA_BAROKAH');
+
   const handleCopyVa = () => {
-    const vaNum = metodePembayaran === 'bca' ? '8801 2940 1827 0049' : '8920 1829 4819 0021';
+    const vaNum = metodePembayaran === 'bca' ? bcaNumber : mandiriNumber;
     navigator.clipboard?.writeText(vaNum.replace(/\s+/g, ''));
     setSalinStatus(true);
     setTimeout(() => setSalinStatus(false), 2000);
@@ -281,8 +301,16 @@ export const BookingFlow: React.FC = () => {
     }
 
     if (isSundak) {
-      if (totalGuests < 4) {
-        setErrorNotice('Minimal pemesanan untuk Griya Barokah Pantai Sundak adalah 4 orang.');
+      if (totalGuests < 6) {
+        setErrorNotice(
+          'Minimal pemesanan untuk Griya Barokah Pantai Sundak (Full House) adalah 6 orang (maksimal 21 orang). Untuk rombongan di bawah 6 orang, silakan pilih kamar di Pantai Trenggole.'
+        );
+        return;
+      }
+      if (totalGuests > 21) {
+        setErrorNotice(
+          'Kapasitas maksimal Griya Barokah Pantai Sundak (Full House) adalah 21 orang.'
+        );
         return;
       }
     } else {
@@ -325,6 +353,28 @@ export const BookingFlow: React.FC = () => {
 
     setIsSubmitting(true);
     try {
+      // Pengecekan bentrok tanggal SEKALI LAGI tepat sebelum disimpan (P1.D)
+      if (isSundak) {
+        if (!checkSundakAvailability(checkInDate, checkOutDate)) {
+          setErrorNotice(
+            'Maaf, Griya Barokah Pantai Sundak (Full House) baru saja terisi atau tidak tersedia untuk rentang tanggal tersebut. Silakan pilih tanggal lain atau Pantai Trenggole.'
+          );
+          setIsSubmitting(false);
+          return;
+        }
+      } else {
+        const isConflict = trenggoleSelectedRooms.some(
+          (rId) => !checkTrenggoleRoomAvailability(rId, checkInDate, checkOutDate)
+        );
+        if (isConflict) {
+          setErrorNotice(
+            'Maaf, salah satu kamar di Pantai Trenggole yang Anda pilih baru saja dipesan oleh tamu lain pada rentang tanggal tersebut. Silakan pilih kamar lain.'
+          );
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const roomTypeFinalId = isSundak ? 'sundak-full-house' : trenggoleSelectedRooms[0];
       const roomNameFinal = isSundak
         ? 'Full House Griya Barokah Sundak'
@@ -375,7 +425,53 @@ export const BookingFlow: React.FC = () => {
   // TAMPILAN SUKSES: 1 HALAMAN MOBILE RAPI & RINGKAS TANPA SCROLL
   // ==============================================================
   if (isSuccessView) {
-    const bookingIdDisplay = activeBooking?.id || activeBookingId || 'GBH-9812';
+    const bookingIdDisplay = activeBooking?.id || activeBookingId || 'GBH';
+    const bookingSig =
+      activeBooking?.signature || generateBookingSignature(bookingIdDisplay, noHp);
+
+    const handleSendWhatsAppToAdmin = () => {
+      const rawAdminPhone = getWebsiteSetting(
+        'admin_whatsapp',
+        adminWhatsappNumber || '082138613888'
+      );
+      let adminPhone = rawAdminPhone.replace(/\D/g, '');
+      if (adminPhone.startsWith('0')) {
+        adminPhone = '62' + adminPhone.slice(1);
+      }
+
+      const paymentLabel = paymentType === 'full_100' ? 'Lunas 100%' : 'DP 30%';
+      const paymentAmount = paymentType === 'full_100' ? grandTotal : dpAmount;
+      const remainingText =
+        paymentType === 'full_100'
+          ? 'Rp 0 (Sudah Lunas)'
+          : `Rp ${remainingBalance.toLocaleString('id-ID')} (Saat Check-in)`;
+
+      const msg = `Halo Pengelola Griya Barokah Homestay, saya ingin konfirmasi pesanan:
+
+*KONFIRMASI BOOKING HOMESTAY*
+• Kode Booking: *${bookingIdDisplay}*
+• Nama Pemesan: *${namaLengkap}*
+• No. WhatsApp: *${noHp}*
+• Kota Asal: *${asalKota}*
+• Hubungan Tamu: *${withWhom}*
+
+*DETAIL PENGINAPAN*
+• Penginapan: *${activeProp.name}*
+• Unit/Kamar: *${isSundak ? 'Satu Rumah Penuh (Full House)' : bookingChoiceDisplayName}*
+• Tanggal: *${checkInDate} s/d ${checkOutDate}* (${totalNights} Malam)
+• Jumlah Tamu: *${totalGuests} Orang*
+
+*RINCIAN PEMBAYARAN*
+• Skema: *${paymentLabel}*
+• Nominal Transfer: *Rp ${paymentAmount.toLocaleString('id-ID')}*
+• Sisa Pelunasan: *${remainingText}*
+• Total Biaya: *Rp ${grandTotal.toLocaleString('id-ID')}*
+
+Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Terima kasih!`;
+
+      const waUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(msg)}`;
+      window.open(waUrl, '_blank');
+    };
 
     return (
       <div className="max-w-md mx-auto w-full h-[100dvh] max-h-[100dvh] bg-[#F6F7F9] text-[#11141A] flex flex-col justify-between select-none p-3 sm:p-4 overflow-hidden">
@@ -448,7 +544,7 @@ export const BookingFlow: React.FC = () => {
               <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[10px] sm:text-[11px] font-bold border border-emerald-200">
                 {paymentType === 'full_100'
                   ? `Lunas 100% (Rp ${grandTotal.toLocaleString('id-ID')})`
-                  : `DP 50% (Rp ${dpAmount.toLocaleString('id-ID')})`}
+                  : `DP 30% (Rp ${dpAmount.toLocaleString('id-ID')})`}
               </span>
             </div>
 
@@ -475,12 +571,12 @@ export const BookingFlow: React.FC = () => {
             </div>
           </div>
 
-          {/* QR CODE Tampil Jelas & Proporsional */}
+          {/* QR CODE Tampil Jelas & Proporsional dengan Tanda Tangan Hash (P1.E) */}
           <div className="flex flex-col items-center justify-center pt-1 border-t border-neutral-100">
             <div className="p-1.5 bg-white rounded-xl border border-neutral-300 shadow-2xs">
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(
-                  `GBH:BOOKING:${bookingIdDisplay}|HOMESTAY:${activeProp.name}|GUEST:${namaLengkap}`
+                  `GBH:BOOKING:${bookingIdDisplay}|SIG:${bookingSig}`
                 )}`}
                 alt="QR Code Tiket"
                 className="w-20 h-20 sm:w-22 sm:h-22 object-contain"
@@ -492,13 +588,23 @@ export const BookingFlow: React.FC = () => {
           </div>
         </div>
 
-        {/* TOMBOL: Kembali ke Beranda & Lihat Pesanan Saya */}
+        {/* TOMBOL AKSI: WhatsApp Pengelola, Kembali ke Beranda & Lihat Pesanan Saya */}
         <div className="space-y-1.5 pt-1 pb-1">
+          {/* Tombol WhatsApp Baru (P0.A) */}
+          <button
+            type="button"
+            onClick={handleSendWhatsAppToAdmin}
+            className="w-full h-10 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md cursor-pointer"
+          >
+            <MessageCircle className="w-4 h-4 fill-white" />
+            <span>Kirim Konfirmasi Pesanan ke WhatsApp Pengelola</span>
+          </button>
+
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setCurrentView('home')}
-              className="w-full h-10 rounded-xl bg-white border border-neutral-300 text-neutral-800 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-neutral-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
+              className="w-full h-9 rounded-xl bg-white border border-neutral-300 text-neutral-800 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-neutral-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
             >
               <Home className="w-3.5 h-3.5" />
               <span>Kembali ke Beranda</span>
@@ -507,7 +613,7 @@ export const BookingFlow: React.FC = () => {
             <button
               type="button"
               onClick={() => setCurrentView('my_bookings')}
-              className="w-full h-10 rounded-xl bg-[#13281E] hover:bg-[#1A3428] text-white font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs cursor-pointer"
+              className="w-full h-9 rounded-xl bg-[#13281E] hover:bg-[#1A3428] text-white font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs cursor-pointer"
             >
               <span>Lihat Pesanan Saya</span>
               <ArrowRight className="w-3.5 h-3.5 text-white" />
@@ -648,9 +754,9 @@ export const BookingFlow: React.FC = () => {
               <div className="bg-white rounded-[24px] sm:rounded-[26px] overflow-hidden border border-neutral-200/90 shadow-sm transition-all flex flex-col">
                 <div className="relative h-52 sm:h-56 w-full overflow-hidden bg-neutral-900">
                   <SafeImage
-                    src={sundakProp?.image || '/images/sundak_fullhouse_1790552054893.jpg'}
-                    alt={sundakProp?.name || 'Griya Barokah Pantai Sundak'}
-                    fallbackText={sundakProp?.name || 'Griya Barokah Pantai Sundak'}
+                    src={sundakCms?.foto_utama || sundakProp?.image || '/images/sundak_fullhouse_1790552054893.jpg'}
+                    alt={sundakCms?.nama || sundakProp?.name || 'Griya Barokah Pantai Sundak'}
+                    fallbackText={sundakCms?.nama || sundakProp?.name || 'Griya Barokah Pantai Sundak'}
                     className="w-full h-full object-cover"
                     containerClassName="w-full h-full"
                   />
@@ -659,12 +765,12 @@ export const BookingFlow: React.FC = () => {
                   {/* Badges Atas */}
                   <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between gap-2 z-10">
                     <span className="px-3 py-1 rounded-full bg-emerald-600 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-sm">
-                      {sundakProp?.badge || 'Satu Rumah Penuh (Full House)'}
+                      {sundakCms?.badge || sundakProp?.badge || 'Satu Rumah Penuh (Full House)'}
                     </span>
                     <div className="bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1 text-xs font-bold text-amber-300 shadow-sm">
                       <span>★</span>
-                      <span>{sundakProp?.rating || 4.9}</span>
-                      <span className="text-[10px] text-white/85 font-medium">({sundakProp?.reviewsCount || 168} Ulasan)</span>
+                      <span>{sundakCms?.rating || sundakProp?.rating || 4.9}</span>
+                      <span className="text-[10px] text-white/85 font-medium">({sundakCms?.reviews_count || sundakProp?.reviewsCount || 168} Ulasan)</span>
                     </div>
                   </div>
 
@@ -672,10 +778,10 @@ export const BookingFlow: React.FC = () => {
                   <div className="absolute bottom-3.5 left-4 right-4 text-white z-10">
                     <div className="flex items-center gap-1.5 text-xs text-emerald-300 font-semibold mb-1">
                       <MapPin className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{sundakProp?.location || 'Pantai Sundak, Gunungkidul, Yogyakarta'}</span>
+                      <span className="truncate">{sundakCms?.lokasi || sundakProp?.location || 'Pantai Sundak, Gunungkidul, Yogyakarta'}</span>
                     </div>
                     <h3 className="text-lg sm:text-xl font-black text-white tracking-tight leading-snug drop-shadow-sm">
-                      {sundakProp?.name || 'Griya Barokah Pantai Sundak'}
+                      {sundakCms?.nama || sundakProp?.name || 'Griya Barokah Pantai Sundak'}
                     </h3>
                   </div>
                 </div>
@@ -691,7 +797,7 @@ export const BookingFlow: React.FC = () => {
                         Konsep: Satu Rumah Penuh (Bukan Per Kamar)
                       </h4>
                       <p className="text-[11px] text-neutral-600 mt-1 leading-relaxed">
-                        {(sundakProp as any)?.concept || 'Tarif Rp75.000/orang/malam (minimal 4 orang). Total biaya: Jumlah orang × Jumlah malam × Rp75.000.'}
+                        {(sundakProp as any)?.concept || 'Tarif Rp75.000/orang/malam (minimal 6 orang, maksimal 21 orang). Total biaya: Jumlah orang × Jumlah malam × Rp75.000.'}
                       </p>
                     </div>
                   </div>
@@ -728,9 +834,9 @@ export const BookingFlow: React.FC = () => {
               <div className="bg-white rounded-[24px] sm:rounded-[26px] overflow-hidden border border-neutral-200/90 shadow-sm transition-all flex flex-col">
                 <div className="relative h-52 sm:h-56 w-full overflow-hidden bg-neutral-900">
                   <SafeImage
-                    src={trenggoleProp?.image || '/images/trenggole_house_1790552065368.jpg'}
-                    alt={trenggoleProp?.name || 'Griya Barokah Pantai Trenggole'}
-                    fallbackText={trenggoleProp?.name || 'Griya Barokah Pantai Trenggole'}
+                    src={trenggoleCms?.foto_utama || trenggoleProp?.image || '/images/trenggole_house_1790552065368.jpg'}
+                    alt={trenggoleCms?.nama || trenggoleProp?.name || 'Griya Barokah Pantai Trenggole'}
+                    fallbackText={trenggoleCms?.nama || trenggoleProp?.name || 'Griya Barokah Pantai Trenggole'}
                     className="w-full h-full object-cover"
                     containerClassName="w-full h-full"
                   />
@@ -739,12 +845,12 @@ export const BookingFlow: React.FC = () => {
                   {/* Badges Atas */}
                   <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between gap-2 z-10">
                     <span className="px-3 py-1 rounded-full bg-emerald-600 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-sm">
-                      {trenggoleProp?.badge || 'Penginapan Kamar & Full House'}
+                      {trenggoleCms?.badge || trenggoleProp?.badge || 'Penginapan Kamar & Full House'}
                     </span>
                     <div className="bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1 text-xs font-bold text-amber-300 shadow-sm">
                       <span>★</span>
-                      <span>{trenggoleProp?.rating || 4.8}</span>
-                      <span className="text-[10px] text-white/85 font-medium">({trenggoleProp?.reviewsCount || 96} Ulasan)</span>
+                      <span>{trenggoleCms?.rating || trenggoleProp?.rating || 4.8}</span>
+                      <span className="text-[10px] text-white/85 font-medium">({trenggoleCms?.reviews_count || trenggoleProp?.reviewsCount || 96} Ulasan)</span>
                     </div>
                   </div>
 
@@ -752,10 +858,10 @@ export const BookingFlow: React.FC = () => {
                   <div className="absolute bottom-3.5 left-4 right-4 text-white z-10">
                     <div className="flex items-center gap-1.5 text-xs text-emerald-300 font-semibold mb-1">
                       <MapPin className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{trenggoleProp?.location || 'Pantai Trenggole, Gunungkidul, Yogyakarta'}</span>
+                      <span className="truncate">{trenggoleCms?.lokasi || trenggoleProp?.location || 'Pantai Trenggole, Gunungkidul, Yogyakarta'}</span>
                     </div>
                     <h3 className="text-lg sm:text-xl font-black text-white tracking-tight leading-snug drop-shadow-sm">
-                      {trenggoleProp?.name || 'Griya Barokah Pantai Trenggole'}
+                      {trenggoleCms?.nama || trenggoleProp?.name || 'Griya Barokah Pantai Trenggole'}
                     </h3>
                   </div>
                 </div>
@@ -981,13 +1087,19 @@ export const BookingFlow: React.FC = () => {
                     <div className="bg-white rounded-[24px] overflow-hidden border border-neutral-200/90 shadow-sm space-y-4 p-4">
                       {/* 1. Bagian Foto Kamar Besar Horizontal (Tinggi ~240px, Rounded 24px) */}
                       <div className="relative h-60 sm:h-64 w-full rounded-[24px] overflow-hidden bg-neutral-900">
-                        <SafeImage
-                          src={currentRoom.image}
-                          alt={currentRoom.name}
-                          fallbackText={currentRoom.name}
-                          className="w-full h-full object-cover"
-                          containerClassName="w-full h-full"
-                        />
+                        {(() => {
+                          const activeCmsRoom = cmsRooms?.find((r) => r.id === currentRoom.id);
+                          const currentRoomImg = activeCmsRoom?.foto_utama || activeCmsRoom?.foto || currentRoom.image;
+                          return (
+                            <SafeImage
+                              src={currentRoomImg}
+                              alt={activeCmsRoom?.nama_kamar || currentRoom.name}
+                              fallbackText={activeCmsRoom?.nama_kamar || currentRoom.name}
+                              className="w-full h-full object-cover"
+                              containerClassName="w-full h-full"
+                            />
+                          );
+                        })()}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/20 pointer-events-none" />
 
                         {/* Tombol Aksi Kanan Atas (Share & Heart Bulat) */}
@@ -1144,9 +1256,9 @@ export const BookingFlow: React.FC = () => {
                                   }`}
                                 >
                                   <SafeImage
-                                    src={room.image}
-                                    alt={room.name}
-                                    fallbackText={room.name}
+                                    src={cmsRooms?.find((cr) => cr.id === room.id)?.foto_utama || cmsRooms?.find((cr) => cr.id === room.id)?.foto || room.image}
+                                    alt={cmsRooms?.find((cr) => cr.id === room.id)?.nama_kamar || room.name}
+                                    fallbackText={cmsRooms?.find((cr) => cr.id === room.id)?.nama_kamar || room.name}
                                     className="w-full h-full object-cover"
                                     containerClassName="w-full h-full"
                                   />
@@ -1172,9 +1284,9 @@ export const BookingFlow: React.FC = () => {
                   {/* Foto Full House Besar */}
                   <div className="relative h-60 sm:h-64 w-full rounded-[24px] overflow-hidden bg-neutral-900">
                     <SafeImage
-                      src={activeProp?.image || sundakProp?.image || '/images/sundak_fullhouse_1790552054893.jpg'}
-                      alt={activeProp?.name || 'Full House Griya Barokah Sundak'}
-                      fallbackText={activeProp?.name || 'Full House Sundak'}
+                      src={sundakCms?.foto_utama || activeProp?.image || sundakProp?.image || '/images/sundak_fullhouse_1790552054893.jpg'}
+                      alt={sundakCms?.nama || activeProp?.name || 'Full House Griya Barokah Sundak'}
+                      fallbackText={sundakCms?.nama || activeProp?.name || 'Full House Sundak'}
                       className="w-full h-full object-cover"
                       containerClassName="w-full h-full"
                     />
@@ -1234,7 +1346,7 @@ export const BookingFlow: React.FC = () => {
                     <div className="flex items-center gap-3.5 text-xs font-semibold text-neutral-700 flex-wrap py-1 border-y border-neutral-100">
                       <div className="flex items-center gap-1.5">
                         <Users className="w-4 h-4 text-emerald-700 shrink-0" />
-                        <span>Min. 4 orang</span>
+                        <span>Min. 6 orang (Maks. 21)</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Bed className="w-4 h-4 text-emerald-700 shrink-0" />
@@ -1256,7 +1368,7 @@ export const BookingFlow: React.FC = () => {
                           Rp {(sundakProp?.roomTypes?.[0]?.pricePerPersonNight || 75000).toLocaleString('id-ID')}
                         </span>
                         <span className="text-[11px] text-neutral-500 font-medium">
-                          per orang / malam (min. 4 orang)
+                          per orang / malam (min. 6 orang)
                         </span>
                       </div>
 
@@ -1393,15 +1505,24 @@ export const BookingFlow: React.FC = () => {
                   className="w-full h-11 px-3 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
                 >
                   <option value="">-- Pilih Hubungan Tamu (Wajib Mahrom / Sah) --</option>
-                  <option value="Keluarga Inti (Suami/Istri & Anak)">Keluarga Inti (Suami/Istri & Anak) - Mahrom</option>
-                  <option value="Rombongan Keluarga Besar (Mahrom)">Rombongan Keluarga Besar (Mahrom)</option>
-                  <option value="Pasangan Suami & Istri Sah">Pasangan Suami & Istri Sah (Pasutri)</option>
-                  <option value="Rombongan Teman Sesama Pria (Ikhwan)">Rombongan Teman Sesama Pria (Ikhwan)</option>
-                  <option value="Rombongan Teman Sesama Wanita (Akhwat)">Rombongan Teman Sesama Wanita (Akhwat)</option>
-                  <option value="Komunitas / Lembaga / Majelis">Komunitas / Lembaga / Majelis</option>
+                  {getWebsiteSetting(
+                    'guest_relation_options',
+                    'Keluarga Inti (Suami/Istri & Anak) - Mahrom, Rombongan Keluarga Besar (Mahrom), Pasangan Suami & Istri Sah (Pasutri), Rombongan Teman Sesama Pria (Ikhwan), Rombongan Teman Sesama Wanita (Akhwat), Komunitas / Lembaga / Majelis'
+                  )
+                    .split(',')
+                    .map((opt) => opt.trim())
+                    .filter(Boolean)
+                    .map((opt, optIdx) => (
+                      <option key={optIdx} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
                 </select>
                 <span className="text-[10px] text-emerald-800 font-semibold block mt-1">
-                  * Sesuai ketentuan homestay syariah barokah, tamu wajib bersama mahrom / keluarga sah atau sesama gender.
+                  {getWebsiteSetting(
+                    'booking_mahrom_clause',
+                    '* Sesuai ketentuan homestay syariah barokah, tamu wajib bersama mahrom / keluarga sah atau sesama gender. Dilarang membawa minuman keras, narkoba, atau aktivitas non-halal.'
+                  )}
                 </span>
               </div>
 
@@ -1414,7 +1535,7 @@ export const BookingFlow: React.FC = () => {
                     </label>
                     <span className="text-[11px] text-neutral-500 block">
                       {isSundak
-                        ? 'Pantai Sundak: Minimal 4 orang (Rp75.000/orang/malam)'
+                        ? 'Pantai Sundak: Minimal 6 orang, maksimal 21 orang (Rp75.000/orang/malam)'
                         : `Pantai Trenggole: Maksimal ${trenggoleSelectedRooms.length * 4} orang (${trenggoleSelectedRooms.length} kamar)`}
                     </span>
                   </div>
@@ -1440,9 +1561,30 @@ export const BookingFlow: React.FC = () => {
                   </div>
                 </div>
 
-                {isSundak && (
+                {/* Kalkulasi Sundak: Hanya tampil jika jumlah tamu valid (6 - 21 orang) */}
+                {isSundak && totalGuests >= 6 && totalGuests <= 21 && (
                   <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-900 font-medium">
                     Kalkulasi Sundak: <strong>{totalGuests} orang × {totalNights} malam × Rp75.000 = Rp {(totalGuests * totalNights * 75000).toLocaleString('id-ID')}</strong>
+                  </div>
+                )}
+
+                {/* Kotak Peringatan Merah Real-time jika jumlah tamu Sundak < 6 */}
+                {isSundak && totalGuests < 6 && (
+                  <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-[11px] text-rose-800 font-medium flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <span>
+                      Minimal pemesanan Pantai Sundak (Full House) adalah 6 orang. Untuk rombongan di bawah 6 orang, silakan pilih Pantai Trenggole.
+                    </span>
+                  </div>
+                )}
+
+                {/* Kotak Peringatan Merah Real-time jika jumlah tamu Sundak > 21 */}
+                {isSundak && totalGuests > 21 && (
+                  <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-[11px] text-rose-800 font-medium flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <span>
+                      Kapasitas maksimal Pantai Sundak (Full House) adalah 21 orang.
+                    </span>
                   </div>
                 )}
               </div>
@@ -1726,7 +1868,7 @@ export const BookingFlow: React.FC = () => {
 
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-[16px] font-black font-mono text-neutral-900 tracking-wider">
-                      {metodePembayaran === 'bca' ? '8801 2940 1827 0049' : '8920 1829 4819 0021'}
+                      {metodePembayaran === 'bca' ? bcaNumber : mandiriNumber}
                     </span>
                     <button
                       type="button"
@@ -1738,14 +1880,16 @@ export const BookingFlow: React.FC = () => {
                     </button>
                   </div>
                   <span className="text-[10px] text-neutral-500 block">
-                    Atas Nama: <strong>Griya Barokah Homestay</strong>
+                    Atas Nama: <strong>{metodePembayaran === 'bca' ? bcaHolder : mandiriHolder}</strong>
                   </span>
                 </div>
               ) : (
                 <div className="p-4 rounded-2xl bg-[#F6F7F9] border border-neutral-200 flex flex-col items-center text-center space-y-2">
                   <div className="p-2 bg-white rounded-xl border border-neutral-200">
                     <img
-                      src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=SAGARA_QRIS_GRIYA_BAROKAH"
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
+                        qrisPayload
+                      )}`}
                       alt="QRIS Barokah"
                       className="w-32 h-32"
                     />
@@ -1841,7 +1985,9 @@ export const BookingFlow: React.FC = () => {
             {activeStep === 5 ? `Total Bayar (${paymentType === 'full_100' ? 'Lunas' : 'DP 30%'})` : 'Total Biaya'}
           </span>
           <span className="text-[16px] font-black text-neutral-900">
-            {activeStep === 5
+            {activeStep === 3 && isSundak && (totalGuests < 6 || totalGuests > 21)
+              ? '-'
+              : activeStep === 5
               ? `Rp ${dpAmount.toLocaleString('id-ID')}`
               : `Rp ${grandTotal.toLocaleString('id-ID')}`}
           </span>
@@ -1876,7 +2022,7 @@ export const BookingFlow: React.FC = () => {
             disabled={!isStep3Valid}
             className="h-12 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <span>Pilih Pembayaran</span>
+            <span>Lanjut ke Pembayaran</span>
             <ArrowRight className="w-4 h-4 text-white" />
           </button>
         )}

@@ -37,14 +37,38 @@ export const CustomerDashboard: React.FC = () => {
     homepageContent,
     adminWhatsappNumber,
     getWebsiteSetting,
+    cmsHomestays,
+    cmsRooms,
+    cmsMedia,
+    facilityImage,
   } = useBooking();
 
   // State Pilihan Singkat di Beranda (Lokasi & Jumlah Tamu saja - TANPA TANGGAL)
   const [selectedLocation, setSelectedLocation] = useState<'all' | 'homestay-sundak' | 'homestay-trenggole'>('all');
   const [guestCountEstimate, setGuestCountEstimate] = useState<number>(4);
 
+  // Ambil data langsung dari CMS Database sebagai sumber utama
+  const sundakCms = cmsHomestays?.find((h) => h.id === 'homestay-sundak') || cmsHomestays?.[0];
+  const trenggoleCms = cmsHomestays?.find((h) => h.id === 'homestay-trenggole') || cmsHomestays?.[1];
+
   const sundakProp = accommodations.find((a) => a.id === 'homestay-sundak') || accommodations[0];
   const trenggoleProp = accommodations.find((a) => a.id === 'homestay-trenggole') || accommodations[1];
+
+  // Sumber gambar pasti dari CMS database
+  const heroImageSrc = homepageContent?.hero_image || heroImage || sundakCms?.foto_utama || '/images/sundak_fullhouse_1790552054893.jpg';
+  const sundakImageSrc = sundakCms?.foto_utama || sundakProp?.image || '/images/sundak_fullhouse_1790552054893.jpg';
+  const trenggoleImageSrc = trenggoleCms?.foto_utama || trenggoleProp?.image || '/images/trenggole_house_1790552065368.jpg';
+  const facilityImageSrc =
+    facilityImage ||
+    cmsMedia?.find((m) => m.kategori === 'fasilitas')?.url ||
+    sundakCms?.galeri?.[1] ||
+    '/images/living_room_1790552074900.jpg';
+
+  // 4 Kamar Trenggole dari CMS
+  const room1 = cmsRooms?.find((r) => r.id === 'trenggole-kamar-1');
+  const room2 = cmsRooms?.find((r) => r.id === 'trenggole-kamar-2');
+  const room3 = cmsRooms?.find((r) => r.id === 'trenggole-kamar-3');
+  const room4 = cmsRooms?.find((r) => r.id === 'trenggole-kamar-4');
 
   const handleCariHomestay = () => {
     if (selectedLocation === 'homestay-sundak') {
@@ -115,7 +139,7 @@ export const CustomerDashboard: React.FC = () => {
         <section className="relative rounded-[30px] overflow-hidden bg-neutral-900 shadow-md">
           <div className="relative h-60 w-full">
             <SafeImage
-              src={homepageContent?.hero_image || heroImage || '/images/sundak_fullhouse_1790552054893.jpg'}
+              src={heroImageSrc}
               alt={homepageContent?.hero_title || 'Griya Barokah Homestay Pantai Sundak & Trenggole'}
               className="w-full h-full object-cover opacity-90"
               containerClassName="w-full h-full"
@@ -288,7 +312,7 @@ export const CustomerDashboard: React.FC = () => {
           <div className="bg-white rounded-[28px] overflow-hidden shadow-xs border border-neutral-200/90 space-y-3.5 pb-4">
             <div className="relative h-44 w-full">
               <SafeImage
-                src={sundakProp?.image || 'https://images.unsplash.com/photo-1544984243-ec57ea16fe25?auto=format&fit=crop&w=800&q=80'}
+                src={sundakImageSrc}
                 alt="Griya Barokah Pantai Sundak"
                 className="w-full h-full object-cover"
                 containerClassName="w-full h-full"
@@ -321,10 +345,10 @@ export const CustomerDashboard: React.FC = () => {
                   <span className="font-black text-emerald-800">Rp75.000 <span className="font-normal text-[10px] text-neutral-400">/orang/malam</span></span>
                 </div>
                 <p className="text-[11px] text-neutral-500">
-                  Minimal pemesanan 4 orang. Total biaya: <strong>Jumlah orang × Jumlah malam × Rp75.000</strong>.
+                  Minimal pemesanan 6 orang (maksimal 21 orang). Total biaya: <strong>Jumlah orang × Jumlah malam × Rp75.000</strong>.
                 </p>
                 <div className="p-2 rounded-xl bg-emerald-50 text-[10px] text-emerald-900 font-semibold border border-emerald-200">
-                  Contoh: 4 orang 1 malam = Rp300.000 • 7 orang 1 malam = Rp525.000 • 7 orang 2 malam = Rp1.050.000.
+                  Contoh: 6 orang 1 malam = Rp450.000 • 7 orang 1 malam = Rp525.000 • 7 orang 2 malam = Rp1.050.000.
                 </div>
               </div>
 
@@ -342,7 +366,7 @@ export const CustomerDashboard: React.FC = () => {
           <div className="bg-white rounded-[28px] overflow-hidden shadow-xs border border-neutral-200/90 space-y-3.5 pb-4">
             <div className="relative h-44 w-full">
               <SafeImage
-                src={trenggoleProp?.image || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80'}
+                src={trenggoleImageSrc}
                 alt="Griya Barokah Pantai Trenggole"
                 className="w-full h-full object-cover"
                 containerClassName="w-full h-full"
@@ -368,27 +392,70 @@ export const CustomerDashboard: React.FC = () => {
                 Suasana asri tepi pantai dengan 4 pilihan kamar. Semua kamar Trenggole: view pantai, 2 bed ukuran ±130x200, dan bisa tambah extra bed.
               </p>
 
-              {/* 4 Pilihan Kamar Trenggole */}
+              {/* 4 Pilihan Kamar Trenggole dengan Foto CMS */}
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="p-2.5 rounded-xl bg-[#F8F9FA] border border-neutral-200/70">
-                  <span className="font-bold text-neutral-900 block">Kamar 1</span>
-                  <span className="font-black text-emerald-800 text-[11px]">Rp285.000</span>
-                  <span className="text-[10px] text-neutral-500 block mt-0.5">AC, KM dalam closed jongkok, perlengkapan mandi, wifi.</span>
+                <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
+                  <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900">
+                    <SafeImage
+                      src={room1?.foto_utama || room1?.foto || '/images/trenggole_room_1790552085510.jpg'}
+                      alt={room1?.nama_kamar || 'Kamar 1'}
+                      className="w-full h-full object-cover"
+                      containerClassName="w-full h-full"
+                    />
+                  </div>
+                  <div>
+                    <span className="font-bold text-neutral-900 block">{room1?.nama_kamar || 'Kamar 1'}</span>
+                    <span className="font-black text-emerald-800 text-[11px]">Rp{(room1?.harga || 285000).toLocaleString('id-ID')}</span>
+                    <span className="text-[9px] text-neutral-500 block leading-tight mt-0.5">AC, KM jongkok, perlengkapan mandi, wifi.</span>
+                  </div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-[#F8F9FA] border border-neutral-200/70">
-                  <span className="font-bold text-neutral-900 block">Kamar 2</span>
-                  <span className="font-black text-emerald-800 text-[11px]">Rp335.000</span>
-                  <span className="text-[10px] text-neutral-500 block mt-0.5">AC, KM dalam closed jongkok, wifi, dapur mini, gas gratis, alat masak dan makan.</span>
+
+                <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
+                  <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900">
+                    <SafeImage
+                      src={room2?.foto_utama || room2?.foto || '/images/trenggole_room_1790552085510.jpg'}
+                      alt={room2?.nama_kamar || 'Kamar 2'}
+                      className="w-full h-full object-cover"
+                      containerClassName="w-full h-full"
+                    />
+                  </div>
+                  <div>
+                    <span className="font-bold text-neutral-900 block">{room2?.nama_kamar || 'Kamar 2'}</span>
+                    <span className="font-black text-emerald-800 text-[11px]">Rp{(room2?.harga || 335000).toLocaleString('id-ID')}</span>
+                    <span className="text-[9px] text-neutral-500 block leading-tight mt-0.5">AC, KM jongkok, dapur mini, gas gratis.</span>
+                  </div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-[#F8F9FA] border border-neutral-200/70">
-                  <span className="font-bold text-neutral-900 block">Kamar 3</span>
-                  <span className="font-black text-emerald-800 text-[11px]">Rp315.000</span>
-                  <span className="text-[10px] text-neutral-500 block mt-0.5">AC, KM dalam closed duduk, wifi, lantai dua lebih nyaman.</span>
+
+                <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
+                  <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900">
+                    <SafeImage
+                      src={room3?.foto_utama || room3?.foto || '/images/trenggole_room_1790552085510.jpg'}
+                      alt={room3?.nama_kamar || 'Kamar 3'}
+                      className="w-full h-full object-cover"
+                      containerClassName="w-full h-full"
+                    />
+                  </div>
+                  <div>
+                    <span className="font-bold text-neutral-900 block">{room3?.nama_kamar || 'Kamar 3'}</span>
+                    <span className="font-black text-emerald-800 text-[11px]">Rp{(room3?.harga || 315000).toLocaleString('id-ID')}</span>
+                    <span className="text-[9px] text-neutral-500 block leading-tight mt-0.5">AC, KM duduk, wifi, lantai 2 nyaman.</span>
+                  </div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-[#F8F9FA] border border-neutral-200/70">
-                  <span className="font-bold text-neutral-900 block">Kamar 4</span>
-                  <span className="font-black text-emerald-800 text-[11px]">Rp365.000</span>
-                  <span className="text-[10px] text-neutral-500 block mt-0.5">AC, KM dalam closed duduk, wifi, dapur mini, gas gratis, alat masak dan makan, lantai dua.</span>
+
+                <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
+                  <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900">
+                    <SafeImage
+                      src={room4?.foto_utama || room4?.foto || '/images/trenggole_room_1790552085510.jpg'}
+                      alt={room4?.nama_kamar || 'Kamar 4'}
+                      className="w-full h-full object-cover"
+                      containerClassName="w-full h-full"
+                    />
+                  </div>
+                  <div>
+                    <span className="font-bold text-neutral-900 block">{room4?.nama_kamar || 'Kamar 4'}</span>
+                    <span className="font-black text-emerald-800 text-[11px]">Rp{(room4?.harga || 365000).toLocaleString('id-ID')}</span>
+                    <span className="text-[9px] text-neutral-500 block leading-tight mt-0.5">AC, KM duduk, dapur mini, lantai 2.</span>
+                  </div>
                 </div>
               </div>
 
@@ -406,14 +473,32 @@ export const CustomerDashboard: React.FC = () => {
         {/* ==============================================================
             4. FASILITAS LENGKAP PENGINAPAN
            ============================================================== */}
-        <section className="bg-white rounded-[28px] p-5 shadow-xs border border-neutral-200/90 space-y-3">
+        <section className="bg-white rounded-[28px] p-5 shadow-xs border border-neutral-200/90 space-y-3.5">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center">
               <Sparkles className="w-4 h-4" />
             </div>
-            <h2 className="text-xs font-black uppercase tracking-wider text-neutral-800">
-              Fasilitas Lengkap Penginapan
-            </h2>
+            <div>
+              <h2 className="text-xs font-black uppercase tracking-wider text-neutral-800">
+                Fasilitas Lengkap Penginapan
+              </h2>
+              <span className="text-[10px] text-neutral-400">Tersedia di Griya Barokah Pantai Sundak & Trenggole</span>
+            </div>
+          </div>
+
+          {/* Foto Fasilitas dari CMS */}
+          <div className="relative h-36 w-full rounded-2xl overflow-hidden bg-neutral-900">
+            <SafeImage
+              src={facilityImageSrc}
+              alt="Fasilitas Griya Barokah Homestay"
+              className="w-full h-full object-cover"
+              containerClassName="w-full h-full"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+            <div className="absolute bottom-2.5 left-3 right-3 text-white">
+              <span className="text-[10px] font-bold text-emerald-300 block">Ruang Keluarga & Fasilitas Bersama</span>
+              <p className="text-[11px] text-neutral-200 line-clamp-1">Suasana hangat untuk berkumpul bersama keluarga santai</p>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-xs text-neutral-700">

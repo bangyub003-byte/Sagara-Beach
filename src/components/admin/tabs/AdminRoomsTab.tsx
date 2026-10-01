@@ -150,10 +150,16 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
     if (file) {
       const media = await uploadMedia(file, 'kamar');
       setFotoUtama(media.url);
-      if (!galeri.includes(media.url)) {
-        setGaleri((prev) => [media.url, ...prev]);
+      const updatedGaleri = [media.url, ...galeri.filter((u) => u !== media.url)];
+      setGaleri(updatedGaleri);
+      if (editingRoom) {
+        updateCmsRoom(editingRoom.id, {
+          foto_utama: media.url,
+          foto: media.url,
+          galeri: updatedGaleri,
+        });
       }
-      onShowToast('✓ Foto kamar berhasil diunggah!');
+      onShowToast('✓ Foto kamar berhasil diunggah & disimpan ke database CMS!');
     }
   };
 

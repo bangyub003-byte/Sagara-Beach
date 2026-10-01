@@ -114,6 +114,53 @@ export interface TB_Activity_Log {
   waktu: string; // ISO format
 }
 
+export interface TB_Booking {
+  id: string; // Format unik: GBH-YYMM-XXXX
+  homestay_id: string; // Relasi ke TB_Homestay.id
+  homestay_name: string;
+  room_ids: string[]; // Relasi ke TB_Room.id[]
+  room_name: string;
+  guest_name: string;
+  guest_phone: string;
+  guest_city: string;
+  guest_relation: string; // Hubungan keluarga / mahrom
+  check_in_date: string; // YYYY-MM-DD
+  check_out_date: string; // YYYY-MM-DD
+  total_nights: number;
+  total_guests: number;
+  total_amount: number;
+  status: 'pending_verification' | 'verified' | 'checked_in' | 'rejected' | 'cancelled';
+  signature: string; // Hash tanda tangan keamanan digital QR
+  created_at: string;
+  verified_at?: string;
+  checked_in_at?: string;
+  admin_notes?: string;
+  rejection_reason?: string;
+}
+
+export interface TB_Payment {
+  id: string; // Format: PAY-XXXX
+  booking_id: string; // Relasi ke TB_Booking.id
+  payment_type: 'dp_30' | 'full_100';
+  dp_percentage: number;
+  dp_amount: number;
+  remaining_balance: number;
+  total_amount: number;
+  payment_method: 'mandiri_va' | 'bca_va' | 'qris';
+  proof_image_url: string;
+  status: 'pending' | 'verified' | 'rejected';
+  created_at: string;
+}
+
+export interface TB_Blocked_Date {
+  id: string; // Format: BLK-XXXX
+  homestay_id: string; // Relasi ke TB_Homestay.id
+  room_id?: string; // Optional: Relasi ke TB_Room.id (untuk Trenggole)
+  date: string; // YYYY-MM-DD
+  reason?: string;
+  created_at: string;
+}
+
 // ==============================================================
 // 2. STORAGE KEYS
 // ==============================================================
@@ -124,6 +171,9 @@ const STORAGE_KEY_MEDIA = 'tb_media_v2';
 const STORAGE_KEY_SETTINGS = 'tb_website_settings_v2';
 const STORAGE_KEY_USER = 'tb_user_v2';
 const STORAGE_KEY_LOGS = 'tb_activity_logs_v2';
+const STORAGE_KEY_BOOKINGS = 'tb_booking_v2';
+const STORAGE_KEY_PAYMENTS = 'tb_payment_v2';
+const STORAGE_KEY_BLOCKED_DATES = 'tb_blocked_dates_v2';
 
 // ==============================================================
 // 3. KATALOG GAMBAR PERMANEN PUBLIK (KOMPATIBEL VERCEL & SMARTPHONE)
@@ -419,12 +469,22 @@ export const DEFAULT_WEBSITE_SETTINGS: TB_Website_Settings[] = [
   // Booking & Aturan
   { id: 'set-book-inst', key: 'booking_instruction', value: 'Pilih lokasi & tanggal menginap, isi data tamu mahrom, dan upload bukti transfer DP 30% atau Lunas 100%.', kategori: 'booking' },
   { id: 'set-book-terms', key: 'booking_terms', value: 'Khusus keluarga sah / mahrom atau rombongan sesama gender. Dilarang membawa miras, sajam, atau zat terlarang.', kategori: 'booking' },
+  { id: 'set-book-mahrom', key: 'booking_mahrom_clause', value: '* Sesuai ketentuan homestay syariah barokah, tamu wajib bersama mahrom / keluarga sah atau sesama gender. Dilarang membawa minuman keras, narkoba, atau aktivitas non-halal.', kategori: 'aturan' },
+  { id: 'set-book-relations', key: 'guest_relation_options', value: 'Keluarga Inti (Suami/Istri & Anak) - Mahrom, Rombongan Keluarga Besar (Mahrom), Pasangan Suami & Istri Sah (Pasutri), Rombongan Teman Sesama Pria (Ikhwan), Rombongan Teman Sesama Wanita (Akhwat), Komunitas / Lembaga / Majelis', kategori: 'booking' },
   { id: 'set-checkin-time', key: 'rules_checkin_time', value: '14:00 WIB', kategori: 'aturan' },
   { id: 'set-checkout-time', key: 'rules_checkout_time', value: '12:00 WIB', kategori: 'aturan' },
+
+  // Rekening Pembayaran & QRIS
+  { id: 'set-bank-bca-no', key: 'bank_bca_number', value: '8801 2940 1827 0049', kategori: 'booking' },
+  { id: 'set-bank-bca-name', key: 'bank_bca_holder', value: 'Griya Barokah Homestay', kategori: 'booking' },
+  { id: 'set-bank-man-no', key: 'bank_mandiri_number', value: '8920 1829 4819 0021', kategori: 'booking' },
+  { id: 'set-bank-man-name', key: 'bank_mandiri_holder', value: 'Griya Barokah Homestay', kategori: 'booking' },
+  { id: 'set-qris-code', key: 'payment_qris_payload', value: 'SAGARA_QRIS_GRIYA_BAROKAH', kategori: 'booking' },
 
   // Footer & Kontak
   { id: 'set-foot-addr', key: 'footer_address', value: 'Kawasan Pantai Sundak & Pantai Trenggole, Sidoharjo, Kec. Tepus, Gunungkidul, D.I. Yogyakarta', kategori: 'footer' },
   { id: 'set-foot-wa', key: 'footer_whatsapp', value: '082138613888', kategori: 'kontak' },
+  { id: 'set-admin-wa', key: 'admin_whatsapp', value: '082138613888', kategori: 'kontak' },
   { id: 'set-foot-phone', key: 'footer_phone', value: '+62 821-3861-3888', kategori: 'kontak' },
   { id: 'set-foot-hours', key: 'footer_service_hours', value: 'Setiap Hari (24 Jam Pelayanan Resepsionis)', kategori: 'footer' },
   { id: 'set-foot-extra', key: 'footer_extra_info', value: 'Pesanan hidangan makanan & seafood pantai, Sewa Jeep wisata jelajah pantai & tebing Gunungkidul, Informasi jual beli tanah / aset kawasan pantai', kategori: 'footer' },
@@ -890,6 +950,19 @@ export class CMSDatabase {
     return found?.value || defaultValue;
   }
 
+  static getWebsiteSetting(key: string, defaultValue: string = ''): string {
+    return this.getSetting(key, defaultValue);
+  }
+
+  static saveWebsiteSetting(
+    key: string,
+    value: string,
+    kategori: TB_Website_Settings['kategori'] = 'homepage',
+    user?: { id: string; nama: string; role: 'admin' | 'resepsionis' }
+  ): void {
+    this.saveSetting(key, value, kategori, user);
+  }
+
   static saveSetting(
     key: string,
     value: string,
@@ -1066,6 +1139,64 @@ export class CMSDatabase {
       console.error('[CMSDatabase Error] Gagal catat log aktivitas:', err);
     }
     return newLog;
+  }
+
+  // --- 8. TB_Blocked_Date ---
+  static getBlockedDates(): TB_Blocked_Date[] {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_BLOCKED_DATES);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      // fallback
+    }
+    return [];
+  }
+
+  static addBlockedDate(homestayId: string, date: string, roomId?: string, reason?: string): TB_Blocked_Date {
+    const list = this.getBlockedDates();
+    const newEntry: TB_Blocked_Date = {
+      id: `blk_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      homestay_id: homestayId,
+      room_id: roomId,
+      date,
+      reason,
+      created_at: new Date().toISOString(),
+    };
+    list.push(newEntry);
+    try {
+      localStorage.setItem(STORAGE_KEY_BLOCKED_DATES, JSON.stringify(list));
+      this.notifyChange();
+    } catch (err) {
+      console.error('[CMSDatabase Error] Gagal simpan blocked date:', err);
+    }
+    return newEntry;
+  }
+
+  static removeBlockedDate(homestayId: string, date: string, roomId?: string): void {
+    const list = this.getBlockedDates();
+    const filtered = list.filter((b) => {
+      if (b.homestay_id !== homestayId || b.date !== date) return true;
+      if (roomId && b.room_id !== roomId) return true;
+      return false;
+    });
+    try {
+      localStorage.setItem(STORAGE_KEY_BLOCKED_DATES, JSON.stringify(filtered));
+      this.notifyChange();
+    } catch (err) {
+      console.error('[CMSDatabase Error] Gagal hapus blocked date:', err);
+    }
+  }
+
+  static isDateRangeBlocked(homestayId: string, checkIn: string, checkOut: string, roomId?: string): boolean {
+    const list = this.getBlockedDates();
+    return list.some((b) => {
+      if (b.homestay_id !== homestayId) return false;
+      if (roomId && b.room_id && b.room_id !== roomId) return false;
+      return b.date >= checkIn && b.date < checkOut;
+    });
   }
 
   // --- Reset Database ke Konfigurasi Awal ---

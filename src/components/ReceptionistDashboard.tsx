@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useBooking } from '../context/BookingContext';
+import { verifyBookingSignature } from '../utils/securityHelper';
 import {
   QrCode,
   Check,
@@ -169,10 +170,8 @@ export const ReceptionistDashboard: React.FC = () => {
   const handleQrScanned = (decodedText: string) => {
     if (!decodedText) return;
 
-    // Baca kode booking dari format:
-    // 1) "GBH:BOOKING:GBH-2025-9812|..."
-    // 2) "GBH-2025-9812"
-    // 3) String apapun yang mengandung ID booking
+    // Baca kode booking dan signature keamanan dari QR (P1.E)
+    // Format standar: "GBH:BOOKING:GBH-2609-K7P9|SIG:A7D3E9"
     let extractedId = '';
     const colonMatch = decodedText.match(/GBH:BOOKING:([A-Za-z0-9_-]+)/i);
     if (colonMatch && colonMatch[1]) {
@@ -186,17 +185,34 @@ export const ReceptionistDashboard: React.FC = () => {
       }
     }
 
+    // Ekstraksi tanda tangan hash digital
+    const sigMatch = decodedText.match(/SIG:([A-Za-z0-9_-]+)/i);
+    const scannedSig = sigMatch ? sigMatch[1].trim() : '';
+
     const cleanId = extractedId.toUpperCase();
     const found =
       bookings.find((b) => b.id.toUpperCase() === cleanId) ||
       bookings.find((b) => b.id.toUpperCase().includes(cleanId) || cleanId.includes(b.id.toUpperCase()));
 
     if (found) {
+      // Verifikasi Tanda Tangan Keamanan Digital (P1.E)
+      if (scannedSig) {
+        const isValidSignature = verifyBookingSignature(found.id, found.guestPhone, scannedSig);
+        if (!isValidSignature) {
+          setSearchError(`PERINGATAN: Tanda tangan digital QR Code tidak valid untuk booking ${found.id}. Tiket terdeteksi palsu/rekayasa.`);
+          setToastMessage(`⚠️ QR Ditolak: Tanda tangan digital tidak cocok.`);
+          setTimeout(() => setToastMessage(''), 4500);
+          handleStopScanner();
+          return;
+        }
+      }
+
       setSelectedBookingId(found.id);
       setBookingIdQuery(found.id);
+      // Status SELALU diambil langsung secara real-time dari database (JANGAN dari QR)
       setIsCheckedInSuccess(found.status === 'checked_in');
       setSearchError('');
-      setToastMessage(`✓ QR Berhasil dipindai! Tamu: ${found.guestName} (${found.id})`);
+      setToastMessage(`✓ QR Sah & Terverifikasi! Tamu: ${found.guestName} (${found.id})`);
       setTimeout(() => setToastMessage(''), 3500);
 
       // Getar HP haptic feedback jika didukung
@@ -215,14 +231,14 @@ export const ReceptionistDashboard: React.FC = () => {
 
   const handleConfirmCheckIn = async () => {
     if (!currentBooking) return;
-    const res = await checkInBooking(currentBooking.id);
+    const res = await checkInBooking(currentBooking.id, currentBooking.signature);
     if (res.success || currentBooking.status === 'checked_in') {
       setIsCheckedInSuccess(true);
       setToastMessage(`✓ Tamu ${currentBooking.guestName} berhasil Check-in!`);
       setTimeout(() => setToastMessage(''), 3500);
     } else {
       setToastMessage(res.message);
-      setTimeout(() => setToastMessage(''), 3500);
+      setTimeout(() => setToastMessage(''), 4500);
     }
   };
 

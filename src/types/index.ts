@@ -115,6 +115,7 @@ export interface Booking {
   adminNotes?: string;
   rejectionReason?: string;
   qrCodeData?: string;
+  signature?: string;
 }
 
 export interface GasIntegrationConfig {
@@ -133,4 +134,7 @@ export type {
   TB_Website_Settings,
   TB_User,
   TB_Activity_Log,
+  TB_Booking,
+  TB_Payment,
+  TB_Blocked_Date,
 } from '../db/cmsDatabase';

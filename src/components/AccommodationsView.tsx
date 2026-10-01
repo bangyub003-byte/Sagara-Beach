@@ -35,6 +35,7 @@ export const AccommodationsView: React.FC = () => {
     setLanguage,
     t,
     cmsHomestays,
+    cmsRooms,
     getWebsiteSetting,
   } = useBooking();
 
@@ -323,23 +324,27 @@ export const AccommodationsView: React.FC = () => {
 
                     {expandedRoomsPropId === currentAcc.id && (
                       <div className="mt-2.5 space-y-2 pt-1 border-t border-neutral-100">
-                        {currentAcc.roomTypes.map((room) => (
-                          <div
-                            key={room.id}
-                            className="p-3 rounded-2xl bg-neutral-50 border border-neutral-200/70 flex items-center justify-between gap-3"
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <SafeImage
-                                src={room.image}
-                                alt={room.name}
-                                fallbackText={room.name}
-                                className="w-12 h-12 rounded-xl object-cover shrink-0"
-                                containerClassName="w-12 h-12 rounded-xl shrink-0 overflow-hidden"
-                              />
-                              <div className="min-w-0">
-                                <h5 className="font-extrabold text-xs text-neutral-900 truncate">
-                                  {room.name}
-                                </h5>
+                        {currentAcc.roomTypes.map((room) => {
+                          const cmsRoom = cmsRooms?.find((cr) => cr.id === room.id);
+                          const roomImgSrc = cmsRoom?.foto_utama || cmsRoom?.foto || room.image;
+
+                          return (
+                            <div
+                              key={room.id}
+                              className="p-3 rounded-2xl bg-neutral-50 border border-neutral-200/70 flex items-center justify-between gap-3"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <SafeImage
+                                  src={roomImgSrc}
+                                  alt={cmsRoom?.nama_kamar || room.name}
+                                  fallbackText={cmsRoom?.nama_kamar || room.name}
+                                  className="w-12 h-12 rounded-xl object-cover shrink-0"
+                                  containerClassName="w-12 h-12 rounded-xl shrink-0 overflow-hidden"
+                                />
+                                <div className="min-w-0">
+                                  <h5 className="font-extrabold text-xs text-neutral-900 truncate">
+                                    {cmsRoom?.nama_kamar || room.name}
+                                  </h5>
                                 <span className="text-[10px] text-neutral-500 block">
                                   {room.capacityGuests} Tamu • {room.bedsCount} Bed • Lt.{room.floor || 1}
                                 </span>
@@ -357,7 +362,8 @@ export const AccommodationsView: React.FC = () => {
                               Pilih Kamar
                             </button>
                           </div>
-                        ))}
+                        );
+                      })}
                       </div>
                     )}
                   </div>

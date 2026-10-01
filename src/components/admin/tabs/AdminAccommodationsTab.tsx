@@ -166,13 +166,24 @@ export const AdminAccommodationsTab: React.FC<Props> = ({ onShowToast }) => {
       const media = await uploadMedia(file, 'penginapan');
       if (isPrimary) {
         setFotoUtama(media.url);
-        if (!galeri.includes(media.url)) {
-          setGaleri((prev) => [media.url, ...prev]);
+        const updatedGaleri = [media.url, ...galeri.filter((u) => u !== media.url)];
+        setGaleri(updatedGaleri);
+        if (editingHomestay) {
+          updateCmsHomestay(editingHomestay.id, {
+            foto_utama: media.url,
+            galeri: updatedGaleri,
+          });
         }
       } else {
-        setGaleri((prev) => [...prev, media.url]);
+        const updatedGaleri = [...galeri, media.url];
+        setGaleri(updatedGaleri);
+        if (editingHomestay) {
+          updateCmsHomestay(editingHomestay.id, {
+            galeri: updatedGaleri,
+          });
+        }
       }
-      onShowToast('✓ Foto berhasil diupload & ditambahkan!');
+      onShowToast('✓ Foto berhasil diupload & disimpan ke database CMS!');
     }
   };
 

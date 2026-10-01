@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useBooking } from '../context/BookingContext';
 import { Booking } from '../types';
+import { generateBookingSignature } from '../utils/securityHelper';
 import { SafeImage } from './common/SafeImage';
 import { CustomerBottomNav } from './common/CustomerBottomNav';
 import {
@@ -348,23 +349,30 @@ export const MyBookingsView: React.FC = () => {
               </div>
             </div>
 
-            {/* Tiket QR */}
-            <div className="p-4 bg-white rounded-2xl border border-dashed border-neutral-300 flex flex-col items-center justify-center text-center space-y-2">
-              <span className="text-[11px] font-bold text-neutral-700">
-                Tiket QR Check-In
-              </span>
-              <div className="p-2.5 bg-white rounded-2xl border border-neutral-200 shadow-2xs">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
-                    `GBH:BOOKING:${matchedBooking.id}|GUEST:${matchedBooking.guestName}|STATUS:${matchedBooking.status}`
-                  )}`}
-                  alt="Tiket QR"
-                  className="w-32 h-32 object-contain"
-                />
-              </div>
-              <p className="text-[10px] text-neutral-500 max-w-xs">
-                Tunjukkan QR Code ini kepada resepsionis saat tiba di homestay untuk verifikasi langsung.
-              </p>
+              {/* Tiket QR dengan Tanda Tangan Keamanan Digital (P1.E) */}
+              <div className="p-4 bg-white rounded-2xl border border-dashed border-neutral-300 flex flex-col items-center justify-center text-center space-y-2">
+                <span className="text-[11px] font-bold text-neutral-700">
+                  Tiket QR Check-In Resmi
+                </span>
+                <div className="p-2.5 bg-white rounded-2xl border border-neutral-200 shadow-2xs">
+                  {(() => {
+                    const sig =
+                      matchedBooking.signature ||
+                      generateBookingSignature(matchedBooking.id, matchedBooking.guestPhone);
+                    return (
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
+                          `GBH:BOOKING:${matchedBooking.id}|SIG:${sig}`
+                        )}`}
+                        alt="Tiket QR"
+                        className="w-32 h-32 object-contain"
+                      />
+                    );
+                  })()}
+                </div>
+                <p className="text-[10px] text-neutral-500 max-w-xs">
+                  Tunjukkan QR Code ini kepada resepsionis saat tiba di homestay untuk verifikasi langsung.
+                </p>
 
               <button
                 onClick={() => handleOpenPass(matchedBooking.id)}

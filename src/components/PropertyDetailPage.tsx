@@ -31,6 +31,8 @@ export const PropertyDetailPage: React.FC = () => {
     isFavorite,
     language,
     t,
+    cmsHomestays,
+    cmsRooms,
   } = useBooking();
 
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
@@ -39,6 +41,16 @@ export const PropertyDetailPage: React.FC = () => {
   const [roomErrorNotice, setRoomErrorNotice] = useState<string>('');
 
   const prop = selectedProperty;
+  const cmsProp = cmsHomestays?.find((h) => h.id === prop.id) || cmsHomestays?.[0];
+
+  const galleryImages =
+    cmsProp?.galeri && cmsProp.galeri.length > 0
+      ? cmsProp.galeri
+      : prop.gallery && prop.gallery.length > 0
+      ? prop.gallery
+      : [cmsProp?.foto_utama || prop.image];
+
+  const currentMainImage = galleryImages[activeImageIndex] || cmsProp?.foto_utama || prop.image;
 
   const handleShare = () => {
     if (navigator.share) {
@@ -84,9 +96,9 @@ export const PropertyDetailPage: React.FC = () => {
         {/* Container Galeri Foto */}
         <div className="relative w-full h-[48vh] sm:h-[52vh] overflow-hidden bg-neutral-200">
           <SafeImage
-            src={prop.gallery[activeImageIndex] || prop.image}
-            alt={prop.name}
-            fallbackText={prop.name}
+            src={currentMainImage}
+            alt={cmsProp?.nama || prop.name}
+            fallbackText={cmsProp?.nama || prop.name}
             className="w-full h-full object-cover"
             containerClassName="w-full h-full"
           />
@@ -131,18 +143,18 @@ export const PropertyDetailPage: React.FC = () => {
           <div className="absolute bottom-4 left-5 z-20 flex items-center gap-2">
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-xs font-bold text-white">
               <Star className="w-3.5 h-3.5 fill-[#FBBF24] text-[#FBBF24]" />
-              <span>{prop.rating}</span>
+              <span>{cmsProp?.rating || prop.rating}</span>
             </div>
 
             <div className="px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-xs font-semibold text-white">
-              {prop.category}
+              {cmsProp?.badge || prop.category}
             </div>
           </div>
 
           {/* Indikator Galeri */}
-          {prop.gallery.length > 1 && (
+          {galleryImages.length > 1 && (
             <div className="absolute bottom-4 right-5 z-20 flex items-center gap-1.5">
-              {prop.gallery.map((_, idx) => (
+              {galleryImages.map((_, idx) => (
                 <button
                   key={idx}
                   onClick={() => setActiveImageIndex(idx)}
@@ -239,6 +251,8 @@ export const PropertyDetailPage: React.FC = () => {
             <div className="space-y-3.5">
               {prop.roomTypes.map((room: RoomType) => {
                 const isSelected = selectedRoomType?.id === room.id;
+                const cmsRoom = cmsRooms?.find((cr) => cr.id === room.id);
+                const roomImage = cmsRoom?.foto_utama || cmsRoom?.foto || room.image;
 
                 return (
                   <div
@@ -256,9 +270,9 @@ export const PropertyDetailPage: React.FC = () => {
                     {/* Foto Kamar Landscape */}
                     <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-neutral-900">
                       <SafeImage
-                        src={room.image}
-                        alt={room.name}
-                        fallbackText={room.name}
+                        src={roomImage}
+                        alt={cmsRoom?.nama_kamar || room.name}
+                        fallbackText={cmsRoom?.nama_kamar || room.name}
                         className="w-full h-full object-cover"
                         containerClassName="w-full h-full"
                       />

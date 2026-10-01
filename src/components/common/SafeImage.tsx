@@ -53,15 +53,42 @@ export const SafeImage: React.FC<SafeImageProps> = ({
     setHasError(false);
     setIsLoaded(false);
     setRetryAttempted(false);
-    // Logging sumber gambar saat debugging
+
+    // Logging pengecekan sumber gambar saat debugging
     if (typeof window !== 'undefined') {
-      console.debug(`[SafeImage: ${alt}] Sumber gambar:`, next);
+      const isDataUrl = next.startsWith('data:');
+      const isHttp = next.startsWith('http://') || next.startsWith('https://');
+      const sourceDesc = isDataUrl
+        ? `CMS Database (Uploaded Image - ${Math.round(next.length / 1024)} KB)`
+        : isHttp
+        ? `External Database URL (${next})`
+        : `CMS Media File (${next})`;
+
+      console.log(
+        `%c[CMS Image Debug]%c ${alt}: %c${sourceDesc}`,
+        'color: #059669; font-weight: bold;',
+        'color: inherit;',
+        'color: #0284c7; font-weight: 600;'
+      );
     }
   }, [src, alt]);
 
-  const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    // 6. Tampilkan log error jika URL gambar gagal dipanggil agar mudah debugging
-    console.error(`[SafeImage Error] Gagal memuat gambar: "${currentSrc}" (Input: "${src}"). Alt: "${alt}". Browser: ${navigator.userAgent}`, e);
+  // Cek mode visual debug jika parameter ?debug=image atau flag window diaktifkan
+  const isDebugMode =
+    typeof window !== 'undefined' &&
+    (window.location.search.includes('debug=image') ||
+      (window as any).__DEBUG_CMS_IMAGES__ === true ||
+      localStorage.getItem('debug_images') === 'true');
+
+  const getSourceLabel = () => {
+    if (currentSrc.startsWith('data:')) return 'CMS Upload (DataURL)';
+    if (currentSrc.startsWith('http')) return 'CMS External URL';
+    return `CMS: ${currentSrc.split('/').pop()}`;
+  };
+
+  const handleError = () => {
+    // Tampilkan log jika URL gambar gagal dipanggil tanpa mengoper objek DOM event circular
+    console.warn(`[SafeImage Error] Gagal memuat gambar: "${currentSrc}" (Input: "${src}"). Alt: "${alt}".`);
 
     if (!retryAttempted) {
       setRetryAttempted(true);
@@ -88,11 +115,25 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   };
 
   return (
-    <div className={`relative overflow-hidden bg-neutral-900 ${containerClassName}`}>
+    <div
+      className={`relative overflow-hidden bg-neutral-900 ${containerClassName}`}
+      data-image-source={currentSrc.startsWith('data:') ? 'cms-uploaded-dataurl' : currentSrc}
+      data-source-origin={currentSrc.startsWith('data:') ? 'CMS_DATABASE_UPLOAD' : 'CMS_DATABASE'}
+      title={`[Sumber Gambar CMS]: ${currentSrc.startsWith('data:') ? 'CMS Upload (Base64 Data URL)' : currentSrc}`}
+    >
       {/* Skeleton loading yang ringan & optimal untuk mobile */}
       {!isLoaded && !hasError && (
         <div className="absolute inset-0 bg-neutral-800 animate-pulse flex items-center justify-center z-10 pointer-events-none">
           <div className="w-5 h-5 border-2 border-neutral-600 border-t-emerald-500 rounded-full animate-spin" />
+        </div>
+      )}
+
+      {/* Indikator Pengecekan Sumber Gambar Saat Debugging (hanya muncul jika mode debug aktif) */}
+      {isDebugMode && (
+        <div className="absolute top-1 left-1 z-30 pointer-events-none">
+          <span className="px-1.5 py-0.5 rounded bg-black/80 text-[8px] font-mono font-bold text-emerald-300 border border-emerald-500/40 shadow-xs">
+            {getSourceLabel()}
+          </span>
         </div>
       )}
 
@@ -118,6 +159,7 @@ export const SafeImage: React.FC<SafeImageProps> = ({
           decoding="async"
           onLoad={() => setIsLoaded(true)}
           onError={handleError}
+          data-image-src={currentSrc.startsWith('data:') ? 'cms-upload-dataurl' : currentSrc}
           className={`transition-opacity duration-300 ${
             isLoaded ? 'opacity-100' : 'opacity-0'
           } ${className}`}

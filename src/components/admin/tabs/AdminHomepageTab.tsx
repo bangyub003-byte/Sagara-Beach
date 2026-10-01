@@ -45,7 +45,8 @@ export const AdminHomepageTab: React.FC<Props> = ({ onShowToast }) => {
       try {
         const uploaded = await uploadMedia(file, 'hero');
         setForm((prev) => ({ ...prev, hero_image: uploaded.url }));
-        onShowToast('✓ Foto hero berhasil diunggah!');
+        updateHomepageContent({ hero_image: uploaded.url });
+        onShowToast('✓ Foto hero berhasil diunggah & langsung diterapkan ke Beranda!');
       } finally {
         setIsUploading(false);
       }
@@ -130,7 +131,9 @@ export const AdminHomepageTab: React.FC<Props> = ({ onShowToast }) => {
                   key={m.id}
                   onClick={() => {
                     setForm((prev) => ({ ...prev, hero_image: m.url }));
+                    updateHomepageContent({ hero_image: m.url });
                     setShowMediaPicker(false);
+                    onShowToast('✓ Foto hero beranda berhasil diterapkan!');
                   }}
                   className={`relative aspect-video rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
                     form.hero_image === m.url ? 'border-emerald-600 ring-2 ring-emerald-500' : 'border-neutral-200 hover:border-neutral-400'

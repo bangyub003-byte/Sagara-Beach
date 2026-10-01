@@ -27,6 +27,9 @@ export const AdminMediaTab: React.FC<Props> = ({ onShowToast }) => {
     updateHomepageContent,
     cmsHomestays,
     updateCmsHomestay,
+    cmsRooms,
+    updateCmsRoom,
+    updateFacilityImage,
   } = useBooking();
 
   const [filterCat, setFilterCat] = useState<string>('all');
@@ -34,6 +37,7 @@ export const AdminMediaTab: React.FC<Props> = ({ onShowToast }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedKategori, setSelectedKategori] = useState<TB_Media['kategori']>('penginapan');
   const [externalUrlInput, setExternalUrlInput] = useState('');
+  const [showUrlInput, setShowUrlInput] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showSetPrimaryModal, setShowSetPrimaryModal] = useState<TB_Media | null>(null);
 
@@ -45,10 +49,30 @@ export const AdminMediaTab: React.FC<Props> = ({ onShowToast }) => {
       setIsUploading(true);
       try {
         const res = await uploadMedia(file, selectedKategori);
-        onShowToast(`✓ Foto "${res.nama_file}" berhasil disimpan ke sistem!`);
+        onShowToast(`✓ Foto "${res.nama_file}" berhasil disimpan ke database CMS!`);
       } finally {
         setIsUploading(false);
       }
+    }
+  };
+
+  const handleAddExternalUrl = () => {
+    if (!externalUrlInput.trim()) return;
+    try {
+      import('../../../db/cmsDatabase').then(({ CMSDatabase }) => {
+        CMSDatabase.addMediaItem({
+          kategori: selectedKategori,
+          url: externalUrlInput.trim(),
+          nama_file: `Link Eksternal (${selectedKategori})`,
+          tanggal_upload: new Date().toISOString().split('T')[0],
+          ukuran: 'URL Web',
+        });
+        setExternalUrlInput('');
+        setShowUrlInput(false);
+        onShowToast('✓ Link gambar eksternal berhasil disimpan ke database CMS!');
+      });
+    } catch {
+      // ignore
     }
   };
 
@@ -68,6 +92,19 @@ export const AdminMediaTab: React.FC<Props> = ({ onShowToast }) => {
         });
         onShowToast(`✓ Foto berhasil diatur sebagai Foto Utama ${homestay.nama}!`);
       }
+    } else if (targetType === 'room' && targetId) {
+      const room = cmsRooms.find((r) => r.id === targetId);
+      if (room) {
+        updateCmsRoom(targetId, {
+          foto_utama: mediaUrl,
+          foto: mediaUrl,
+          galeri: [mediaUrl, ...(room.galeri || []).filter((u) => u !== mediaUrl)],
+        });
+        onShowToast(`✓ Foto berhasil diatur sebagai Foto Utama ${room.nama_kamar}!`);
+      }
+    } else if (targetType === 'fasilitas') {
+      updateFacilityImage(mediaUrl);
+      onShowToast('✓ Foto berhasil diatur sebagai Foto Fasilitas Penginapan!');
     }
     setShowSetPrimaryModal(null);
   };
@@ -243,7 +280,7 @@ export const AdminMediaTab: React.FC<Props> = ({ onShowToast }) => {
               Pilih di mana foto ini ingin dipasang sebagai foto utama:
             </p>
 
-            <div className="space-y-1.5 pt-1">
+            <div className="space-y-1.5 pt-1 max-h-64 overflow-y-auto pr-1">
               <button
                 type="button"
                 onClick={() => handleApplyAsPrimary('hero')}
@@ -253,6 +290,15 @@ export const AdminMediaTab: React.FC<Props> = ({ onShowToast }) => {
                 <Sparkles className="w-3.5 h-3.5 text-amber-600" />
               </button>
 
+              <button
+                type="button"
+                onClick={() => handleApplyAsPrimary('fasilitas')}
+                className="w-full h-9 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-900 text-xs font-bold flex items-center justify-between px-3 cursor-pointer"
+              >
+                <span>Foto Fasilitas Penginapan</span>
+                <Check className="w-3.5 h-3.5 text-blue-600" />
+              </button>
+
               {cmsHomestays.map((h) => (
                 <button
                   key={h.id}
@@ -260,8 +306,20 @@ export const AdminMediaTab: React.FC<Props> = ({ onShowToast }) => {
                   onClick={() => handleApplyAsPrimary('homestay', h.id)}
                   className="w-full h-9 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-900 text-xs font-bold flex items-center justify-between px-3 cursor-pointer"
                 >
-                  <span className="truncate">{h.nama.replace('Griya Barokah ', '')}</span>
+                  <span className="truncate">{h.nama.replace('Griya Barokah ', '')} (Utama)</span>
                   <Check className="w-3.5 h-3.5 text-emerald-700" />
+                </button>
+              ))}
+
+              {cmsRooms.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => handleApplyAsPrimary('room', r.id)}
+                  className="w-full h-9 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-900 text-xs font-bold flex items-center justify-between px-3 cursor-pointer"
+                >
+                  <span className="truncate">Foto {r.nama_kamar}</span>
+                  <Check className="w-3.5 h-3.5 text-indigo-700" />
                 </button>
               ))}
             </div>
