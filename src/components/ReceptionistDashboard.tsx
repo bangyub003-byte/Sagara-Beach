@@ -198,12 +198,26 @@ export const ReceptionistDashboard: React.FC = () => {
     if (found) {
       // Verifikasi Tanda Tangan Keamanan Digital (P1.E)
       if (scannedSig) {
+        console.log('[DEBUG-B] verifyBookingSignature saat tiket di-scan di resepsionis:', {
+          decodedText,
+          extractedId,
+          cleanId,
+          scannedSig,
+          foundId: found.id,
+          foundGuestPhone: found.guestPhone,
+          foundSignature: found.signature,
+        });
         const isValidSignature = await verifyBookingSignature(
           found.id,
           found.guestPhone,
           scannedSig,
           found.signature
         );
+        console.log('[DEBUG-B] Hasil verifyBookingSignature:', {
+          isValidSignature,
+          scannedSig,
+          foundSignature: found.signature,
+        });
         if (!isValidSignature) {
           setSearchError(`PERINGATAN: Tanda tangan digital QR Code tidak valid untuk booking ${found.id}. Tiket terdeteksi palsu/rekayasa.`);
           setToastMessage(`⚠️ QR Ditolak: Tanda tangan digital tidak cocok.`);

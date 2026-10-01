@@ -430,6 +430,13 @@ export const BookingFlow: React.FC = () => {
     const bookingIdDisplay = activeBooking?.id || activeBookingId || 'GBH';
     const bookingSig =
       activeBooking?.signature || generateBookingSignature(bookingIdDisplay, noHp);
+    console.log('[DEBUG-A-FLOW] BookingFlow QR display signature:', {
+      bookingIdDisplay,
+      activeBookingSignature: activeBooking?.signature,
+      noHp,
+      bookingSig,
+      qrDataPayload: `GBH:BOOKING:${bookingIdDisplay}|SIG:${bookingSig}`,
+    });
 
     const handleSendWhatsAppToAdmin = () => {
       const rawAdminPhone = getWebsiteSetting(

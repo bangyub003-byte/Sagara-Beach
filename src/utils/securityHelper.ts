@@ -49,13 +49,23 @@ export function verifyBookingSignature(
   if (!providedSignature || !bookingId) return false;
   const prov = providedSignature.trim().toUpperCase();
 
+  const expected = generateBookingSignature(bookingId, guestPhone);
+  console.log('[DEBUG-VERIFY-DETAIL] Perbandingan nilai verifyBookingSignature:', {
+    bookingId,
+    guestPhone,
+    providedSignature: prov,
+    storedSignature: storedSignature || null,
+    expectedRecomputed: expected,
+    isMatchStored: Boolean(storedSignature && storedSignature.trim().toUpperCase() === prov),
+    isMatchExpected: Boolean(expected.toUpperCase() === prov),
+  });
+
   // 1. Verifikasi langsung dengan tanda tangan yang tersimpan di database
   if (storedSignature && storedSignature.trim().toUpperCase() === prov) {
     return true;
   }
 
   // 2. Verifikasi dengan kalkulasi ulang hash (dengan nomor HP ternormalisasi)
-  const expected = generateBookingSignature(bookingId, guestPhone);
   if (expected.toUpperCase() === prov) {
     return true;
   }

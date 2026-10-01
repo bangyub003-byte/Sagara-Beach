@@ -841,6 +841,11 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     // 2. Tanda tangan keamanan digital QR tiket
     const signature = await generateBookingSignature(newId, bookingData.guestPhone);
+    console.log('[DEBUG-A] generateBookingSignature saat booking baru dibuat:', {
+      bookingId: newId,
+      guestPhone: bookingData.guestPhone,
+      signature: signature,
+    });
 
     // QR Payload berisi ID & Signature (JANGAN simpan status di dalam QR agar selalu dicek real-time di DB)
     const qrDataPayload = `GBH:BOOKING:${newId}|SIG:${signature}`;
