@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useBooking } from '../context/BookingContext';
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import {
   Home,
   LogOut,
@@ -47,6 +48,36 @@ export const AdminDashboard: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
   const [toastMessage, setToastMessage] = useState<string>('');
+  const [isSupabaseOnline, setIsSupabaseOnline] = useState<boolean>(false);
+
+  // Pengecekan real-time status koneksi Supabase untuk keperluan diagnosis
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkSupabaseHealth = async () => {
+      if (!isSupabaseConfigured) {
+        if (isMounted) setIsSupabaseOnline(false);
+        return;
+      }
+
+      try {
+        const { error } = await supabase.from('website_settings').select('id').limit(1);
+        if (isMounted) {
+          setIsSupabaseOnline(!error);
+        }
+      } catch {
+        if (isMounted) setIsSupabaseOnline(false);
+      }
+    };
+
+    checkSupabaseHealth();
+    // Poll berkala setiap 20 detik
+    const interval = setInterval(checkSupabaseHealth, 20000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -110,17 +141,32 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        <button
-          onClick={() => {
-            logoutStaff();
-            if (navigateTo) navigateTo('/');
-          }}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold hover:bg-rose-100 active:scale-95 transition-all cursor-pointer shrink-0"
-          title="Keluar Sesi Admin"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          <span className="text-[10px]">Logout</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Badge Diagnosis Koneksi Supabase Real-Time */}
+          {isSupabaseOnline ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[9px] sm:text-[10px] font-semibold tracking-tight">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+              Database: Supabase (Online)
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200 text-rose-600 text-[9px] sm:text-[10px] font-semibold tracking-tight">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+              Database: Mode Lokal (Supabase Tidak Terhubung)
+            </span>
+          )}
+
+          <button
+            onClick={() => {
+              logoutStaff();
+              if (navigateTo) navigateTo('/');
+            }}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold hover:bg-rose-100 active:scale-95 transition-all cursor-pointer shrink-0"
+            title="Keluar Sesi Admin"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="text-[10px]">Logout</span>
+          </button>
+        </div>
       </header>
 
       {/* Menu Navigasi Horizontal Scrollable (Mobile Friendly, Card Sederhana & Rapi) */}
