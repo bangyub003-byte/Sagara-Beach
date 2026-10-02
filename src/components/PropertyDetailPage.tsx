@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useBooking } from '../context/BookingContext';
 import { RoomType } from '../types';
 import { SafeImage } from './common/SafeImage';
+import { PhotoSlider } from './common/PhotoSlider';
 import {
   ChevronLeft,
   Share2,
@@ -93,10 +94,10 @@ export const PropertyDetailPage: React.FC = () => {
 
       {/* Konten Detail */}
       <div>
-        {/* Container Galeri Foto */}
+        {/* Container Galeri Foto dengan Slider Otomatis & Swipe */}
         <div className="relative w-full h-[48vh] sm:h-[52vh] overflow-hidden bg-neutral-200">
-          <SafeImage
-            src={currentMainImage}
+          <PhotoSlider
+            images={galleryImages}
             alt={cmsProp?.nama || prop.name}
             fallbackText={cmsProp?.nama || prop.name}
             className="w-full h-full object-cover"
@@ -267,10 +268,16 @@ export const PropertyDetailPage: React.FC = () => {
                         : 'border-neutral-200/90 shadow-2xs hover:border-neutral-300'
                     }`}
                   >
-                    {/* Foto Kamar Landscape */}
+                    {/* Foto Kamar Landscape dengan Slider Otomatis & Swipe */}
                     <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-neutral-900">
-                      <SafeImage
-                        src={roomImage}
+                      <PhotoSlider
+                        images={
+                          cmsRoom?.galeri && cmsRoom.galeri.length > 0
+                            ? cmsRoom.galeri
+                            : Array.isArray(room.gallery) && room.gallery.length > 0
+                            ? room.gallery
+                            : [roomImage]
+                        }
                         alt={cmsRoom?.nama_kamar || room.name}
                         fallbackText={cmsRoom?.nama_kamar || room.name}
                         className="w-full h-full object-cover"

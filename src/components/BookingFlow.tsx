@@ -3,6 +3,7 @@ import { useBooking } from '../context/BookingContext';
 import { Property, RoomType } from '../types';
 import { SAMPLE_KTP_SVG, SAMPLE_PAYMENT_SVG } from '../data/mockAssets';
 import { SafeImage } from './common/SafeImage';
+import { PhotoSlider } from './common/PhotoSlider';
 import { generateBookingSignature } from '../utils/securityHelper';
 import {
   ChevronLeft,
@@ -71,10 +72,38 @@ export const BookingFlow: React.FC = () => {
 
   // ==============================================================
   // STEP 1: PILIH PENGINAPAN (Sundak vs Trenggole)
+  // Pilihan lokasi di beranda langsung terbawa ke alur booking
   // ==============================================================
-  const [selectedPropId, setSelectedPropId] = useState<string>(
-    selectedProperty?.id || accommodations[0]?.id || 'homestay-sundak'
-  );
+  const getInitialPropId = (): string => {
+    if (selectedProperty) {
+      if (
+        selectedProperty.id === 'homestay-trenggole' ||
+        selectedProperty.id.includes('trenggole') ||
+        selectedProperty.name.toLowerCase().includes('trenggole')
+      ) {
+        return 'homestay-trenggole';
+      }
+      return 'homestay-sundak';
+    }
+    return 'homestay-sundak';
+  };
+
+  const [selectedPropId, setSelectedPropId] = useState<string>(getInitialPropId);
+
+  // Pantau jika pengguna memilih properti dari beranda / kartu lokasi
+  useEffect(() => {
+    if (selectedProperty) {
+      if (
+        selectedProperty.id === 'homestay-trenggole' ||
+        selectedProperty.id.includes('trenggole') ||
+        selectedProperty.name.toLowerCase().includes('trenggole')
+      ) {
+        setSelectedPropId('homestay-trenggole');
+      } else {
+        setSelectedPropId('homestay-sundak');
+      }
+    }
+  }, [selectedProperty]);
 
   const fallbackProp: Property = accommodations[0] || selectedProperty || {
     id: 'homestay-sundak',
@@ -100,18 +129,29 @@ export const BookingFlow: React.FC = () => {
     roomTypes: [],
   };
 
-  const activeProp: Property =
-    accommodations.find((p) => p.id === selectedPropId) || selectedProperty || fallbackProp;
-
   const sundakProp: Property =
-    accommodations.find((p) => p.id === 'homestay-sundak') || fallbackProp;
+    accommodations.find(
+      (p) =>
+        p.id === 'homestay-sundak' ||
+        p.id.includes('sundak') ||
+        p.name.toLowerCase().includes('sundak')
+    ) || fallbackProp;
 
   const trenggoleProp: Property =
-    accommodations.find((p) => p.id === 'homestay-trenggole') || accommodations[1] || fallbackProp;
+    accommodations.find(
+      (p) =>
+        p.id === 'homestay-trenggole' ||
+        p.id.includes('trenggole') ||
+        p.name.toLowerCase().includes('trenggole')
+    ) ||
+    accommodations[1] ||
+    fallbackProp;
 
-  const isSundak = activeProp
-    ? activeProp.id === 'homestay-sundak' || activeProp.propertyType === 'full_homestay'
-    : true;
+  const activeProp: Property =
+    selectedPropId === 'homestay-trenggole' ? trenggoleProp : sundakProp;
+
+  // Pastikan isSundak hanya true jika lokasi Sundak yang aktif
+  const isSundak = selectedPropId === 'homestay-sundak';
 
   // ==============================================================
   // STEP 2: TANGGAL CHECK-IN / CHECK-OUT & CEK KETERSEDIAAN OTOMATIS
@@ -769,10 +809,10 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
             {selectedPropId === 'homestay-sundak' && (
               <div className="bg-white rounded-[24px] sm:rounded-[26px] overflow-hidden border border-neutral-200/90 shadow-sm transition-all flex flex-col">
                 <div className="relative h-52 sm:h-56 w-full overflow-hidden bg-neutral-900">
-                  <SafeImage
-                    src={sundakCms?.foto_utama || sundakProp?.image || '/images/sundak_fullhouse_1790552054893.jpg'}
+                  <PhotoSlider
+                    images={sundakCms?.galeri || sundakProp?.gallery || [sundakCms?.foto_utama || sundakProp?.image || '/images/sundak_fullhouse_1790552054893.jpg']}
                     alt={sundakCms?.nama || sundakProp?.name || 'Griya Barokah Pantai Sundak'}
-                    fallbackText={sundakCms?.nama || sundakProp?.name || 'Griya Barokah Pantai Sundak'}
+                    fallbackText="Pantai Sundak"
                     className="w-full h-full object-cover"
                     containerClassName="w-full h-full"
                   />
@@ -849,10 +889,10 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
             {selectedPropId === 'homestay-trenggole' && (
               <div className="bg-white rounded-[24px] sm:rounded-[26px] overflow-hidden border border-neutral-200/90 shadow-sm transition-all flex flex-col">
                 <div className="relative h-52 sm:h-56 w-full overflow-hidden bg-neutral-900">
-                  <SafeImage
-                    src={trenggoleCms?.foto_utama || trenggoleProp?.image || '/images/trenggole_house_1790552065368.jpg'}
+                  <PhotoSlider
+                    images={trenggoleCms?.galeri || trenggoleProp?.gallery || [trenggoleCms?.foto_utama || trenggoleProp?.image || '/images/trenggole_house_1790552065368.jpg']}
                     alt={trenggoleCms?.nama || trenggoleProp?.name || 'Griya Barokah Pantai Trenggole'}
-                    fallbackText={trenggoleCms?.nama || trenggoleProp?.name || 'Griya Barokah Pantai Trenggole'}
+                    fallbackText="Pantai Trenggole"
                     className="w-full h-full object-cover"
                     containerClassName="w-full h-full"
                   />
@@ -1101,14 +1141,21 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
 
                     {/* ================= ROOM CARD HOTEL PREMIUM (SESUAI GAMBAR REFERENSI #2) ================= */}
                     <div className="bg-white rounded-[24px] overflow-hidden border border-neutral-200/90 shadow-sm space-y-4 p-4">
-                      {/* 1. Bagian Foto Kamar Besar Horizontal (Tinggi ~240px, Rounded 24px) */}
+                      {/* 1. Bagian Foto Kamar Besar Horizontal dengan Slider Otomatis & Swipe */}
                       <div className="relative h-60 sm:h-64 w-full rounded-[24px] overflow-hidden bg-neutral-900">
                         {(() => {
                           const activeCmsRoom = cmsRooms?.find((r) => r.id === currentRoom.id);
-                          const currentRoomImg = activeCmsRoom?.foto_utama || activeCmsRoom?.foto || currentRoom.image;
+                          const currentRoomImg =
+                            activeCmsRoom?.foto_utama || activeCmsRoom?.foto || currentRoom.image;
+                          const roomImages =
+                            activeCmsRoom?.galeri && activeCmsRoom.galeri.length > 0
+                              ? activeCmsRoom.galeri
+                              : Array.isArray(currentRoom.gallery) && currentRoom.gallery.length > 0
+                              ? currentRoom.gallery
+                              : [currentRoomImg];
                           return (
-                            <SafeImage
-                              src={currentRoomImg}
+                            <PhotoSlider
+                              images={roomImages}
                               alt={activeCmsRoom?.nama_kamar || currentRoom.name}
                               fallbackText={activeCmsRoom?.nama_kamar || currentRoom.name}
                               className="w-full h-full object-cover"
@@ -1297,12 +1344,16 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
               /* ================= CASE B: PANTAI SUNDAK (FULL HOUSE) ================= */
               <div className="space-y-4">
                 <div className="bg-white rounded-[24px] overflow-hidden border border-neutral-200/90 shadow-sm space-y-4 p-4">
-                  {/* Foto Full House Besar */}
+                  {/* Foto Full House Besar dengan Slider Otomatis & Swipe */}
                   <div className="relative h-60 sm:h-64 w-full rounded-[24px] overflow-hidden bg-neutral-900">
-                    <SafeImage
-                      src={sundakCms?.foto_utama || activeProp?.image || sundakProp?.image || '/images/sundak_fullhouse_1790552054893.jpg'}
+                    <PhotoSlider
+                      images={
+                        sundakCms?.galeri ||
+                        sundakProp?.gallery ||
+                        [sundakCms?.foto_utama || activeProp?.image || sundakProp?.image || '/images/sundak_fullhouse_1790552054893.jpg']
+                      }
                       alt={sundakCms?.nama || activeProp?.name || 'Full House Griya Barokah Sundak'}
-                      fallbackText={sundakCms?.nama || activeProp?.name || 'Full House Sundak'}
+                      fallbackText="Full House Sundak"
                       className="w-full h-full object-cover"
                       containerClassName="w-full h-full"
                     />

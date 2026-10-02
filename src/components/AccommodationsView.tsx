@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useBooking } from '../context/BookingContext';
 import { Property, RoomType } from '../types';
 import { SafeImage } from './common/SafeImage';
+import { PhotoSlider } from './common/PhotoSlider';
 import { CustomerBottomNav } from './common/CustomerBottomNav';
 import {
   MapPin,
@@ -190,10 +191,10 @@ export const AccommodationsView: React.FC = () => {
               key={currentAcc.id}
               className="bg-white rounded-[24px] sm:rounded-[26px] overflow-hidden border border-neutral-200/90 shadow-sm transition-all hover:shadow-md flex flex-col"
             >
-              {/* ================= 1. FOTO FULL-WIDTH LANDSCAPE (OVERLAY GRADASI) ================= */}
+              {/* ================= 1. FOTO FULL-WIDTH LANDSCAPE DENGAN SLIDER OTOMATIS & SWIPE ================= */}
               <div className="relative h-52 sm:h-56 w-full overflow-hidden bg-neutral-900">
-                <SafeImage
-                  src={cmsData?.foto_utama || currentAcc.image}
+                <PhotoSlider
+                  images={cmsData?.galeri || currentAcc.gallery || [cmsData?.foto_utama || currentAcc.image]}
                   alt={cmsData?.nama || currentAcc.name}
                   fallbackText={cmsData?.nama || currentAcc.name}
                   className="w-full h-full object-cover"

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useBooking } from '../context/BookingContext';
 import { SafeImage } from './common/SafeImage';
+import { PhotoSlider } from './common/PhotoSlider';
 import { CustomerBottomNav } from './common/CustomerBottomNav';
 import {
   MapPin,
@@ -80,11 +81,23 @@ export const CustomerDashboard: React.FC = () => {
   };
 
   const handlePesanSekarang = (propertyId?: string) => {
-    const targetPropId = propertyId || (selectedLocation === 'all' ? 'homestay-sundak' : selectedLocation);
-    const target = accommodations.find((a) => a.id === targetPropId) || accommodations[0];
+    const targetPropId =
+      propertyId || (selectedLocation === 'all' ? 'homestay-sundak' : selectedLocation);
+    const target =
+      accommodations.find(
+        (a) =>
+          a.id === targetPropId ||
+          (targetPropId === 'homestay-trenggole' &&
+            (a.id.includes('trenggole') || a.name.toLowerCase().includes('trenggole'))) ||
+          (targetPropId === 'homestay-sundak' &&
+            (a.id.includes('sundak') || a.name.toLowerCase().includes('sundak')))
+      ) ||
+      (targetPropId === 'homestay-trenggole' ? trenggoleProp : sundakProp) ||
+      accommodations[0];
+
     if (target) {
       setSelectedProperty(target);
-      if (target.roomTypes.length > 0) {
+      if (target.roomTypes && target.roomTypes.length > 0) {
         setSelectedRoomType(target.roomTypes[0]);
       }
     }
@@ -311,19 +324,20 @@ export const CustomerDashboard: React.FC = () => {
           {/* Card Informasi 1: Griya Barokah Pantai Sundak */}
           <div className="bg-white rounded-[28px] overflow-hidden shadow-xs border border-neutral-200/90 space-y-3.5 pb-4">
             <div className="relative h-44 w-full">
-              <SafeImage
-                src={sundakImageSrc}
+              <PhotoSlider
+                images={sundakCms?.galeri || sundakProp?.gallery || [sundakImageSrc]}
                 alt="Griya Barokah Pantai Sundak"
+                fallbackText="Pantai Sundak"
                 className="w-full h-full object-cover"
                 containerClassName="w-full h-full"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
-              <div className="absolute top-3 left-3">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
+              <div className="absolute top-3 left-3 z-10">
                 <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold shadow-xs">
                   Keluarga Besar & Rombongan
                 </span>
               </div>
-              <div className="absolute bottom-3 left-4 right-4 text-white">
+              <div className="absolute bottom-3 left-4 right-4 text-white z-10 pointer-events-none">
                 <span className="text-[11px] text-emerald-300 font-semibold block">
                   Kawasan Wisata Pantai Sundak
                 </span>
@@ -365,19 +379,20 @@ export const CustomerDashboard: React.FC = () => {
           {/* Card Informasi 2: Griya Barokah Pantai Trenggole */}
           <div className="bg-white rounded-[28px] overflow-hidden shadow-xs border border-neutral-200/90 space-y-3.5 pb-4">
             <div className="relative h-44 w-full">
-              <SafeImage
-                src={trenggoleImageSrc}
+              <PhotoSlider
+                images={trenggoleCms?.galeri || trenggoleProp?.gallery || [trenggoleImageSrc]}
                 alt="Griya Barokah Pantai Trenggole"
+                fallbackText="Pantai Trenggole"
                 className="w-full h-full object-cover"
                 containerClassName="w-full h-full"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
-              <div className="absolute top-3 left-3">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
+              <div className="absolute top-3 left-3 z-10">
                 <span className="px-2.5 py-1 rounded-full bg-sky-600 text-white text-[10px] font-extrabold shadow-xs">
                   Tepi Pantai & Suasana Tenang
                 </span>
               </div>
-              <div className="absolute bottom-3 left-4 right-4 text-white">
+              <div className="absolute bottom-3 left-4 right-4 text-white z-10 pointer-events-none">
                 <span className="text-[11px] text-sky-300 font-semibold block">
                   Jalur Wisata Pantai Trenggole
                 </span>
@@ -392,15 +407,17 @@ export const CustomerDashboard: React.FC = () => {
                 Suasana asri tepi pantai dengan 4 pilihan kamar. Semua kamar Trenggole: view pantai, 2 bed ukuran ±130x200, dan bisa tambah extra bed.
               </p>
 
-              {/* 4 Pilihan Kamar Trenggole dengan Foto CMS */}
+              {/* 4 Pilihan Kamar Trenggole dengan Foto CMS & Slider */}
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
-                  <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900">
-                    <SafeImage
-                      src={room1?.foto_utama || room1?.foto || '/images/trenggole_room_1790552085510.jpg'}
+                  <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900 relative">
+                    <PhotoSlider
+                      images={room1?.galeri || (room1?.foto_utama ? [room1.foto_utama] : [room1?.foto || '/images/trenggole_room_1790552085510.jpg'])}
                       alt={room1?.nama_kamar || 'Kamar 1'}
+                      fallbackText={room1?.nama_kamar || 'Kamar 1'}
                       className="w-full h-full object-cover"
                       containerClassName="w-full h-full"
+                      showControls={false}
                     />
                   </div>
                   <div>
@@ -411,12 +428,14 @@ export const CustomerDashboard: React.FC = () => {
                 </div>
 
                 <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
-                  <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900">
-                    <SafeImage
-                      src={room2?.foto_utama || room2?.foto || '/images/trenggole_room_1790552085510.jpg'}
+                  <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900 relative">
+                    <PhotoSlider
+                      images={room2?.galeri || (room2?.foto_utama ? [room2.foto_utama] : [room2?.foto || '/images/trenggole_room_1790552085510.jpg'])}
                       alt={room2?.nama_kamar || 'Kamar 2'}
+                      fallbackText={room2?.nama_kamar || 'Kamar 2'}
                       className="w-full h-full object-cover"
                       containerClassName="w-full h-full"
+                      showControls={false}
                     />
                   </div>
                   <div>
@@ -427,12 +446,14 @@ export const CustomerDashboard: React.FC = () => {
                 </div>
 
                 <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
-                  <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900">
-                    <SafeImage
-                      src={room3?.foto_utama || room3?.foto || '/images/trenggole_room_1790552085510.jpg'}
+                  <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900 relative">
+                    <PhotoSlider
+                      images={room3?.galeri || (room3?.foto_utama ? [room3.foto_utama] : [room3?.foto || '/images/trenggole_room_1790552085510.jpg'])}
                       alt={room3?.nama_kamar || 'Kamar 3'}
+                      fallbackText={room3?.nama_kamar || 'Kamar 3'}
                       className="w-full h-full object-cover"
                       containerClassName="w-full h-full"
+                      showControls={false}
                     />
                   </div>
                   <div>
@@ -443,12 +464,14 @@ export const CustomerDashboard: React.FC = () => {
                 </div>
 
                 <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
-                  <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900">
-                    <SafeImage
-                      src={room4?.foto_utama || room4?.foto || '/images/trenggole_room_1790552085510.jpg'}
+                  <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900 relative">
+                    <PhotoSlider
+                      images={room4?.galeri || (room4?.foto_utama ? [room4.foto_utama] : [room4?.foto || '/images/trenggole_room_1790552085510.jpg'])}
                       alt={room4?.nama_kamar || 'Kamar 4'}
+                      fallbackText={room4?.nama_kamar || 'Kamar 4'}
                       className="w-full h-full object-cover"
                       containerClassName="w-full h-full"
+                      showControls={false}
                     />
                   </div>
                   <div>

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useBooking } from '../../../context/BookingContext';
 import { TB_Room } from '../../../db/cmsDatabase';
 import { SafeImage } from '../../common/SafeImage';
+import { PhotoSlider } from '../../common/PhotoSlider';
 import {
   Bed,
   Plus,
@@ -15,7 +16,8 @@ import {
   Users,
   Power,
   Layers,
-  Filter,
+  Star,
+  Link as LinkIcon,
 } from 'lucide-react';
 
 interface Props {
@@ -36,14 +38,21 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
   const [namaKamar, setNamaKamar] = useState('');
   const [fotoUtama, setFotoUtama] = useState('');
   const [galeri, setGaleri] = useState<string[]>([]);
+  const [urlInput, setUrlInput] = useState('');
   const [harga, setHarga] = useState<number>(285000);
   const [kapasitas, setKapasitas] = useState<number>(4);
   const [jumlahStok, setJumlahStok] = useState<number>(1);
   const [bedsCount, setBedsCount] = useState<number>(2);
   const [bathsCount, setBathsCount] = useState<number>(1);
   const [floor, setFloor] = useState<number>(1);
-  const [bedInfo, setBedInfo] = useState('2 Bed (Kayu & Lantai)');
-  const [fasilitasStr, setFasilitasStr] = useState('AC, KM Dalam, View Pantai, WiFi');
+  const [bedInfo, setBedInfo] = useState('2 Bed (130x200 cm)');
+  const [fasilitasArr, setFasilitasArr] = useState<string[]>([
+    'AC',
+    'KM Dalam',
+    'View Pantai',
+    'WiFi',
+  ]);
+  const [newFasilitasText, setNewFasilitasText] = useState('');
   const [deskripsi, setDeskripsi] = useState('');
   const [status, setStatus] = useState<'aktif' | 'nonaktif'>('aktif');
 
@@ -58,8 +67,10 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
     setIsAddingNew(true);
     setHomestayId(cmsHomestays[0]?.id || 'homestay-trenggole');
     setNamaKamar('Kamar Baru');
-    setFotoUtama('/images/trenggole_room_1790552085510.jpg');
-    setGaleri(['/images/trenggole_room_1790552085510.jpg']);
+    const defaultImg = '/images/trenggole_room_1790552085510.jpg';
+    setFotoUtama(defaultImg);
+    setGaleri([defaultImg]);
+    setUrlInput('');
     setHarga(285000);
     setKapasitas(4);
     setJumlahStok(1);
@@ -67,7 +78,8 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
     setBathsCount(1);
     setFloor(1);
     setBedInfo('2 Bed (130x200 cm)');
-    setFasilitasStr('AC, Kamar Mandi Dalam, View Pantai, WiFi');
+    setFasilitasArr(['AC', 'Kamar Mandi Dalam', 'View Pantai', 'WiFi']);
+    setNewFasilitasText('');
     setDeskripsi('Kamar nyaman dekat pantai dengan fasilitas lengkap.');
     setStatus('aktif');
   };
@@ -77,16 +89,23 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
     setIsAddingNew(false);
     setHomestayId(r.homestay_id);
     setNamaKamar(r.nama_kamar);
-    setFotoUtama(r.foto_utama || r.foto || '/images/trenggole_room_1790552085510.jpg');
-    setGaleri(r.galeri || [r.foto_utama || r.foto || '/images/trenggole_room_1790552085510.jpg']);
+    const primary = r.foto_utama || r.foto || '/images/trenggole_room_1790552085510.jpg';
+    setFotoUtama(primary);
+    const existingGaleri =
+      Array.isArray(r.galeri) && r.galeri.length > 0
+        ? r.galeri
+        : [primary];
+    setGaleri(existingGaleri);
+    setUrlInput('');
     setHarga(r.harga);
     setKapasitas(r.kapasitas);
     setJumlahStok(r.jumlah_stok !== undefined ? r.jumlah_stok : 1);
     setBedsCount(r.beds_count || 2);
     setBathsCount(r.baths_count || 1);
     setFloor(r.floor || 1);
-    setBedInfo(r.bed_info || '2 Bed');
-    setFasilitasStr((r.fasilitas || []).join(', '));
+    setBedInfo(r.bed_info || '2 Bed (130x200 cm)');
+    setFasilitasArr(Array.isArray(r.fasilitas) ? [...r.fasilitas] : ['AC', 'WiFi']);
+    setNewFasilitasText('');
     setDeskripsi(r.deskripsi || '');
     setStatus(r.status || 'aktif');
   };
@@ -97,33 +116,95 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
     onShowToast(`✓ Status "${room.nama_kamar}" diubah menjadi ${nextStatus.toUpperCase()}`);
   };
 
+  // Fasilitas Handlers
+  const handleAddFasilitas = () => {
+    const trimmed = newFasilitasText.trim();
+    if (!trimmed) return;
+    if (!fasilitasArr.includes(trimmed)) {
+      setFasilitasArr([...fasilitasArr, trimmed]);
+    }
+    setNewFasilitasText('');
+  };
+
+  const handleRemoveFasilitas = (indexToRemove: number) => {
+    setFasilitasArr(fasilitasArr.filter((_, i) => i !== indexToRemove));
+  };
+
+  // Galeri Handlers
+  const handleAddUrlToGaleri = () => {
+    const trimmed = urlInput.trim();
+    if (!trimmed) return;
+    if (!galeri.includes(trimmed)) {
+      const updated = [...galeri, trimmed];
+      setGaleri(updated);
+      if (!fotoUtama) {
+        setFotoUtama(trimmed);
+      }
+      onShowToast('✓ Foto berhasil ditambahkan ke galeri!');
+    }
+    setUrlInput('');
+  };
+
+  const handleSetFotoUtama = (url: string) => {
+    setFotoUtama(url);
+    onShowToast('✓ Foto utama kamar berhasil diperbarui!');
+  };
+
+  const handleDeleteFotoGaleri = (urlToDelete: string) => {
+    if (galeri.length <= 1) {
+      alert('Minimal harus ada 1 foto di dalam galeri!');
+      return;
+    }
+    const updated = galeri.filter((u) => u !== urlToDelete);
+    setGaleri(updated);
+    if (fotoUtama === urlToDelete) {
+      setFotoUtama(updated[0]);
+    }
+    onShowToast('✓ Foto dihapus dari galeri kamar.');
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const media = await uploadMedia(file, 'kamar');
+        const updatedGaleri = [...galeri, media.url];
+        setGaleri(updatedGaleri);
+        if (!fotoUtama) {
+          setFotoUtama(media.url);
+        }
+        onShowToast('✓ Foto baru berhasil diunggah & masuk ke galeri kamar!');
+      } catch (err: any) {
+        alert(err.message || 'Gagal mengunggah foto.');
+      }
+    }
+  };
+
   const handleSave = () => {
     if (!namaKamar.trim()) {
       alert('Nama kamar tidak boleh kosong!');
       return;
     }
 
-    const fasilitasArr = fasilitasStr
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const finalFotoUtama = fotoUtama || galeri[0] || '/images/trenggole_room_1790552085510.jpg';
+    const finalGaleri = galeri.length > 0 ? galeri : [finalFotoUtama];
 
     const payload: TB_Room = {
       id: editingRoom ? editingRoom.id : `room-${Date.now()}`,
       homestay_id: homestayId,
-      nama_kamar: namaKamar,
-      foto_utama: fotoUtama || '/images/trenggole_room_1790552085510.jpg',
-      foto: fotoUtama || '/images/trenggole_room_1790552085510.jpg',
-      galeri: galeri.length > 0 ? galeri : [fotoUtama || '/images/trenggole_room_1790552085510.jpg'],
+      nama_kamar: namaKamar.trim(),
+      foto_utama: finalFotoUtama,
+      foto: finalFotoUtama,
+      galeri: finalGaleri,
       harga: Number(harga),
       kapasitas: Number(kapasitas),
       jumlah_stok: Number(jumlahStok),
       beds_count: Number(bedsCount),
       baths_count: Number(bathsCount),
       floor: (Number(floor) === 2 ? 2 : 1) as 1 | 2,
-      bed_info: bedInfo,
+      bed_info: bedInfo.trim() || '2 Bed',
       fasilitas: fasilitasArr,
-      deskripsi,
+      deskripsi: deskripsi.trim(),
       status,
     };
 
@@ -143,24 +224,6 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
     deleteCmsRoom(id);
     setDeletingId(null);
     onShowToast(`✓ Kamar "${name}" berhasil dihapus.`);
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const media = await uploadMedia(file, 'kamar');
-      setFotoUtama(media.url);
-      const updatedGaleri = [media.url, ...galeri.filter((u) => u !== media.url)];
-      setGaleri(updatedGaleri);
-      if (editingRoom) {
-        updateCmsRoom(editingRoom.id, {
-          foto_utama: media.url,
-          foto: media.url,
-          galeri: updatedGaleri,
-        });
-      }
-      onShowToast('✓ Foto kamar berhasil diunggah & disimpan ke database CMS!');
-    }
   };
 
   return (
@@ -215,6 +278,10 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
         {filteredRooms.map((r) => {
           const parentHomestay = cmsHomestays.find((h) => h.id === r.homestay_id);
           const isAktif = r.status === 'aktif';
+          const roomImages =
+            Array.isArray(r.galeri) && r.galeri.length > 0
+              ? r.galeri
+              : [r.foto_utama || r.foto || '/images/trenggole_room_1790552085510.jpg'];
 
           return (
             <div
@@ -224,9 +291,9 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
               }`}
             >
               <div className="flex gap-3">
-                <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200 shrink-0">
+                <div className="relative w-22 h-22 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200 shrink-0">
                   <SafeImage
-                    src={r.foto_utama || r.foto || '/images/trenggole_room_1790552085510.jpg'}
+                    src={r.foto_utama || r.foto || roomImages[0]}
                     alt={r.nama_kamar}
                     fallbackText={r.nama_kamar}
                     className="w-full h-full object-cover"
@@ -238,6 +305,9 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
                     }`}
                   >
                     {r.status || 'aktif'}
+                  </div>
+                  <div className="absolute top-1 right-1 px-1 rounded bg-black/60 text-white text-[8px] font-bold">
+                    {roomImages.length} foto
                   </div>
                 </div>
 
@@ -260,7 +330,7 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
                   </div>
 
                   <div className="text-[10px] text-neutral-500 truncate">
-                    {parentHomestay?.nama || r.homestay_id} • Lt. {r.floor || 1}
+                    {parentHomestay?.nama || r.homestay_id} • Lt. {r.floor || 1} • {r.bed_info || '2 Bed'}
                   </div>
 
                   <div className="text-xs font-extrabold text-emerald-950">
@@ -271,14 +341,18 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
                   <div className="flex items-center gap-2 text-[10px] text-neutral-600">
                     <span>Kapasitas: {r.kapasitas} orang</span>
                     <span>•</span>
-                    <span>Stok: {r.jumlah_stok !== undefined ? r.jumlah_stok : 1} unit</span>
+                    <span>{r.beds_count} Bed</span>
+                    <span>•</span>
+                    <span>{r.baths_count} KM</span>
+                    <span>•</span>
+                    <span>Stok: {r.jumlah_stok !== undefined ? r.jumlah_stok : 1}</span>
                   </div>
                 </div>
               </div>
 
               {/* Fasilitas Chip List */}
               <div className="flex flex-wrap gap-1 pt-1">
-                {(r.fasilitas || []).slice(0, 4).map((f, i) => (
+                {(r.fasilitas || []).map((f, i) => (
                   <span
                     key={i}
                     className="text-[9px] px-2 py-0.5 rounded-md bg-neutral-100 text-neutral-700 font-medium"
@@ -295,7 +369,7 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
                   className="flex-1 h-8 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-[11px] font-bold flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all"
                 >
                   <Edit3 className="w-3.5 h-3.5 text-neutral-600" />
-                  <span>Edit Kamar & Foto</span>
+                  <span>Edit Kamar & Galeri ({roomImages.length})</span>
                 </button>
 
                 <button
@@ -322,7 +396,7 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
             <div className="flex gap-2 pt-1">
               <button
                 onClick={() => setDeletingId(null)}
-                className="flex-1 h-8 rounded-xl bg-neutral-100 text-neutral-700 text-xs font-bold"
+                className="flex-1 h-8 rounded-xl bg-neutral-100 text-neutral-700 text-xs font-bold cursor-pointer"
               >
                 Batal
               </button>
@@ -331,7 +405,7 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
                   const target = cmsRooms.find((r) => r.id === deletingId);
                   if (target) handleDelete(target.id, target.nama_kamar);
                 }}
-                className="flex-1 h-8 rounded-xl bg-rose-600 text-white text-xs font-bold"
+                className="flex-1 h-8 rounded-xl bg-rose-600 text-white text-xs font-bold cursor-pointer"
               >
                 Hapus
               </button>
@@ -340,14 +414,15 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
         </div>
       )}
 
-      {/* Modal Tambah / Edit Kamar */}
+      {/* Modal Tambah / Edit Kamar Lengkap */}
       {(isAddingNew || editingRoom) && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 overflow-y-auto">
-          <div className="w-full max-w-md bg-white rounded-2xl p-4 space-y-3.5 shadow-2xl my-4 max-h-[90vh] overflow-y-auto no-scrollbar">
-            <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
+          <div className="w-full max-w-lg bg-white rounded-2xl p-4 sm:p-5 space-y-4 shadow-2xl my-4 max-h-[92vh] overflow-y-auto no-scrollbar border border-neutral-200">
+            {/* Header Modal */}
+            <div className="flex items-center justify-between pb-2.5 border-b border-neutral-100">
               <div className="flex items-center gap-2">
                 <Bed className="w-4 h-4 text-emerald-800" />
-                <h3 className="text-xs font-black text-neutral-900">
+                <h3 className="text-xs sm:text-sm font-black text-neutral-900">
                   {isAddingNew ? 'Tambah Kamar Baru' : `Edit: ${editingRoom?.nama_kamar}`}
                 </h3>
               </div>
@@ -356,60 +431,55 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
                   setIsAddingNew(false);
                   setEditingRoom(null);
                 }}
-                className="w-6 h-6 rounded-lg bg-neutral-100 flex items-center justify-center text-neutral-500"
+                className="w-7 h-7 rounded-lg bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-500 cursor-pointer"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Pilih Penginapan Induk */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-neutral-700">Penginapan Induk</label>
-              <select
-                value={homestayId}
-                onChange={(e) => setHomestayId(e.target.value)}
-                className="w-full h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 font-bold focus:outline-none"
-              >
-                {cmsHomestays.map((h) => (
-                  <option key={h.id} value={h.id}>
-                    {h.nama}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Nama Kamar */}
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-neutral-700">Nama Kamar</label>
-              <input
-                type="text"
-                value={namaKamar}
-                onChange={(e) => setNamaKamar(e.target.value)}
-                placeholder="Contoh: Kamar 1 – Pantai Trenggole"
-                className="w-full h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs"
-              />
-            </div>
-
-            {/* Foto Kamar */}
-            <div className="space-y-2 p-3 rounded-xl bg-neutral-50 border border-neutral-200">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-neutral-800">Foto Kamar</span>
-                <span className="text-[10px] text-neutral-400">Preview</span>
+            {/* 1. Penginapan Induk & Nama Kamar */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-neutral-700">Penginapan Induk</label>
+                <select
+                  value={homestayId}
+                  onChange={(e) => setHomestayId(e.target.value)}
+                  className="w-full h-9 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 font-bold focus:outline-none focus:border-emerald-600"
+                >
+                  {cmsHomestays.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.nama}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="relative w-full h-28 rounded-lg overflow-hidden bg-neutral-200">
-                <SafeImage
-                  src={fotoUtama}
-                  alt="Preview Kamar"
-                  fallbackText={namaKamar || 'Kamar'}
-                  className="w-full h-full object-cover"
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-neutral-700">Nama Kamar</label>
+                <input
+                  type="text"
+                  value={namaKamar}
+                  onChange={(e) => setNamaKamar(e.target.value)}
+                  placeholder="Contoh: Kamar 1 – Pantai Trenggole"
+                  className="w-full h-9 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold focus:outline-none focus:border-emerald-600"
                 />
               </div>
+            </div>
 
-              <div className="flex gap-2">
-                <label className="flex-1 h-8 px-2.5 rounded-lg bg-white border border-neutral-200 hover:bg-neutral-100 text-neutral-700 text-[11px] font-bold flex items-center justify-center gap-1.5 cursor-pointer">
+            {/* 2. KELOLA LENGKAP GALERI FOTO KAMAR (UPLOAD, TAMBAH URL, PILIH UTAMA, HAPUS) */}
+            <div className="space-y-3 p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-neutral-900 block">
+                    Galeri Foto Kamar
+                  </span>
+                  <span className="text-[10px] text-neutral-500">
+                    Total {galeri.length} foto • Klik foto untuk dijadikan Foto Utama
+                  </span>
+                </div>
+                <label className="h-8 px-3 rounded-xl bg-[#13281E] hover:bg-[#1A3428] text-white text-[11px] font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs">
                   <Upload className="w-3.5 h-3.5" />
-                  <span>Upload Foto Kamar</span>
+                  <span>Upload Foto</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -419,57 +489,133 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
                 </label>
               </div>
 
-              <input
-                type="url"
-                value={fotoUtama}
-                onChange={(e) => setFotoUtama(e.target.value)}
-                placeholder="Atau tempel URL foto kamar..."
-                className="w-full h-7 px-2.5 rounded-lg bg-white border border-neutral-200 text-[11px] text-neutral-800"
-              />
+              {/* Input Tambah Foto via URL */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <LinkIcon className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  <input
+                    type="url"
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    placeholder="Tempel tautan URL foto baru..."
+                    className="w-full h-8 pl-8 pr-2 rounded-xl bg-white border border-neutral-200 text-[11px] text-neutral-800 focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddUrlToGaleri}
+                  className="h-8 px-3 rounded-xl bg-neutral-800 hover:bg-neutral-900 text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Tambah URL</span>
+                </button>
+              </div>
+
+              {/* Grid Thumbnail Galeri dengan Tombol 'Jadikan Utama' & 'Hapus' */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-1">
+                {galeri.map((imgUrl, idx) => {
+                  const isPrimary = imgUrl === fotoUtama;
+                  return (
+                    <div
+                      key={idx}
+                      className={`relative group rounded-xl overflow-hidden border bg-white shadow-2xs transition-all ${
+                        isPrimary
+                          ? 'border-emerald-600 ring-2 ring-emerald-600/30'
+                          : 'border-neutral-200 hover:border-neutral-400'
+                      }`}
+                    >
+                      <div className="h-20 w-full overflow-hidden bg-neutral-200">
+                        <img
+                          src={imgUrl}
+                          alt={`Kamar ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+
+                      {/* Badge Foto Utama */}
+                      {isPrimary ? (
+                        <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[8px] font-black uppercase shadow-xs flex items-center gap-0.5">
+                          <Check className="w-2.5 h-2.5" />
+                          <span>Utama</span>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleSetFotoUtama(imgUrl)}
+                          className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/60 hover:bg-black/80 text-white text-[8px] font-bold opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        >
+                          Set Utama
+                        </button>
+                      )}
+
+                      {/* Tombol Hapus Foto */}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteFotoGaleri(imgUrl)}
+                        title="Hapus foto ini dari galeri"
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center text-[10px] shadow-xs cursor-pointer active:scale-90"
+                      >
+                        <Trash2 className="w-2.5 h-2.5" />
+                      </button>
+
+                      {/* Tombol Jadikan Utama di bawah thumbnail jika belum utama */}
+                      {!isPrimary && (
+                        <button
+                          type="button"
+                          onClick={() => handleSetFotoUtama(imgUrl)}
+                          className="w-full py-1 text-center bg-neutral-100 hover:bg-emerald-50 text-neutral-700 hover:text-emerald-800 text-[9px] font-bold cursor-pointer border-t border-neutral-100"
+                        >
+                          Pilih Utama
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Harga, Kapasitas & Jumlah Kamar (Stok) */}
-            <div className="grid grid-cols-3 gap-2">
+            {/* 3. Harga, Kapasitas & Stok Kamar */}
+            <div className="grid grid-cols-3 gap-2.5">
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-neutral-700">Harga (Rp)</label>
+                <label className="text-[11px] font-bold text-neutral-700">Harga (Rp/malam)</label>
                 <input
                   type="number"
                   value={harga}
                   onChange={(e) => setHarga(Number(e.target.value))}
-                  className="w-full h-8 px-2 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-bold"
+                  className="w-full h-9 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-bold focus:outline-none focus:border-emerald-600"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-neutral-700">Kapasitas (Pax)</label>
+                <label className="text-[11px] font-bold text-neutral-700">Kapasitas (Orang)</label>
                 <input
                   type="number"
                   value={kapasitas}
                   onChange={(e) => setKapasitas(Number(e.target.value))}
-                  className="w-full h-8 px-2 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-bold"
+                  className="w-full h-9 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-bold focus:outline-none focus:border-emerald-600"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-neutral-700">Jumlah Stok</label>
+                <label className="text-[11px] font-bold text-neutral-700">Jumlah Stok Unit</label>
                 <input
                   type="number"
                   value={jumlahStok}
                   onChange={(e) => setJumlahStok(Number(e.target.value))}
-                  className="w-full h-8 px-2 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-bold"
+                  className="w-full h-9 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-bold focus:outline-none focus:border-emerald-600"
                 />
               </div>
             </div>
 
-            {/* Ranjang, Lantai & Kamar Mandi */}
-            <div className="grid grid-cols-3 gap-2">
+            {/* 4. Ranjang, KM Dalam, Lantai & Info Bed */}
+            <div className="grid grid-cols-3 gap-2.5">
               <div className="space-y-1">
                 <label className="text-[11px] font-bold text-neutral-700">Jml Ranjang</label>
                 <input
                   type="number"
                   value={bedsCount}
                   onChange={(e) => setBedsCount(Number(e.target.value))}
-                  className="w-full h-8 px-2 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-bold"
+                  className="w-full h-9 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-bold focus:outline-none focus:border-emerald-600"
                 />
               </div>
 
@@ -479,48 +625,106 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
                   type="number"
                   value={bathsCount}
                   onChange={(e) => setBathsCount(Number(e.target.value))}
-                  className="w-full h-8 px-2 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-bold"
+                  className="w-full h-9 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-bold focus:outline-none focus:border-emerald-600"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-neutral-700">Lantai</label>
-                <input
-                  type="number"
+                <label className="text-[11px] font-bold text-neutral-700">Posisi Lantai</label>
+                <select
                   value={floor}
                   onChange={(e) => setFloor(Number(e.target.value))}
-                  className="w-full h-8 px-2 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-bold"
-                />
+                  className="w-full h-9 px-2 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-bold focus:outline-none focus:border-emerald-600"
+                >
+                  <option value={1}>Lantai 1</option>
+                  <option value={2}>Lantai 2</option>
+                </select>
               </div>
             </div>
 
-            {/* Fasilitas Kamar */}
+            {/* Info Bed (Spesifikasi Ranjang) */}
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-neutral-700">Fasilitas Kamar (Koma)</label>
+              <label className="text-[11px] font-bold text-neutral-700">
+                Spesifikasi Ranjang (Info Bed)
+              </label>
               <input
                 type="text"
-                value={fasilitasStr}
-                onChange={(e) => setFasilitasStr(e.target.value)}
-                placeholder="AC, KM Dalam, View Pantai, WiFi"
-                className="w-full h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs"
+                value={bedInfo}
+                onChange={(e) => setBedInfo(e.target.value)}
+                placeholder="Contoh: 2 Bed (1 Ranjang Kayu + 1 Bed Lantai 130x200)"
+                className="w-full h-9 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs focus:outline-none focus:border-emerald-600"
               />
             </div>
 
-            {/* Deskripsi */}
+            {/* 5. Daftar Fasilitas (Tambah / Hapus Interaktif) */}
+            <div className="space-y-2 p-3 rounded-2xl bg-neutral-50 border border-neutral-200">
+              <label className="text-[11px] font-bold text-neutral-800 block">
+                Daftar Fasilitas Kamar
+              </label>
+
+              {/* Tag Fasilitas Saat Ini */}
+              <div className="flex flex-wrap gap-1.5 min-h-[30px]">
+                {fasilitasArr.map((f, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-neutral-300 text-neutral-800 text-[11px] font-semibold shadow-2xs"
+                  >
+                    <span>{f}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFasilitas(i)}
+                      className="w-3.5 h-3.5 rounded-full hover:bg-rose-100 hover:text-rose-600 flex items-center justify-center cursor-pointer text-neutral-400"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+
+              {/* Input Tambah Fasilitas */}
+              <div className="flex gap-2 pt-1">
+                <input
+                  type="text"
+                  value={newFasilitasText}
+                  onChange={(e) => setNewFasilitasText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddFasilitas();
+                    }
+                  }}
+                  placeholder="Ketik fasilitas baru (contoh: Balkon, View Pantai)..."
+                  className="flex-1 h-8 px-2.5 rounded-xl bg-white border border-neutral-200 text-xs focus:outline-none focus:border-emerald-600"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddFasilitas}
+                  className="h-8 px-3 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Tambah</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 6. Deskripsi Kamar */}
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-neutral-700">Deskripsi Singkat</label>
+              <label className="text-[11px] font-bold text-neutral-700">Deskripsi Kamar</label>
               <textarea
                 rows={2}
                 value={deskripsi}
                 onChange={(e) => setDeskripsi(e.target.value)}
-                placeholder="Detail spesifikasi kamar..."
-                className="w-full p-2 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs resize-none"
+                placeholder="Penjelasan kenyamanan kamar, akses ke pantai, dll..."
+                className="w-full p-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs resize-none focus:outline-none focus:border-emerald-600 leading-relaxed"
               />
             </div>
 
-            {/* Status Aktif / Nonaktif */}
+            {/* 7. Status Ketersediaan */}
             <div className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-50 border border-neutral-200">
-              <span className="text-xs font-bold text-neutral-800">Status Ketersediaan Kamar</span>
+              <div>
+                <span className="text-xs font-bold text-neutral-800 block">Status Ketersediaan Kamar</span>
+                <span className="text-[10px] text-neutral-400">Nonaktifkan jika kamar sedang renovasi</span>
+              </div>
               <button
                 type="button"
                 onClick={() => setStatus((prev) => (prev === 'aktif' ? 'nonaktif' : 'aktif'))}
@@ -532,7 +736,7 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
               </button>
             </div>
 
-            {/* Tombol Simpan */}
+            {/* Tombol Simpan Modal */}
             <div className="flex gap-2 pt-2">
               <button
                 type="button"
@@ -540,14 +744,14 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
                   setIsAddingNew(false);
                   setEditingRoom(null);
                 }}
-                className="flex-1 h-9 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-bold"
+                className="flex-1 h-9 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-bold cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleSave}
-                className="flex-1 h-9 rounded-xl bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs"
+                className="flex-1 h-9 rounded-xl bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-95 transition-all"
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>Simpan Kamar</span>
