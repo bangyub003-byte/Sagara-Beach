@@ -417,9 +417,16 @@ export const BookingFlow: React.FC = () => {
       setActiveBookingId(newId);
       setIsSubmitting(false);
       setIsSuccessView(true);
-    } catch {
+      setErrorNotice('');
+    } catch (err: any) {
       setIsSubmitting(false);
-      setIsSuccessView(true);
+      const errMsg =
+        err?.message ||
+        'Gagal memproses pemesanan. Silakan periksa kembali data atau tanggal pilihan Anda.';
+      setErrorNotice(errMsg);
+      try {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch {}
     }
   };
 
@@ -1980,6 +1987,17 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                   <p className="text-[11px] text-rose-700 font-semibold bg-rose-50 p-2.5 rounded-xl border border-rose-200">
                     ⚠️ <strong>Perhatian:</strong> Upload bukti transfer sebelum booking dikirim. Booking tidak boleh diproses jika bukti pembayaran kosong.
                   </p>
+                )}
+
+                {/* Notifikasi Error Jika Pengiriman Gagal */}
+                {errorNotice && (
+                  <div className="p-3 bg-rose-50 border-2 border-rose-300 text-rose-900 rounded-xl text-xs flex items-start gap-2 shadow-xs">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="block font-bold">Pemesanan Tidak Dapat Diproses:</strong>
+                      <span className="font-semibold leading-relaxed">{errorNotice}</span>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

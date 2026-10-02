@@ -30,6 +30,7 @@ export const ReceptionistDashboard: React.FC = () => {
     bookings,
     checkInBooking,
     findBookingById,
+    refreshBookings,
     setCurrentView,
     setRole,
     logoutStaff,
@@ -45,6 +46,27 @@ export const ReceptionistDashboard: React.FC = () => {
   const [cameraPermissionError, setCameraPermissionError] = useState<string>('');
   const [searchError, setSearchError] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string>('');
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+
+  // Ambil data booking terbaru dari database saat halaman resepsionis dibuka (mount)
+  useEffect(() => {
+    refreshBookings();
+  }, [refreshBookings]);
+
+  // Handler tombol manual refresh data
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshBookings();
+      setToastMessage('✓ Data booking terbaru berhasil dimuat dari database.');
+      setTimeout(() => setToastMessage(''), 3000);
+    } catch {
+      setToastMessage('⚠️ Gagal memperbarui data booking.');
+      setTimeout(() => setToastMessage(''), 3000);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const scannerRef = useRef<any>(null);
   const isStartingRef = useRef<boolean>(false);
@@ -370,17 +392,31 @@ Sudah diverifikasi resepsionis.`;
           </div>
         </div>
 
-        <button
-          onClick={() => {
-            logoutStaff();
-            if (navigateTo) navigateTo('/');
-          }}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold hover:bg-rose-100 active:scale-95 transition-all cursor-pointer"
-          title="Keluar Sesi Resepsionis"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          <span className="text-[10px]">Logout</span>
-        </button>
+        <div className="flex items-center gap-1.5">
+          {/* Tombol Kecil Refresh Data Booking */}
+          <button
+            type="button"
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold hover:bg-emerald-100 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+            title="Refresh Data Booking Terbaru dari Database"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-emerald-600' : ''}`} />
+            <span className="text-[10px]">Refresh</span>
+          </button>
+
+          <button
+            onClick={() => {
+              logoutStaff();
+              if (navigateTo) navigateTo('/');
+            }}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold hover:bg-rose-100 active:scale-95 transition-all cursor-pointer"
+            title="Keluar Sesi Resepsionis"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="text-[10px]">Logout</span>
+          </button>
+        </div>
       </header>
 
       {/* Toast Notification */}

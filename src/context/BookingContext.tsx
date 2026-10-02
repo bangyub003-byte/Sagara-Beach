@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Booking, Property, RoomType, UserRole, Language, BookingStatus } from '../types';
 import { INITIAL_PROPERTIES } from '../data/properties';
 import { INITIAL_BOOKINGS } from '../data/initialBookings';
@@ -81,6 +81,7 @@ interface BookingContextType {
   updateBookingStatus: (id: string, status: BookingStatus, notes?: string) => Promise<boolean>;
 
   // Aksi Resepsionis
+  refreshBookings: () => Promise<void>;
   checkInBooking: (id: string, signature?: string) => Promise<{ success: boolean; message: string; booking?: Booking }>;
   findBookingById: (id: string) => Booking | undefined;
   searchMyBooking: (bookingCode: string, phone: string) => Promise<Booking | null>;
@@ -432,57 +433,76 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return converted[0]?.roomTypes[0] || null;
   });
 
+  // Fungsi refresh booking dari database Supabase (bisa dipanggil kapan saja oleh Resepsionis & Admin)
+  const refreshBookings = useCallback(async (): Promise<void> => {
+    if (isSupabaseConfigured) {
+      try {
+        const { data: dbBookings, error } = await supabase
+          .from('bookings')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!error && Array.isArray(dbBookings)) {
+          const mapped: Booking[] = dbBookings.map((b: any) => ({
+            id: b.id,
+            propertyId: b.homestay_id || 'homestay-sundak',
+            propertyName:
+              b.homestay_id === 'homestay-trenggole' || b.homestay_id?.includes('trenggole')
+                ? 'Griya Barokah Pantai Trenggole'
+                : 'Griya Barokah Pantai Sundak',
+            roomTypeId: '',
+            roomTypeName: '',
+            propertyImage:
+              b.homestay_id === 'homestay-trenggole' || b.homestay_id?.includes('trenggole')
+                ? '/images/trenggole_house_1790552065368.jpg'
+                : '/images/sundak_fullhouse_1790552054893.jpg',
+            location: 'Gunungkidul, Yogyakarta',
+            guestName: b.guest_name,
+            guestPhone: b.guest_phone,
+            guestNik: '',
+            ktpImageUrl: '',
+            checkInDate: b.check_in_date,
+            checkOutDate: b.check_out_date,
+            totalNights: Number(b.total_nights || 1),
+            guestsCount: Number(b.total_guests || 1),
+            totalAmount: Number(b.total_amount || 0),
+            asalKota: b.guest_city,
+            withWhom: b.guest_relation,
+            paymentProofUrl: '',
+            paymentMethod: 'mandiri_va',
+            status: b.status,
+            createdAt: b.created_at,
+            verifiedAt: b.verified_at,
+            checkedInAt: b.checked_in_at,
+            adminNotes: b.admin_notes,
+            rejectionReason: b.rejection_reason,
+            signature: b.signature,
+          }));
+          setBookings(mapped);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_BOOKINGS_KEY, JSON.stringify(mapped));
+          } catch {}
+        }
+      } catch (err) {
+        console.warn('[BookingContext] refreshBookings error:', err);
+      }
+    } else {
+      try {
+        const stored = localStorage.getItem(LOCAL_STORAGE_BOOKINGS_KEY);
+        if (stored) {
+          setBookings(JSON.parse(stored));
+        }
+      } catch (err) {
+        console.warn('[BookingContext] refreshBookings localStorage error:', err);
+      }
+    }
+  }, []);
+
   // Listen to CMS Database updates across tabs and components
   useEffect(() => {
     // Sinkronisasi data cloud Supabase ke database CMS pada awal mount
     CMSDatabase.syncFromSupabase();
-
-    if (isSupabaseConfigured) {
-      supabase
-        .from('bookings')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .then(({ data: dbBookings, error }) => {
-          if (!error && Array.isArray(dbBookings) && dbBookings.length > 0) {
-            const mapped: Booking[] = dbBookings.map((b: any) => ({
-              id: b.id,
-              propertyId: b.homestay_id || 'homestay-sundak',
-              propertyName:
-                b.homestay_id === 'homestay-trenggole'
-                  ? 'Griya Barokah Pantai Trenggole'
-                  : 'Griya Barokah Pantai Sundak',
-              roomTypeId: '',
-              roomTypeName: '',
-              propertyImage:
-                b.homestay_id === 'homestay-trenggole'
-                  ? '/images/trenggole_house_1790552065368.jpg'
-                  : '/images/sundak_fullhouse_1790552054893.jpg',
-              location: 'Gunungkidul, Yogyakarta',
-              guestName: b.guest_name,
-              guestPhone: b.guest_phone,
-              guestNik: '',
-              ktpImageUrl: '',
-              checkInDate: b.check_in_date,
-              checkOutDate: b.check_out_date,
-              totalNights: Number(b.total_nights || 1),
-              guestsCount: Number(b.total_guests || 1),
-              totalAmount: Number(b.total_amount || 0),
-              asalKota: b.guest_city,
-              withWhom: b.guest_relation,
-              paymentProofUrl: '',
-              paymentMethod: 'mandiri_va',
-              status: b.status,
-              createdAt: b.created_at,
-              verifiedAt: b.verified_at,
-              checkedInAt: b.checked_in_at,
-              adminNotes: b.admin_notes,
-              rejectionReason: b.rejection_reason,
-              signature: b.signature,
-            }));
-            setBookings(mapped);
-          }
-        });
-    }
+    refreshBookings();
 
     const handleCmsUpdate = () => {
       const freshHome = CMSDatabase.getHomepageContent();
@@ -1401,6 +1421,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         verifyBooking,
         rejectBooking,
         updateBookingStatus,
+        refreshBookings,
         checkInBooking,
         findBookingById,
         searchMyBooking,
