@@ -34,6 +34,7 @@ export const PropertyDetailPage: React.FC = () => {
     t,
     cmsHomestays,
     cmsRooms,
+    setIsLocationPreselected,
   } = useBooking();
 
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
@@ -77,6 +78,7 @@ export const PropertyDetailPage: React.FC = () => {
       return;
     }
     setRoomErrorNotice('');
+    setIsLocationPreselected(true);
     setCurrentView('booking_flow');
   };
 

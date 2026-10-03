@@ -35,7 +35,7 @@ export const ReceptionistDashboard: React.FC = () => {
     setRole,
     logoutStaff,
     navigateTo,
-    adminWhatsappNumber,
+    getWebsiteSetting,
   } = useBooking();
 
   const [bookingIdQuery, setBookingIdQuery] = useState<string>('GBH-2025-9812');
@@ -287,7 +287,14 @@ export const ReceptionistDashboard: React.FC = () => {
   // Kirim WhatsApp otomatis ke nomor Admin setelah verifikasi check-in
   const handleSendAdminReport = () => {
     if (!currentBooking) return;
-    const adminPhone = (adminWhatsappNumber || '081234567890').replace(/\D/g, '');
+    const rawAdminPhone = getWebsiteSetting(
+      'admin_whatsapp',
+      '082138613888'
+    );
+    let adminPhone = rawAdminPhone.replace(/\D/g, '');
+    if (adminPhone.startsWith('0')) {
+      adminPhone = '62' + adminPhone.slice(1);
+    }
     const message = `Verifikasi Check-in Berhasil
 
 Nama Tamu:

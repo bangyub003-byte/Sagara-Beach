@@ -42,6 +42,8 @@ export const CustomerDashboard: React.FC = () => {
     cmsRooms,
     cmsMedia,
     facilityImage,
+    setPreselectedGuestCount,
+    setIsLocationPreselected,
   } = useBooking();
 
   // State Pilihan Singkat di Beranda (Lokasi & Jumlah Tamu saja - TANPA TANGGAL)
@@ -72,17 +74,60 @@ export const CustomerDashboard: React.FC = () => {
   const room4 = cmsRooms?.find((r) => r.id === 'trenggole-kamar-4');
 
   const handleCariHomestay = () => {
-    if (selectedLocation === 'homestay-sundak') {
-      setSelectedProperty(sundakProp);
-    } else if (selectedLocation === 'homestay-trenggole') {
+    // Simpan jumlah tamu yang dipilih untuk dibawa ke alur booking
+    setPreselectedGuestCount(guestCountEstimate);
+
+    // Jika jumlah tamu < 6 orang, otomatis mengarah ke Pantai Trenggole (karena Sundak min. 6 orang)
+    if (guestCountEstimate < 6) {
+      setSelectedLocation('homestay-trenggole');
       setSelectedProperty(trenggoleProp);
+      setIsLocationPreselected(true);
+    } else {
+      if (selectedLocation === 'homestay-sundak') {
+        setSelectedProperty(sundakProp);
+        setIsLocationPreselected(true);
+      } else if (selectedLocation === 'homestay-trenggole') {
+        setSelectedProperty(trenggoleProp);
+        setIsLocationPreselected(true);
+      } else {
+        setIsLocationPreselected(false);
+      }
     }
-    setCurrentView('accommodations');
+
+    // Scroll mulus ke daftar pilihan penginapan di beranda
+    const el = document.getElementById('pilihan-penginapan');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   const handlePesanSekarang = (propertyId?: string) => {
-    const targetPropId =
-      propertyId || (selectedLocation === 'all' ? 'homestay-sundak' : selectedLocation);
+    // Simpan jumlah tamu yang dipilih untuk dibawa ke alur booking
+    setPreselectedGuestCount(guestCountEstimate);
+
+    let targetPropId = propertyId;
+
+    if (!targetPropId) {
+      // Dipicu dari tombol umum "Pesan Sekarang" di form rencana kunjungan:
+      if (guestCountEstimate < 6) {
+        // Otomatis ke Pantai Trenggole (Sundak minimal 6 orang)
+        targetPropId = 'homestay-trenggole';
+        setIsLocationPreselected(true);
+      } else if (selectedLocation === 'homestay-sundak') {
+        targetPropId = 'homestay-sundak';
+        setIsLocationPreselected(true);
+      } else if (selectedLocation === 'homestay-trenggole') {
+        targetPropId = 'homestay-trenggole';
+        setIsLocationPreselected(true);
+      } else {
+        targetPropId = 'homestay-sundak';
+        setIsLocationPreselected(false);
+      }
+    } else {
+      // Dipicu dari tombol spesifik di kartu penginapan ("Pesan di Pantai Sundak / Trenggole")
+      setIsLocationPreselected(true);
+    }
+
     const target =
       accommodations.find(
         (a) =>
@@ -269,7 +314,14 @@ export const CustomerDashboard: React.FC = () => {
               </label>
               <select
                 value={guestCountEstimate}
-                onChange={(e) => setGuestCountEstimate(Number(e.target.value))}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setGuestCountEstimate(val);
+                  setPreselectedGuestCount(val);
+                  if (val < 6 && selectedLocation === 'homestay-sundak') {
+                    setSelectedLocation('homestay-trenggole');
+                  }
+                }}
                 className="w-full h-11 px-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900"
               >
                 <option value={2}>2 Orang (Keluarga Kecil / Pasangan)</option>
@@ -307,7 +359,7 @@ export const CustomerDashboard: React.FC = () => {
         {/* ==============================================================
             3. INFORMASI DETAIL: PANTAI SUNDAK & PANTAI TRENGGOLE
            ============================================================== */}
-        <section className="space-y-4">
+        <section id="pilihan-penginapan" className="space-y-4 scroll-mt-6">
           <div className="flex items-center justify-between px-1">
             <h2 className="text-xs font-black uppercase tracking-wider text-neutral-700">
               Pilihan Penginapan Kami
@@ -321,176 +373,227 @@ export const CustomerDashboard: React.FC = () => {
             </button>
           </div>
 
-          {/* Card Informasi 1: Griya Barokah Pantai Sundak */}
-          <div className="bg-white rounded-[28px] overflow-hidden shadow-xs border border-neutral-200/90 space-y-3.5 pb-4">
-            <div className="relative h-44 w-full">
-              <PhotoSlider
-                images={sundakCms?.galeri || sundakProp?.gallery || [sundakImageSrc]}
-                alt="Griya Barokah Pantai Sundak"
-                fallbackText="Pantai Sundak"
-                className="w-full h-full object-cover"
-                containerClassName="w-full h-full"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
-              <div className="absolute top-3 left-3 z-10">
-                <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold shadow-xs">
-                  Keluarga Besar & Rombongan
-                </span>
-              </div>
-              <div className="absolute bottom-3 left-4 right-4 text-white z-10 pointer-events-none">
-                <span className="text-[11px] text-emerald-300 font-semibold block">
-                  Kawasan Wisata Pantai Sundak
-                </span>
-                <h3 className="text-lg font-black text-white leading-tight">
-                  Griya Barokah Pantai Sundak
-                </h3>
-              </div>
-            </div>
-
-            <div className="px-4 space-y-2.5">
-              <p className="text-xs text-neutral-600 leading-relaxed">
-                Konsep Satu Rumah Penuh (Full House), bukan sewa per kamar. Berjarak jalan kaki ke pantai pasir putih Sundak, cocok untuk keluarga & rombongan. Memiliki 4 kamar tidur AC, 3 kamar mandi, ruang keluarga luas, kulkas, TV, mesin cuci, dapur lengkap alat masak/makan, WiFi gratis, dan parkir luas.
-              </p>
-
-              {/* Rincian Tarif Full House Sundak */}
-              <div className="p-3 rounded-2xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-neutral-900">Satu Rumah Penuh (Full House)</span>
-                  <span className="font-black text-emerald-800">Rp75.000 <span className="font-normal text-[10px] text-neutral-400">/orang/malam</span></span>
-                </div>
-                <p className="text-[11px] text-neutral-500">
-                  Minimal pemesanan 6 orang (maksimal 21 orang). Total biaya: <strong>Jumlah orang × Jumlah malam × Rp75.000</strong>.
-                </p>
-                <div className="p-2 rounded-xl bg-emerald-50 text-[10px] text-emerald-900 font-semibold border border-emerald-200">
-                  Contoh: 6 orang 1 malam = Rp450.000 • 7 orang 1 malam = Rp525.000 • 7 orang 2 malam = Rp1.050.000.
-                </div>
-              </div>
-
-              <button
-                onClick={() => handlePesanSekarang('homestay-sundak')}
-                className="w-full py-2.5 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs cursor-pointer"
-              >
-                <span>Pesan di Pantai Sundak</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+          {/* Tab Filter Lokasi Penginapan */}
+          <div className="flex p-1 bg-neutral-200/80 rounded-2xl gap-1 text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setSelectedLocation('all')}
+              className={`flex-1 py-1.5 px-2 rounded-xl transition-all text-center cursor-pointer ${
+                selectedLocation === 'all'
+                  ? 'bg-white text-neutral-900 shadow-2xs ring-1 ring-black/5'
+                  : 'text-neutral-600 hover:text-neutral-900'
+              }`}
+            >
+              Semua Lokasi
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedLocation('homestay-sundak')}
+              className={`flex-1 py-1.5 px-2 rounded-xl transition-all text-center cursor-pointer ${
+                selectedLocation === 'homestay-sundak'
+                  ? 'bg-white text-emerald-900 shadow-2xs ring-1 ring-emerald-800/20'
+                  : 'text-neutral-600 hover:text-neutral-900'
+              }`}
+            >
+              Pantai Sundak
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedLocation('homestay-trenggole')}
+              className={`flex-1 py-1.5 px-2 rounded-xl transition-all text-center cursor-pointer ${
+                selectedLocation === 'homestay-trenggole'
+                  ? 'bg-white text-sky-900 shadow-2xs ring-1 ring-sky-800/20'
+                  : 'text-neutral-600 hover:text-neutral-900'
+              }`}
+            >
+              Pantai Trenggole
+            </button>
           </div>
+
+          {/* Notifikasi info kapasitas jika tamu < 6 orang */}
+          {guestCountEstimate < 6 && (
+            <div className="p-3 bg-sky-50 border border-sky-200/80 text-sky-950 rounded-2xl text-xs flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-sky-700 shrink-0" />
+              <span>
+                Jumlah tamu <strong>{guestCountEstimate} orang</strong> cocok untuk <strong>Pantai Trenggole</strong> (kamar individual). Pantai Sundak khusus rombongan minimal 6 orang (Satu Rumah Penuh).
+              </span>
+            </div>
+          )}
+
+          {/* Card Informasi 1: Griya Barokah Pantai Sundak */}
+          {(selectedLocation === 'all' || selectedLocation === 'homestay-sundak') && guestCountEstimate >= 6 && (
+            <div className="bg-white rounded-[28px] overflow-hidden shadow-xs border border-neutral-200/90 space-y-3.5 pb-4">
+              <div className="relative h-44 w-full">
+                <PhotoSlider
+                  images={sundakCms?.galeri || sundakProp?.gallery || [sundakImageSrc]}
+                  alt="Griya Barokah Pantai Sundak"
+                  fallbackText="Pantai Sundak"
+                  className="w-full h-full object-cover"
+                  containerClassName="w-full h-full"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
+                <div className="absolute top-3 left-3 z-10">
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold shadow-xs">
+                    Keluarga Besar & Rombongan
+                  </span>
+                </div>
+                <div className="absolute bottom-3 left-4 right-4 text-white z-10 pointer-events-none">
+                  <span className="text-[11px] text-emerald-300 font-semibold block">
+                    Kawasan Wisata Pantai Sundak
+                  </span>
+                  <h3 className="text-lg font-black text-white leading-tight">
+                    Griya Barokah Pantai Sundak
+                  </h3>
+                </div>
+              </div>
+
+              <div className="px-4 space-y-2.5">
+                <p className="text-xs text-neutral-600 leading-relaxed">
+                  Konsep Satu Rumah Penuh (Full House), bukan sewa per kamar. Berjarak jalan kaki ke pantai pasir putih Sundak, cocok untuk keluarga & rombongan. Memiliki 4 kamar tidur AC, 3 kamar mandi, ruang keluarga luas, kulkas, TV, mesin cuci, dapur lengkap alat masak/makan, WiFi gratis, dan parkir luas.
+                </p>
+
+                {/* Rincian Tarif Full House Sundak */}
+                <div className="p-3 rounded-2xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-neutral-900">Satu Rumah Penuh (Full House)</span>
+                    <span className="font-black text-emerald-800">Rp75.000 <span className="font-normal text-[10px] text-neutral-400">/orang/malam</span></span>
+                  </div>
+                  <p className="text-[11px] text-neutral-500">
+                    Minimal pemesanan 6 orang (maksimal 21 orang). Total biaya: <strong>Jumlah orang × Jumlah malam × Rp75.000</strong>.
+                  </p>
+                  <div className="p-2 rounded-xl bg-emerald-50 text-[10px] text-emerald-900 font-semibold border border-emerald-200">
+                    Contoh: 6 orang 1 malam = Rp450.000 • 7 orang 1 malam = Rp525.000 • 7 orang 2 malam = Rp1.050.000.
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handlePesanSekarang('homestay-sundak')}
+                  className="w-full py-2.5 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs cursor-pointer"
+                >
+                  <span>Pesan di Pantai Sundak</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Card Informasi 2: Griya Barokah Pantai Trenggole */}
-          <div className="bg-white rounded-[28px] overflow-hidden shadow-xs border border-neutral-200/90 space-y-3.5 pb-4">
-            <div className="relative h-44 w-full">
-              <PhotoSlider
-                images={trenggoleCms?.galeri || trenggoleProp?.gallery || [trenggoleImageSrc]}
-                alt="Griya Barokah Pantai Trenggole"
-                fallbackText="Pantai Trenggole"
-                className="w-full h-full object-cover"
-                containerClassName="w-full h-full"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
-              <div className="absolute top-3 left-3 z-10">
-                <span className="px-2.5 py-1 rounded-full bg-sky-600 text-white text-[10px] font-extrabold shadow-xs">
-                  Tepi Pantai & Suasana Tenang
-                </span>
+          {(selectedLocation === 'all' || selectedLocation === 'homestay-trenggole' || guestCountEstimate < 6) && (
+            <div className="bg-white rounded-[28px] overflow-hidden shadow-xs border border-neutral-200/90 space-y-3.5 pb-4">
+              <div className="relative h-44 w-full">
+                <PhotoSlider
+                  images={trenggoleCms?.galeri || trenggoleProp?.gallery || [trenggoleImageSrc]}
+                  alt="Griya Barokah Pantai Trenggole"
+                  fallbackText="Pantai Trenggole"
+                  className="w-full h-full object-cover"
+                  containerClassName="w-full h-full"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
+                <div className="absolute top-3 left-3 z-10">
+                  <span className="px-2.5 py-1 rounded-full bg-sky-600 text-white text-[10px] font-extrabold shadow-xs">
+                    Tepi Pantai & Suasana Tenang
+                  </span>
+                </div>
+                <div className="absolute bottom-3 left-4 right-4 text-white z-10 pointer-events-none">
+                  <span className="text-[11px] text-sky-300 font-semibold block">
+                    Jalur Wisata Pantai Trenggole
+                  </span>
+                  <h3 className="text-lg font-black text-white leading-tight">
+                    Griya Barokah Pantai Trenggole
+                  </h3>
+                </div>
               </div>
-              <div className="absolute bottom-3 left-4 right-4 text-white z-10 pointer-events-none">
-                <span className="text-[11px] text-sky-300 font-semibold block">
-                  Jalur Wisata Pantai Trenggole
-                </span>
-                <h3 className="text-lg font-black text-white leading-tight">
-                  Griya Barokah Pantai Trenggole
-                </h3>
+
+              <div className="px-4 space-y-2.5">
+                <p className="text-xs text-neutral-600 leading-relaxed">
+                  Suasana asri tepi pantai dengan 4 pilihan kamar. Semua kamar Trenggole: view pantai, 2 bed ukuran ±130x200, dan bisa tambah extra bed.
+                </p>
+
+                {/* 4 Pilihan Kamar Trenggole dengan Foto CMS & Slider */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
+                    <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900 relative">
+                      <PhotoSlider
+                        images={room1?.galeri || (room1?.foto_utama ? [room1.foto_utama] : [room1?.foto || '/images/trenggole_room_1790552085510.jpg'])}
+                        alt={room1?.nama_kamar || 'Kamar 1'}
+                        fallbackText={room1?.nama_kamar || 'Kamar 1'}
+                        className="w-full h-full object-cover"
+                        containerClassName="w-full h-full"
+                        showControls={false}
+                      />
+                    </div>
+                    <div>
+                      <span className="font-bold text-neutral-900 block">{room1?.nama_kamar || 'Kamar 1'}</span>
+                      <span className="font-black text-emerald-800 text-[11px]">Rp{(room1?.harga || 285000).toLocaleString('id-ID')}</span>
+                      <span className="text-[9px] text-neutral-500 block leading-tight mt-0.5">AC, KM jongkok, perlengkapan mandi, wifi.</span>
+                    </div>
+                  </div>
+
+                  <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
+                    <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900 relative">
+                      <PhotoSlider
+                        images={room2?.galeri || (room2?.foto_utama ? [room2.foto_utama] : [room2?.foto || '/images/trenggole_room_1790552085510.jpg'])}
+                        alt={room2?.nama_kamar || 'Kamar 2'}
+                        fallbackText={room2?.nama_kamar || 'Kamar 2'}
+                        className="w-full h-full object-cover"
+                        containerClassName="w-full h-full"
+                        showControls={false}
+                      />
+                    </div>
+                    <div>
+                      <span className="font-bold text-neutral-900 block">{room2?.nama_kamar || 'Kamar 2'}</span>
+                      <span className="font-black text-emerald-800 text-[11px]">Rp{(room2?.harga || 335000).toLocaleString('id-ID')}</span>
+                      <span className="text-[9px] text-neutral-500 block leading-tight mt-0.5">AC, KM jongkok, dapur mini, gas gratis.</span>
+                    </div>
+                  </div>
+
+                  <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
+                    <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900 relative">
+                      <PhotoSlider
+                        images={room3?.galeri || (room3?.foto_utama ? [room3.foto_utama] : [room3?.foto || '/images/trenggole_room_1790552085510.jpg'])}
+                        alt={room3?.nama_kamar || 'Kamar 3'}
+                        fallbackText={room3?.nama_kamar || 'Kamar 3'}
+                        className="w-full h-full object-cover"
+                        containerClassName="w-full h-full"
+                        showControls={false}
+                      />
+                    </div>
+                    <div>
+                      <span className="font-bold text-neutral-900 block">{room3?.nama_kamar || 'Kamar 3'}</span>
+                      <span className="font-black text-emerald-800 text-[11px]">Rp{(room3?.harga || 315000).toLocaleString('id-ID')}</span>
+                      <span className="text-[9px] text-neutral-500 block leading-tight mt-0.5">AC, KM duduk, wifi, lantai 2 nyaman.</span>
+                    </div>
+                  </div>
+
+                  <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
+                    <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900 relative">
+                      <PhotoSlider
+                        images={room4?.galeri || (room4?.foto_utama ? [room4.foto_utama] : [room4?.foto || '/images/trenggole_room_1790552085510.jpg'])}
+                        alt={room4?.nama_kamar || 'Kamar 4'}
+                        fallbackText={room4?.nama_kamar || 'Kamar 4'}
+                        className="w-full h-full object-cover"
+                        containerClassName="w-full h-full"
+                        showControls={false}
+                      />
+                    </div>
+                    <div>
+                      <span className="font-bold text-neutral-900 block">{room4?.nama_kamar || 'Kamar 4'}</span>
+                      <span className="font-black text-emerald-800 text-[11px]">Rp{(room4?.harga || 365000).toLocaleString('id-ID')}</span>
+                      <span className="text-[9px] text-neutral-500 block leading-tight mt-0.5">AC, KM duduk, dapur mini, lantai 2.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handlePesanSekarang('homestay-trenggole')}
+                  className="w-full py-2.5 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs cursor-pointer"
+                >
+                  <span>Pesan di Pantai Trenggole</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
-
-            <div className="px-4 space-y-2.5">
-              <p className="text-xs text-neutral-600 leading-relaxed">
-                Suasana asri tepi pantai dengan 4 pilihan kamar. Semua kamar Trenggole: view pantai, 2 bed ukuran ±130x200, dan bisa tambah extra bed.
-              </p>
-
-              {/* 4 Pilihan Kamar Trenggole dengan Foto CMS & Slider */}
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
-                  <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900 relative">
-                    <PhotoSlider
-                      images={room1?.galeri || (room1?.foto_utama ? [room1.foto_utama] : [room1?.foto || '/images/trenggole_room_1790552085510.jpg'])}
-                      alt={room1?.nama_kamar || 'Kamar 1'}
-                      fallbackText={room1?.nama_kamar || 'Kamar 1'}
-                      className="w-full h-full object-cover"
-                      containerClassName="w-full h-full"
-                      showControls={false}
-                    />
-                  </div>
-                  <div>
-                    <span className="font-bold text-neutral-900 block">{room1?.nama_kamar || 'Kamar 1'}</span>
-                    <span className="font-black text-emerald-800 text-[11px]">Rp{(room1?.harga || 285000).toLocaleString('id-ID')}</span>
-                    <span className="text-[9px] text-neutral-500 block leading-tight mt-0.5">AC, KM jongkok, perlengkapan mandi, wifi.</span>
-                  </div>
-                </div>
-
-                <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
-                  <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900 relative">
-                    <PhotoSlider
-                      images={room2?.galeri || (room2?.foto_utama ? [room2.foto_utama] : [room2?.foto || '/images/trenggole_room_1790552085510.jpg'])}
-                      alt={room2?.nama_kamar || 'Kamar 2'}
-                      fallbackText={room2?.nama_kamar || 'Kamar 2'}
-                      className="w-full h-full object-cover"
-                      containerClassName="w-full h-full"
-                      showControls={false}
-                    />
-                  </div>
-                  <div>
-                    <span className="font-bold text-neutral-900 block">{room2?.nama_kamar || 'Kamar 2'}</span>
-                    <span className="font-black text-emerald-800 text-[11px]">Rp{(room2?.harga || 335000).toLocaleString('id-ID')}</span>
-                    <span className="text-[9px] text-neutral-500 block leading-tight mt-0.5">AC, KM jongkok, dapur mini, gas gratis.</span>
-                  </div>
-                </div>
-
-                <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
-                  <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900 relative">
-                    <PhotoSlider
-                      images={room3?.galeri || (room3?.foto_utama ? [room3.foto_utama] : [room3?.foto || '/images/trenggole_room_1790552085510.jpg'])}
-                      alt={room3?.nama_kamar || 'Kamar 3'}
-                      fallbackText={room3?.nama_kamar || 'Kamar 3'}
-                      className="w-full h-full object-cover"
-                      containerClassName="w-full h-full"
-                      showControls={false}
-                    />
-                  </div>
-                  <div>
-                    <span className="font-bold text-neutral-900 block">{room3?.nama_kamar || 'Kamar 3'}</span>
-                    <span className="font-black text-emerald-800 text-[11px]">Rp{(room3?.harga || 315000).toLocaleString('id-ID')}</span>
-                    <span className="text-[9px] text-neutral-500 block leading-tight mt-0.5">AC, KM duduk, wifi, lantai 2 nyaman.</span>
-                  </div>
-                </div>
-
-                <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
-                  <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900 relative">
-                    <PhotoSlider
-                      images={room4?.galeri || (room4?.foto_utama ? [room4.foto_utama] : [room4?.foto || '/images/trenggole_room_1790552085510.jpg'])}
-                      alt={room4?.nama_kamar || 'Kamar 4'}
-                      fallbackText={room4?.nama_kamar || 'Kamar 4'}
-                      className="w-full h-full object-cover"
-                      containerClassName="w-full h-full"
-                      showControls={false}
-                    />
-                  </div>
-                  <div>
-                    <span className="font-bold text-neutral-900 block">{room4?.nama_kamar || 'Kamar 4'}</span>
-                    <span className="font-black text-emerald-800 text-[11px]">Rp{(room4?.harga || 365000).toLocaleString('id-ID')}</span>
-                    <span className="text-[9px] text-neutral-500 block leading-tight mt-0.5">AC, KM duduk, dapur mini, lantai 2.</span>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => handlePesanSekarang('homestay-trenggole')}
-                className="w-full py-2.5 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs cursor-pointer"
-              >
-                <span>Pesan di Pantai Trenggole</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
+          )}
         </section>
 
         {/* ==============================================================

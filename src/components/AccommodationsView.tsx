@@ -38,9 +38,16 @@ export const AccommodationsView: React.FC = () => {
     cmsHomestays,
     cmsRooms,
     getWebsiteSetting,
+    isLocationPreselected,
+    setIsLocationPreselected,
   } = useBooking();
 
-  const [selectedAccId, setSelectedAccId] = useState<string>('all');
+  const [selectedAccId, setSelectedAccId] = useState<string>(() => {
+    if (isLocationPreselected && selectedProperty?.id) {
+      return selectedProperty.id;
+    }
+    return 'all';
+  });
   const [expandedRoomsPropId, setExpandedRoomsPropId] = useState<string | null>(null);
 
   const displayedAccommodations =
@@ -58,6 +65,7 @@ export const AccommodationsView: React.FC = () => {
 
   const handleDirectReserve = (prop: Property, room?: RoomType) => {
     setSelectedProperty(prop);
+    setIsLocationPreselected(true);
     if (room) {
       setSelectedRoomType(room);
     } else if (prop.roomTypes.length > 0) {
