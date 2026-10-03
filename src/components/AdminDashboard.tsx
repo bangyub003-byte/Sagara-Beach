@@ -4,9 +4,6 @@ import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import {
   Home,
   LogOut,
-  Signal,
-  Wifi,
-  Battery,
   CheckCircle2,
   X,
   LayoutDashboard,
@@ -105,18 +102,8 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="min-h-[100dvh] bg-[#F6F7F9] text-[#11141A] flex flex-col justify-between select-none pb-20 max-w-md mx-auto">
-      {/* Top Status Bar Ringkas */}
-      <div className="sticky top-0 z-30 bg-[#F6F7F9]/95 backdrop-blur-md px-4 pt-2 pb-1 flex items-center justify-between text-neutral-700 text-[11px] font-semibold">
-        <span>9:41</span>
-        <div className="flex items-center gap-1.5 opacity-90">
-          <Signal className="w-3 h-3" />
-          <Wifi className="w-3 h-3" />
-          <Battery className="w-3.5 h-3.5" />
-        </div>
-      </div>
-
       {/* Header Admin Mobile-Friendly */}
-      <header className="px-3.5 sm:px-4 py-2.5 flex items-center justify-between border-b border-neutral-200/60 bg-white sticky top-6 z-20 shadow-2xs">
+      <header className="px-3.5 sm:px-4 py-2.5 flex items-center justify-between border-b border-neutral-200/60 bg-white sticky top-0 z-20 shadow-2xs">
         <div className="flex items-center gap-2 min-w-0">
           <button
             onClick={() => {

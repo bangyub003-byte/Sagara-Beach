@@ -16,9 +16,6 @@ import {
   Sparkles,
   Users,
   CheckCircle2,
-  Signal,
-  Wifi,
-  Battery,
   AlertCircle,
 } from 'lucide-react';
 
@@ -84,16 +81,6 @@ export const PropertyDetailPage: React.FC = () => {
 
   return (
     <div className="min-h-[100dvh] bg-[#F6F7F9] text-[#11141A] flex flex-col justify-between select-none pb-28">
-      {/* Status Bar HP */}
-      <div className="sticky top-0 z-30 bg-[#F6F7F9]/90 backdrop-blur-md px-6 pt-3 pb-1 flex items-center justify-between text-neutral-800 text-xs font-semibold">
-        <span>9:41</span>
-        <div className="flex items-center gap-1.5 opacity-90">
-          <Signal className="w-3.5 h-3.5" />
-          <Wifi className="w-3.5 h-3.5" />
-          <Battery className="w-4 h-4" />
-        </div>
-      </div>
-
       {/* Konten Detail */}
       <div>
         {/* Container Galeri Foto dengan Slider Otomatis & Swipe */}

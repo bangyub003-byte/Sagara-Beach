@@ -16,7 +16,14 @@ interface Props {
 }
 
 export const AdminHomepageTab: React.FC<Props> = ({ onShowToast }) => {
-  const { homepageContent, updateHomepageContent, cmsMedia, uploadMedia } = useBooking();
+  const {
+    homepageContent,
+    updateHomepageContent,
+    cmsMedia,
+    uploadMedia,
+    getWebsiteSetting,
+    updateWebsiteSetting,
+  } = useBooking();
 
   const [form, setForm] = useState({
     hero_title: homepageContent.hero_title || 'Penginapan Nyaman Dekat Pantai Sundak & Trenggole',
@@ -30,12 +37,25 @@ export const AdminHomepageTab: React.FC<Props> = ({ onShowToast }) => {
     location_badge: homepageContent.location_badge || 'Pantai Sundak & Trenggole, Gunungkidul',
   });
 
+  const [facilityImage, setFacilityImage] = useState(
+    getWebsiteSetting('facility_image', '/images/living_room_1790552074900.jpg')
+  );
+  const [generalFacilities, setGeneralFacilities] = useState(
+    getWebsiteSetting(
+      'general_facilities',
+      'Semua Kamar Ber-AC, KM Duduk & Jongkok, Dapur Lengkap & Gas, Kulkas & TV Keluarga, Tersedia 13 Extra Bed, Free WiFi Cepat'
+    )
+  );
+
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingFacility, setIsUploadingFacility] = useState(false);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
 
   const handleSave = () => {
     updateHomepageContent(form);
-    onShowToast('✓ Pengaturan Homepage berhasil disimpan!');
+    updateWebsiteSetting('facility_image', facilityImage, 'homepage');
+    updateWebsiteSetting('general_facilities', generalFacilities, 'homepage');
+    onShowToast('✓ Pengaturan Homepage & Fasilitas berhasil disimpan!');
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,6 +234,63 @@ export const AdminHomepageTab: React.FC<Props> = ({ onShowToast }) => {
               onChange={(e) => setForm((prev) => ({ ...prev, location_badge: e.target.value }))}
               className="w-full h-9 px-3 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:border-emerald-600"
               placeholder="Pantai Sundak & Trenggole"
+            />
+          </div>
+        </div>
+
+        {/* Fasilitas Lengkap Penginapan (Beranda) */}
+        <div className="pt-3 border-t border-neutral-100 space-y-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-emerald-800" />
+            <h4 className="text-xs font-bold text-neutral-900">Fasilitas Lengkap Penginapan (Beranda)</h4>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-neutral-700">Foto Banner Fasilitas</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={facilityImage}
+                onChange={(e) => setFacilityImage(e.target.value)}
+                placeholder="URL gambar fasilitas..."
+                className="flex-1 h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 focus:outline-none"
+              />
+              <label className="h-8 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-neutral-800 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all">
+                <Upload className="w-3.5 h-3.5 text-neutral-600" />
+                <span>{isUploadingFacility ? 'Unggah...' : 'Upload'}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      setIsUploadingFacility(true);
+                      try {
+                        const res = await uploadMedia(f, 'fasilitas');
+                        setFacilityImage(res.url);
+                        onShowToast('✓ Foto fasilitas berhasil diunggah!');
+                      } finally {
+                        setIsUploadingFacility(false);
+                      }
+                    }
+                  }}
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-neutral-700 flex items-center justify-between">
+              <span>Daftar Fasilitas</span>
+              <span className="text-[10px] text-neutral-400 font-normal">Pisahkan dengan koma</span>
+            </label>
+            <textarea
+              rows={3}
+              value={generalFacilities}
+              onChange={(e) => setGeneralFacilities(e.target.value)}
+              placeholder="Contoh: Semua Kamar Ber-AC, KM Duduk & Jongkok, Dapur Lengkap & Gas, Kulkas & TV Keluarga, Tersedia 13 Extra Bed, Free WiFi Cepat"
+              className="w-full p-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 resize-none leading-relaxed focus:outline-none focus:border-emerald-600"
             />
           </div>
         </div>

@@ -19,9 +19,7 @@ import {
   ArrowRight,
   User,
   CreditCard,
-  Signal,
   Wifi,
-  Battery,
   MapPin,
   Bed,
   Bath,
@@ -546,16 +544,6 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
 
     return (
       <div className="max-w-md mx-auto w-full h-[100dvh] max-h-[100dvh] bg-[#F6F7F9] text-[#11141A] flex flex-col justify-between select-none p-3 sm:p-4 overflow-hidden">
-        {/* Status Bar HP */}
-        <div className="flex items-center justify-between text-neutral-800 text-[11px] font-semibold px-1 pt-0.5">
-          <span>9:41</span>
-          <div className="flex items-center gap-1.5 opacity-90">
-            <Signal className="w-3 h-3" />
-            <Wifi className="w-3 h-3" />
-            <Battery className="w-3.5 h-3.5" />
-          </div>
-        </div>
-
         {/* HEADER: Reservasi Berhasil */}
         <div className="text-center py-1">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EBF8F2] text-[#1DB954] text-xs font-bold border border-[#C6ECD8] shadow-2xs">
@@ -700,16 +688,6 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
   // ==============================================================
   return (
     <div className="min-h-[100dvh] bg-[#F6F7F9] text-[#11141A] flex flex-col justify-between select-none pb-28">
-      {/* Mobile Top Status Bar */}
-      <div className="sticky top-0 z-30 bg-[#F6F7F9]/95 backdrop-blur-md px-6 pt-3 pb-1 flex items-center justify-between text-neutral-800 text-xs font-semibold">
-        <span>9:41</span>
-        <div className="flex items-center gap-1.5 opacity-90">
-          <Signal className="w-3.5 h-3.5" />
-          <Wifi className="w-3.5 h-3.5" />
-          <Battery className="w-4 h-4" />
-        </div>
-      </div>
-
       {/* Header Wizard */}
       <header className="px-5 py-3 flex items-center justify-between border-b border-neutral-200/80 bg-white/70 backdrop-blur-md">
         <button

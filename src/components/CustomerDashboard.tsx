@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useBooking } from '../context/BookingContext';
 import { SafeImage } from './common/SafeImage';
 import { PhotoSlider } from './common/PhotoSlider';
@@ -13,10 +13,8 @@ import {
   MessageCircle,
   Home,
   CheckCircle2,
-  Signal,
-  Wifi,
-  Battery,
   Wind,
+  Wifi,
   Flame,
   Refrigerator,
   Tv,
@@ -25,6 +23,8 @@ import {
   Building,
   ShieldCheck,
   Calendar,
+  ChevronDown,
+  Car,
 } from 'lucide-react';
 
 export const CustomerDashboard: React.FC = () => {
@@ -49,6 +49,20 @@ export const CustomerDashboard: React.FC = () => {
   // State Pilihan Singkat di Beranda (Lokasi & Jumlah Tamu saja - TANPA TANGGAL)
   const [selectedLocation, setSelectedLocation] = useState<'all' | 'homestay-sundak' | 'homestay-trenggole'>('all');
   const [guestCountEstimate, setGuestCountEstimate] = useState<number>(4);
+  const [showAllFacilities, setShowAllFacilities] = useState<boolean>(false);
+
+  // Ambil nomor WhatsApp Admin secara terpadu dari pengaturan website (konsisten dengan BookingFlow & Admin -> Pengaturan)
+  const rawAdminPhone =
+    getWebsiteSetting?.('admin_whatsapp') ||
+    getWebsiteSetting?.('footer_whatsapp') ||
+    adminWhatsappNumber ||
+    '082138613888';
+  let formattedAdminWa = rawAdminPhone.replace(/\D/g, '');
+  if (formattedAdminWa.startsWith('0')) {
+    formattedAdminWa = '62' + formattedAdminWa.substring(1);
+  } else if (!formattedAdminWa.startsWith('62')) {
+    formattedAdminWa = '62' + formattedAdminWa;
+  }
 
   // Ambil data langsung dari CMS Database sebagai sumber utama
   const sundakCms = cmsHomestays?.find((h) => h.id === 'homestay-sundak') || cmsHomestays?.[0];
@@ -62,10 +76,57 @@ export const CustomerDashboard: React.FC = () => {
   const sundakImageSrc = sundakCms?.foto_utama || sundakProp?.image || '/images/sundak_fullhouse_1790552054893.jpg';
   const trenggoleImageSrc = trenggoleCms?.foto_utama || trenggoleProp?.image || '/images/trenggole_house_1790552065368.jpg';
   const facilityImageSrc =
+    getWebsiteSetting?.('facility_image') ||
     facilityImage ||
     cmsMedia?.find((m) => m.kategori === 'fasilitas')?.url ||
     sundakCms?.galeri?.[1] ||
     '/images/living_room_1790552074900.jpg';
+
+  // Daftar fasilitas dinamis dari CMS (Admin -> Pengaturan / Homepage)
+  const facilitiesRaw = getWebsiteSetting?.(
+    'general_facilities',
+    'Semua Kamar Ber-AC, KM Duduk & Jongkok, Dapur Lengkap & Gas, Kulkas & TV Keluarga, Tersedia 13 Extra Bed, Free WiFi Cepat'
+  );
+
+  const facilitiesList = useMemo(() => {
+    if (!facilitiesRaw) return [];
+    return facilitiesRaw
+      .split(/,|\n/)
+      .map((item: string) => item.trim())
+      .filter((item: string) => item.length > 0);
+  }, [facilitiesRaw]);
+
+  // Helper pencocokan ikon fasilitas secara cerdas
+  const getFacilityIcon = (text: string) => {
+    const lower = text.toLowerCase();
+    if (lower.includes('ac') || lower.includes('dingin') || lower.includes('angin')) {
+      return <Wind className="w-3.5 h-3.5 text-sky-600 shrink-0" />;
+    }
+    if (lower.includes('km') || lower.includes('mandi') || lower.includes('toilet') || lower.includes('bath')) {
+      return <Bath className="w-3.5 h-3.5 text-blue-600 shrink-0" />;
+    }
+    if (lower.includes('dapur') || lower.includes('gas') || lower.includes('masak') || lower.includes('bbq')) {
+      return <Flame className="w-3.5 h-3.5 text-orange-600 shrink-0" />;
+    }
+    if (lower.includes('kulkas') || lower.includes('lemari es') || lower.includes('dispenser')) {
+      return <Refrigerator className="w-3.5 h-3.5 text-emerald-600 shrink-0" />;
+    }
+    if (lower.includes('tv') || lower.includes('televisi')) {
+      return <Tv className="w-3.5 h-3.5 text-purple-600 shrink-0" />;
+    }
+    if (lower.includes('bed') || lower.includes('kasur') || lower.includes('tidur')) {
+      return <Bed className="w-3.5 h-3.5 text-indigo-600 shrink-0" />;
+    }
+    if (lower.includes('wifi') || lower.includes('internet') || lower.includes('hotspot')) {
+      return <Wifi className="w-3.5 h-3.5 text-emerald-600 shrink-0" />;
+    }
+    if (lower.includes('parkir') || lower.includes('mobil') || lower.includes('motor')) {
+      return <Car className="w-3.5 h-3.5 text-neutral-600 shrink-0" />;
+    }
+    return <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />;
+  };
+
+  const displayedFacilities = showAllFacilities ? facilitiesList : facilitiesList.slice(0, 4);
 
   // 4 Kamar Trenggole dari CMS
   const room1 = cmsRooms?.find((r) => r.id === 'trenggole-kamar-1');
@@ -151,35 +212,24 @@ export const CustomerDashboard: React.FC = () => {
 
   return (
     <div className="min-h-[100dvh] bg-[#ECEEF2] text-[#12151B] flex flex-col justify-between select-none pb-28">
-      {/* Mobile Top Status Bar */}
-      <div className="sticky top-0 z-30 bg-[#ECEEF2]/95 backdrop-blur-md px-6 pt-3 pb-1 flex items-center justify-between text-neutral-800 text-xs font-semibold">
-        <span>9:41</span>
-        <div className="flex items-center gap-1.5 opacity-90">
-          <Signal className="w-3.5 h-3.5" />
-          <Wifi className="w-3.5 h-3.5" />
-          <Battery className="w-4 h-4" />
-        </div>
-      </div>
-
-      {/* Main Top Header */}
+      {/* Top Header Lokasi & Kontak WhatsApp (Judul Brand ada di App Bar Utama) */}
       <header className="px-5 pt-3 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-full bg-[#13281E] text-white flex items-center justify-center shadow-xs">
-            <Home className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center shadow-xs">
+            <MapPin className="w-5 h-5 text-emerald-700" />
           </div>
           <div>
-            <span className="block text-[10px] uppercase font-black tracking-wider text-emerald-800">
-              Griya Barokah Homestay
+            <h1 className="text-sm font-black text-neutral-900 leading-tight">
+              Pantai Sundak &amp; Trenggole
+            </h1>
+            <span className="text-[11px] text-neutral-500 font-medium block">
+              Gunungkidul, D.I. Yogyakarta
             </span>
-            <div className="flex items-center gap-1 text-[13px] font-bold text-neutral-900 leading-tight">
-              <MapPin className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Pantai Sundak & Trenggole, Gunungkidul</span>
-            </div>
           </div>
         </div>
 
         <a
-          href={`https://wa.me/${(adminWhatsappNumber || getWebsiteSetting?.('footer_whatsapp') || '6282138613888').replace(/\D/g, '')}?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20tanya%20informasi%20penginapan`}
+          href={`https://wa.me/${formattedAdminWa}?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20tanya%20informasi%20penginapan`}
           target="_blank"
           rel="noreferrer"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-neutral-200/90 text-xs font-bold text-neutral-800 shadow-xs hover:bg-neutral-50 active:scale-95 transition-all"
@@ -243,70 +293,7 @@ export const CustomerDashboard: React.FC = () => {
           </div>
 
           <div className="space-y-3.5">
-            {/* Pilihan Lokasi Homestay */}
-            <div>
-              <label className="block text-[11px] font-bold text-neutral-700 mb-1.5 flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-neutral-400" />
-                <span>Pilih Lokasi Homestay</span>
-              </label>
-              <div className="grid grid-cols-3 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setSelectedLocation('homestay-sundak')}
-                  className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
-                    selectedLocation === 'homestay-sundak'
-                      ? 'border-emerald-800 bg-emerald-50/70 shadow-xs ring-2 ring-emerald-800/15'
-                      : 'border-neutral-200 bg-[#F9FAFB] hover:border-neutral-300'
-                  }`}
-                >
-                  <span className="text-[9px] font-bold text-emerald-800 uppercase block">Lokasi 1</span>
-                  <span className="text-[12px] font-black text-neutral-900 block leading-tight mt-0.5">
-                    Pantai Sundak
-                  </span>
-                  <span className="text-[9px] text-neutral-500 block mt-0.5 truncate">
-                    Full Homestay
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedLocation('homestay-trenggole')}
-                  className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
-                    selectedLocation === 'homestay-trenggole'
-                      ? 'border-emerald-800 bg-emerald-50/70 shadow-xs ring-2 ring-emerald-800/15'
-                      : 'border-neutral-200 bg-[#F9FAFB] hover:border-neutral-300'
-                  }`}
-                >
-                  <span className="text-[9px] font-bold text-sky-800 uppercase block">Lokasi 2</span>
-                  <span className="text-[12px] font-black text-neutral-900 block leading-tight mt-0.5">
-                    Pantai Trenggole
-                  </span>
-                  <span className="text-[9px] text-neutral-500 block mt-0.5 truncate">
-                    Individual Rooms
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedLocation('all')}
-                  className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
-                    selectedLocation === 'all'
-                      ? 'border-emerald-800 bg-emerald-50/70 shadow-xs ring-2 ring-emerald-800/15'
-                      : 'border-neutral-200 bg-[#F9FAFB] hover:border-neutral-300'
-                  }`}
-                >
-                  <span className="text-[9px] font-bold text-indigo-800 uppercase block">Semua</span>
-                  <span className="text-[12px] font-black text-neutral-900 block leading-tight mt-0.5">
-                    Semua Lokasi
-                  </span>
-                  <span className="text-[9px] text-neutral-500 block mt-0.5 truncate">
-                    Lihat Kedua Pantai
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Pilihan Jumlah Tamu */}
+            {/* Pilihan Jumlah Tamu & Rekomendasi Lokasi Otomatis */}
             <div>
               <label className="block text-[11px] font-bold text-neutral-700 mb-1.5 flex items-center gap-1">
                 <Users className="w-3.5 h-3.5 text-neutral-400" />
@@ -318,8 +305,10 @@ export const CustomerDashboard: React.FC = () => {
                   const val = Number(e.target.value);
                   setGuestCountEstimate(val);
                   setPreselectedGuestCount(val);
-                  if (val < 6 && selectedLocation === 'homestay-sundak') {
+                  if (val < 6) {
                     setSelectedLocation('homestay-trenggole');
+                  } else {
+                    setSelectedLocation('all');
                   }
                 }}
                 className="w-full h-11 px-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900"
@@ -331,6 +320,20 @@ export const CustomerDashboard: React.FC = () => {
                 <option value={16}>16 Orang (Rombongan 4 Kamar Trenggole / Sundak + Extra Bed)</option>
                 <option value={21}>21 Orang (Kapasitas Maksimal Rumah Penuh Sundak)</option>
               </select>
+
+              {/* Rekomendasi Otomatis Berdasarkan Jumlah Tamu */}
+              <div className="mt-2.5 p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-[11px] text-emerald-950 flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                {guestCountEstimate < 6 ? (
+                  <span>
+                    Rekomendasi otomatis: <strong>Pantai Trenggole</strong> (kamar individual view pantai). Pantai Sundak khusus rombongan min. 6 orang.
+                  </span>
+                ) : (
+                  <span>
+                    Rekomendasi: <strong>Pantai Sundak</strong> (Satu Rumah Penuh) &amp; <strong>Pantai Trenggole</strong> cocok untuk rombongan ini.
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Tombol Utama: Cari Homestay -> Menuju ke Halaman Pilihan Penginapan */}
@@ -373,43 +376,6 @@ export const CustomerDashboard: React.FC = () => {
             </button>
           </div>
 
-          {/* Tab Filter Lokasi Penginapan */}
-          <div className="flex p-1 bg-neutral-200/80 rounded-2xl gap-1 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => setSelectedLocation('all')}
-              className={`flex-1 py-1.5 px-2 rounded-xl transition-all text-center cursor-pointer ${
-                selectedLocation === 'all'
-                  ? 'bg-white text-neutral-900 shadow-2xs ring-1 ring-black/5'
-                  : 'text-neutral-600 hover:text-neutral-900'
-              }`}
-            >
-              Semua Lokasi
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedLocation('homestay-sundak')}
-              className={`flex-1 py-1.5 px-2 rounded-xl transition-all text-center cursor-pointer ${
-                selectedLocation === 'homestay-sundak'
-                  ? 'bg-white text-emerald-900 shadow-2xs ring-1 ring-emerald-800/20'
-                  : 'text-neutral-600 hover:text-neutral-900'
-              }`}
-            >
-              Pantai Sundak
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedLocation('homestay-trenggole')}
-              className={`flex-1 py-1.5 px-2 rounded-xl transition-all text-center cursor-pointer ${
-                selectedLocation === 'homestay-trenggole'
-                  ? 'bg-white text-sky-900 shadow-2xs ring-1 ring-sky-800/20'
-                  : 'text-neutral-600 hover:text-neutral-900'
-              }`}
-            >
-              Pantai Trenggole
-            </button>
-          </div>
-
           {/* Notifikasi info kapasitas jika tamu < 6 orang */}
           {guestCountEstimate < 6 && (
             <div className="p-3 bg-sky-50 border border-sky-200/80 text-sky-950 rounded-2xl text-xs flex items-center gap-2">
@@ -420,8 +386,8 @@ export const CustomerDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* Card Informasi 1: Griya Barokah Pantai Sundak */}
-          {(selectedLocation === 'all' || selectedLocation === 'homestay-sundak') && guestCountEstimate >= 6 && (
+          {/* Card Informasi 1: Griya Barokah Pantai Sundak (Khusus Rombongan Min. 6 Orang) */}
+          {guestCountEstimate >= 6 && (
             <div className="bg-white rounded-[28px] overflow-hidden shadow-xs border border-neutral-200/90 space-y-3.5 pb-4">
               <div className="relative h-44 w-full">
                 <PhotoSlider
@@ -477,9 +443,8 @@ export const CustomerDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* Card Informasi 2: Griya Barokah Pantai Trenggole */}
-          {(selectedLocation === 'all' || selectedLocation === 'homestay-trenggole' || guestCountEstimate < 6) && (
-            <div className="bg-white rounded-[28px] overflow-hidden shadow-xs border border-neutral-200/90 space-y-3.5 pb-4">
+          {/* Card Informasi 2: Griya Barokah Pantai Trenggole (Cocok untuk Semua Ukuran Tamu) */}
+          <div className="bg-white rounded-[28px] overflow-hidden shadow-xs border border-neutral-200/90 space-y-3.5 pb-4">
               <div className="relative h-44 w-full">
                 <PhotoSlider
                   images={trenggoleCms?.galeri || trenggoleProp?.gallery || [trenggoleImageSrc]}
@@ -512,7 +477,7 @@ export const CustomerDashboard: React.FC = () => {
                 {/* 4 Pilihan Kamar Trenggole dengan Foto CMS & Slider */}
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
-                    <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900 relative">
+                    <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-100 relative">
                       <PhotoSlider
                         images={room1?.galeri || (room1?.foto_utama ? [room1.foto_utama] : [room1?.foto || '/images/trenggole_room_1790552085510.jpg'])}
                         alt={room1?.nama_kamar || 'Kamar 1'}
@@ -530,7 +495,7 @@ export const CustomerDashboard: React.FC = () => {
                   </div>
 
                   <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
-                    <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900 relative">
+                    <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-100 relative">
                       <PhotoSlider
                         images={room2?.galeri || (room2?.foto_utama ? [room2.foto_utama] : [room2?.foto || '/images/trenggole_room_1790552085510.jpg'])}
                         alt={room2?.nama_kamar || 'Kamar 2'}
@@ -548,7 +513,7 @@ export const CustomerDashboard: React.FC = () => {
                   </div>
 
                   <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
-                    <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900 relative">
+                    <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-100 relative">
                       <PhotoSlider
                         images={room3?.galeri || (room3?.foto_utama ? [room3.foto_utama] : [room3?.foto || '/images/trenggole_room_1790552085510.jpg'])}
                         alt={room3?.nama_kamar || 'Kamar 3'}
@@ -566,7 +531,7 @@ export const CustomerDashboard: React.FC = () => {
                   </div>
 
                   <div className="p-2 rounded-xl bg-[#F8F9FA] border border-neutral-200/70 space-y-1.5">
-                    <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-900 relative">
+                    <div className="h-20 w-full rounded-lg overflow-hidden bg-neutral-100 relative">
                       <PhotoSlider
                         images={room4?.galeri || (room4?.foto_utama ? [room4.foto_utama] : [room4?.foto || '/images/trenggole_room_1790552085510.jpg'])}
                         alt={room4?.nama_kamar || 'Kamar 4'}
@@ -593,7 +558,6 @@ export const CustomerDashboard: React.FC = () => {
                 </button>
               </div>
             </div>
-          )}
         </section>
 
         {/* ==============================================================
@@ -627,32 +591,32 @@ export const CustomerDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-xs text-neutral-700">
-            <div className="p-2.5 rounded-xl bg-[#F9FAFB] border border-neutral-200/70 flex items-center gap-2">
-              <Wind className="w-4 h-4 text-sky-600 shrink-0" />
-              <span>Semua Kamar Ber-AC</span>
-            </div>
-            <div className="p-2.5 rounded-xl bg-[#F9FAFB] border border-neutral-200/70 flex items-center gap-2">
-              <Bath className="w-4 h-4 text-blue-600 shrink-0" />
-              <span>KM Duduk & Jongkok</span>
-            </div>
-            <div className="p-2.5 rounded-xl bg-[#F9FAFB] border border-neutral-200/70 flex items-center gap-2">
-              <Flame className="w-4 h-4 text-orange-600 shrink-0" />
-              <span>Dapur Lengkap & Gas</span>
-            </div>
-            <div className="p-2.5 rounded-xl bg-[#F9FAFB] border border-neutral-200/70 flex items-center gap-2">
-              <Refrigerator className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Kulkas & TV Keluarga</span>
-            </div>
-            <div className="p-2.5 rounded-xl bg-[#F9FAFB] border border-neutral-200/70 flex items-center gap-2">
-              <Bed className="w-4 h-4 text-indigo-600 shrink-0" />
-              <span>Tersedia 13 Extra Bed</span>
-            </div>
-            <div className="p-2.5 rounded-xl bg-[#F9FAFB] border border-neutral-200/70 flex items-center gap-2">
-              <Wifi className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Free WiFi Cepat</span>
-            </div>
+          {/* Grid Fasilitas Dinamis & Kompak dari Pengaturan CMS */}
+          <div className="grid grid-cols-2 gap-2 text-xs text-neutral-800">
+            {displayedFacilities.map((f, idx) => (
+              <div
+                key={idx}
+                className="p-2.5 rounded-xl bg-[#F9FAFB] border border-neutral-200/70 flex items-center gap-2 transition-all hover:bg-neutral-100/80"
+              >
+                {getFacilityIcon(f)}
+                <span className="text-[11px] font-bold text-neutral-800 truncate" title={f}>
+                  {f}
+                </span>
+              </div>
+            ))}
           </div>
+
+          {/* Tombol Expand / Collapse jika fasilitas lebih dari 4 */}
+          {facilitiesList.length > 4 && (
+            <button
+              type="button"
+              onClick={() => setShowAllFacilities((prev) => !prev)}
+              className="w-full py-2 rounded-xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/80 text-[11px] font-bold text-emerald-800 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <span>{showAllFacilities ? 'Tampilkan Lebih Sedikit' : `Lihat Semua Fasilitas (${facilitiesList.length})`}</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showAllFacilities ? 'rotate-180' : ''}`} />
+            </button>
+          )}
         </section>
 
         {/* ==============================================================
@@ -683,10 +647,10 @@ export const CustomerDashboard: React.FC = () => {
                 </div>
               </div>
               <a
-                href="https://wa.me/6282138613888?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20pesan%20makanan"
+                href={`https://wa.me/${formattedAdminWa}?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20pesan%20makanan`}
                 target="_blank"
                 rel="noreferrer"
-                className="px-2.5 py-1 rounded-full bg-emerald-800 text-white text-[10px] font-bold"
+                className="px-2.5 py-1 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white text-[10px] font-bold active:scale-95 transition-transform"
               >
                 Pesan
               </a>
@@ -701,10 +665,10 @@ export const CustomerDashboard: React.FC = () => {
                 </div>
               </div>
               <a
-                href="https://wa.me/6282138613888?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20sewa%20Jeep%20wisata"
+                href={`https://wa.me/${formattedAdminWa}?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20sewa%20Jeep%20wisata`}
                 target="_blank"
                 rel="noreferrer"
-                className="px-2.5 py-1 rounded-full bg-emerald-800 text-white text-[10px] font-bold"
+                className="px-2.5 py-1 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white text-[10px] font-bold active:scale-95 transition-transform"
               >
                 Booking
               </a>
@@ -719,10 +683,10 @@ export const CustomerDashboard: React.FC = () => {
                 </div>
               </div>
               <a
-                href="https://wa.me/6282138613888?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20info%20properti%20tanah%20rumah"
+                href={`https://wa.me/${formattedAdminWa}?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20info%20properti%20tanah%20rumah`}
                 target="_blank"
                 rel="noreferrer"
-                className="px-2.5 py-1 rounded-full bg-emerald-800 text-white text-[10px] font-bold"
+                className="px-2.5 py-1 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white text-[10px] font-bold active:scale-95 transition-transform"
               >
                 Tanya
               </a>
@@ -731,13 +695,13 @@ export const CustomerDashboard: React.FC = () => {
 
           <div className="pt-1 flex items-center justify-between border-t border-emerald-200/70 text-[11px]">
             <span className="text-emerald-950 font-medium">
-              Hubungi WhatsApp: <strong>082138613xxx</strong>
+              Hubungi WhatsApp: <strong>{rawAdminPhone}</strong>
             </span>
             <a
-              href="https://wa.me/6282138613888"
+              href={`https://wa.me/${formattedAdminWa}`}
               target="_blank"
               rel="noreferrer"
-              className="font-bold text-emerald-800 hover:underline flex items-center gap-1"
+              className="font-bold text-emerald-800 hover:underline flex items-center gap-1 active:scale-95 transition-transform"
             >
               <span>Chat CS Langsung</span>
               <ArrowRight className="w-3 h-3" />

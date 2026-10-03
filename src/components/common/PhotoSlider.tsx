@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { SafeImage } from './SafeImage';
+import { SafeImage, getPublicImageUrl } from './SafeImage';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PhotoSliderProps {
@@ -35,14 +35,57 @@ export const PhotoSlider: React.FC<PhotoSliderProps> = ({
   }, [images]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [prevIndex, setPrevIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
   const touchDeltaXRef = useRef<number>(0);
+
+  // Preload semua gambar seawal mungkin agar gambar langsung siap di cache browser
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    validImages.forEach((imgUrl) => {
+      try {
+        const resolved = getPublicImageUrl(imgUrl);
+        const preloadImg = new Image();
+        preloadImg.src = resolved;
+        if (typeof preloadImg.decode === 'function') {
+          preloadImg.decode().catch(() => {});
+        }
+      } catch {
+        // Abaikan jika browser membatasi preload
+      }
+    });
+  }, [validImages]);
+
+  // Preload aktif foto berikutnya sesaat sebelum timer auto-play berpindah
+  useEffect(() => {
+    if (typeof window === 'undefined' || validImages.length <= 1) return;
+    const nextIdx = (currentIndex + 1) % validImages.length;
+    try {
+      const nextResolved = getPublicImageUrl(validImages[nextIdx]);
+      const nextImg = new Image();
+      nextImg.src = nextResolved;
+      if (typeof nextImg.decode === 'function') {
+        nextImg.decode().catch(() => {});
+      }
+    } catch {
+      // Browser decode fallback
+    }
+  }, [currentIndex, validImages]);
+
+  // Kelola pergantian index dengan cross-fade halus (pertahankan slide sebelumnya sebagai layer dasar agar tidak ada celah hitam)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPrevIndex(currentIndex);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [currentIndex]);
 
   // Keep index within bounds if images change
   useEffect(() => {
     if (currentIndex >= validImages.length) {
       setCurrentIndex(0);
+      setPrevIndex(0);
     }
   }, [validImages.length, currentIndex]);
 
@@ -101,30 +144,50 @@ export const PhotoSlider: React.FC<PhotoSliderProps> = ({
     setIsPaused(false);
   };
 
-  const currentImage = validImages[currentIndex] || validImages[0];
-
   return (
     <div
-      className={`relative overflow-hidden group select-none ${containerClassName}`}
+      className={`relative overflow-hidden bg-neutral-100 group select-none ${containerClassName}`}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Gambar Saat Ini dengan Animasi Fade Halus */}
+      {/* Placeholder skeleton shimmer abu-abu lembut (mencegah kotak hitam jika gambar belum siap) */}
+      <div className="absolute inset-0 bg-gradient-to-r from-neutral-200 via-neutral-100 to-neutral-200 animate-pulse pointer-events-none" />
+
+      {/* Layer Gambar: Dipertahankan di DOM dengan transisi cross-fade mulus tanpa unmount & tanpa kotak hitam */}
       <div className="w-full h-full relative">
-        <SafeImage
-          key={`${currentImage}-${currentIndex}`}
-          src={currentImage}
-          alt={`${alt} (${currentIndex + 1}/${validImages.length})`}
-          fallbackText={fallbackText}
-          className={`${className} transition-opacity duration-300`}
-          containerClassName="w-full h-full"
-        />
+        {validImages.map((imgUrl, idx) => {
+          const isActive = idx === currentIndex;
+          const isPrev = idx === prevIndex;
+          
+          let layerClass = 'opacity-0 z-0 pointer-events-none';
+          if (isActive) {
+            layerClass = 'opacity-100 z-10';
+          } else if (isPrev) {
+            layerClass = 'opacity-100 z-5';
+          }
+
+          return (
+            <div
+              key={`${imgUrl}-${idx}`}
+              className={`absolute inset-0 w-full h-full transition-opacity duration-600 ease-in-out ${layerClass}`}
+            >
+              <SafeImage
+                src={imgUrl}
+                alt={`${alt} (${idx + 1}/${validImages.length})`}
+                fallbackText={fallbackText}
+                className={className}
+                containerClassName="w-full h-full"
+                loading="eager"
+              />
+            </div>
+          );
+        })}
 
         {overlayGradient && (
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10 z-15 pointer-events-none" />
         )}
       </div>
 

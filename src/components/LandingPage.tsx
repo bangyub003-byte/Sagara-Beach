@@ -1,6 +1,6 @@
 import React from 'react';
 import { useBooking } from '../context/BookingContext';
-import { ArrowRight, Home, Wifi, Battery, Signal } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { SafeImage } from './common/SafeImage';
 
 export const LandingPage: React.FC = () => {
@@ -8,26 +8,6 @@ export const LandingPage: React.FC = () => {
 
   return (
     <div className="relative w-full h-full min-h-[100dvh] sm:min-h-[850px] bg-[#FBFBFC] text-[#0F141A] flex flex-col justify-between overflow-hidden select-none">
-      {/* Top Mobile Status Bar */}
-      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 pt-3 pb-1 text-neutral-900 font-semibold text-xs tracking-tight pointer-events-none">
-        <span>9:41</span>
-        <div className="flex items-center gap-1.5 opacity-90">
-          <Signal className="w-3.5 h-3.5" />
-          <Wifi className="w-3.5 h-3.5" />
-          <Battery className="w-4 h-4" />
-        </div>
-      </div>
-
-      {/* Top Brand Logo Lockup */}
-      <div className="absolute top-9 sm:top-10 left-6 z-20 flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-xl bg-[#0F2E23]/90 backdrop-blur-md border border-emerald-400/30 flex items-center justify-center text-emerald-300 shadow-sm">
-          <Home className="w-5 h-5 text-emerald-300" />
-        </div>
-        <span className="font-bold text-lg tracking-tight text-neutral-900 drop-shadow-[0_1px_2px_rgba(255,255,255,0.8)]">
-          {t.appName}
-        </span>
-      </div>
-
       {/* Hero Image Section - Mobile Aspect Ratio with Complete Building View & Smooth Fade */}
       <div className="relative w-full h-[46dvh] sm:h-[420px] shrink-0 overflow-hidden">
         <SafeImage
@@ -47,14 +27,18 @@ export const LandingPage: React.FC = () => {
       <div className="relative z-10 px-6 sm:px-7 pt-0 pb-4 sm:pb-6 flex flex-col justify-between flex-grow">
         {/* Headline & Description tightly integrated near the hero image */}
         <div className="space-y-2 sm:space-y-2.5">
-          <h1 className="text-[28px] sm:text-[34px] font-extrabold leading-[1.14] tracking-tight text-[#0F1C15]">
-            {t.landingTitle1}
-            <br />
-            {t.landingTitle2}
+          <h1 className="text-[26px] sm:text-[32px] font-extrabold leading-[1.14] tracking-tight text-[#0F1C15]">
+            {homepageContent?.hero_title || (
+              <>
+                {t.landingTitle1}
+                <br />
+                {t.landingTitle2}
+              </>
+            )}
           </h1>
 
           <p className="text-[13px] sm:text-[14px] leading-relaxed text-[#596560] max-w-[340px] font-normal">
-            {t.landingDesc}
+            {homepageContent?.hero_description || t.landingDesc}
           </p>
         </div>
 

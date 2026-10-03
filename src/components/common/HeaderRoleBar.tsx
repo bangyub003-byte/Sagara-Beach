@@ -19,7 +19,7 @@ export const HeaderRoleBar: React.FC = () => {
         <button
           onClick={() => setCurrentView('landing')}
           className="flex items-center gap-2 font-bold text-neutral-900 hover:text-emerald-700 transition-colors"
-          title="Sagara Beach Stay"
+          title="Griya Barokah Homestay"
         >
           <div className="w-6 h-6 rounded-md bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-800 shadow-xs">
             <Palmtree className="w-3.5 h-3.5 text-emerald-700" />

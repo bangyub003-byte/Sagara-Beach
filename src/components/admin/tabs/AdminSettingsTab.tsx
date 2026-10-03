@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useBooking } from '../../../context/BookingContext';
+import { SafeImage } from '../../common/SafeImage';
 import {
   Settings,
   Clock,
@@ -13,6 +14,9 @@ import {
   Image as ImageIcon,
   CreditCard,
   ShieldCheck,
+  Upload,
+  Palmtree,
+  ListFilter,
 } from 'lucide-react';
 
 interface Props {
@@ -25,6 +29,9 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
     updateMultipleSettings,
     cmsActivityLogs,
     resetCmsDatabase,
+    homepageContent,
+    updateHomepageContent,
+    uploadMedia,
   } = useBooking();
 
   const [brandName, setBrandName] = useState(
@@ -34,11 +41,40 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
     getWebsiteSetting('brand_logo', '/images/sundak_fullhouse_1790552054893.jpg')
   );
   const [whatsapp, setWhatsapp] = useState(
-    getWebsiteSetting('footer_whatsapp', '082138613888')
+    getWebsiteSetting('admin_whatsapp') || getWebsiteSetting('footer_whatsapp', '082138613888')
   );
   const [alamat, setAlamat] = useState(
     getWebsiteSetting('footer_address', 'Pantai Sundak & Trenggole, Sidoharjo, Tepus, Gunungkidul, D.I. Yogyakarta')
   );
+
+  // Hero Banner Beranda (Tersambung langsung ke homepageContent)
+  const [heroTitle, setHeroTitle] = useState(
+    homepageContent?.hero_title || 'Griya Barokah Homestay Pantai Sundak & Trenggole'
+  );
+  const [heroSubtitle, setHeroSubtitle] = useState(
+    homepageContent?.hero_subtitle || 'HOMESTAY KELUARGA ASLI'
+  );
+  const [heroDescription, setHeroDescription] = useState(
+    homepageContent?.hero_description || 'Penginapan keluarga nyaman dekat pantai Gunungkidul dengan fasilitas lengkap.'
+  );
+  const [heroImage, setHeroImage] = useState(
+    homepageContent?.hero_image || '/images/sundak_fullhouse_1790552054893.jpg'
+  );
+
+  // Fasilitas Lengkap Penginapan di Beranda
+  const [facilityImage, setFacilityImage] = useState(
+    getWebsiteSetting('facility_image', '/images/living_room_1790552074900.jpg')
+  );
+  const [generalFacilities, setGeneralFacilities] = useState(
+    getWebsiteSetting(
+      'general_facilities',
+      'Semua Kamar Ber-AC, KM Duduk & Jongkok, Dapur Lengkap & Gas, Kulkas & TV Keluarga, Tersedia 13 Extra Bed, Free WiFi Cepat'
+    )
+  );
+
+  const [isUploadingHero, setIsUploadingHero] = useState(false);
+  const [isUploadingFacility, setIsUploadingFacility] = useState(false);
+
   const [checkInTime, setCheckInTime] = useState(
     getWebsiteSetting('checkin_time', '14:00 WIB')
   );
@@ -96,12 +132,15 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
   const [activeSubTab, setActiveSubTab] = useState<'settings' | 'logs'>('settings');
 
   const handleSave = () => {
+    // 1. Simpan pengaturan website & kontak WA tunggal
     updateMultipleSettings({
       brand_name: { value: brandName, kategori: 'homepage' },
       brand_logo: { value: brandLogo, kategori: 'homepage' },
       footer_whatsapp: { value: whatsapp, kategori: 'kontak' },
       admin_whatsapp: { value: whatsapp, kategori: 'kontak' },
       footer_address: { value: alamat, kategori: 'footer' },
+      facility_image: { value: facilityImage, kategori: 'homepage' },
+      general_facilities: { value: generalFacilities, kategori: 'homepage' },
       checkin_time: { value: checkInTime, kategori: 'booking' },
       checkout_time: { value: checkOutTime, kategori: 'booking' },
       booking_rules: { value: bookingRules, kategori: 'aturan' },
@@ -116,7 +155,16 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
       booking_mahrom_clause: { value: mahromClause, kategori: 'aturan' },
       guest_relation_options: { value: guestRelations, kategori: 'booking' },
     });
-    onShowToast('✓ Pengaturan website & rekening berhasil disimpan!');
+
+    // 2. Simpan juga ke homepageContent agar langsung realtime di Beranda & Landing Page
+    updateHomepageContent({
+      hero_title: heroTitle,
+      hero_subtitle: heroSubtitle,
+      hero_description: heroDescription,
+      hero_image: heroImage,
+    });
+
+    onShowToast('✓ Seluruh pengaturan Beranda, Hero, Fasilitas & Kontak WhatsApp berhasil disimpan!');
   };
 
   const handleResetData = () => {
@@ -183,14 +231,20 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-neutral-700">WhatsApp Pengelola (CS)</label>
+                <label className="text-[11px] font-bold text-neutral-700 flex items-center justify-between">
+                  <span>WhatsApp Pengelola (CS)</span>
+                  <span className="text-[10px] text-emerald-700 font-semibold">Tersambung ke Semua Tombol Beranda &amp; Booking</span>
+                </label>
                 <input
                   type="text"
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
                   placeholder="Contoh: 082138613888"
-                  className="w-full h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 focus:outline-none"
+                  className="w-full h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
                 />
+                <p className="text-[10px] text-neutral-500">
+                  Nomor terpadu untuk: Header WhatsApp Beranda, Layanan Tambahan (Pesanan Makanan, Sewa Jeep, Info Tanah), Chat CS Langsung, dan Laporan BookingFlow.
+                </p>
               </div>
 
               <div className="space-y-1">
@@ -201,6 +255,175 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
                   onChange={(e) => setAlamat(e.target.value)}
                   className="w-full p-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 resize-none leading-relaxed focus:outline-none"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Card Baru: Banner Hero Beranda */}
+          <div className="p-4 rounded-2xl bg-white border border-neutral-200/90 shadow-2xs space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-emerald-800" />
+                <div>
+                  <h3 className="text-xs font-bold text-neutral-900">Banner Hero Beranda (Utama)</h3>
+                  <p className="text-[10px] text-neutral-400">Gambar besar, judul &amp; deskripsi pembuka di bagian paling atas Beranda</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Preview Banner */}
+            <div className="relative w-full h-36 rounded-xl overflow-hidden bg-neutral-900 border border-neutral-200 shadow-2xs">
+              <SafeImage
+                src={heroImage}
+                alt="Preview Hero"
+                fallbackText="Hero Homestay"
+                className="w-full h-full object-cover opacity-90"
+                containerClassName="w-full h-full"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10" />
+              <div className="absolute inset-0 p-3 flex flex-col justify-between text-white pointer-events-none">
+                <span className="self-start px-2 py-0.5 rounded-full bg-emerald-600/90 text-[9px] font-black uppercase">
+                  {heroSubtitle || 'HOMESTAY KELUARGA ASLI'}
+                </span>
+                <div>
+                  <h4 className="text-xs font-bold truncate drop-shadow-sm">{heroTitle}</h4>
+                  <p className="text-[10px] text-neutral-200 line-clamp-1">{heroDescription}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2.5">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-neutral-700">Foto Hero Banner</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={heroImage}
+                    onChange={(e) => setHeroImage(e.target.value)}
+                    placeholder="URL gambar banner..."
+                    className="flex-1 h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 focus:outline-none"
+                  />
+                  <label className="h-8 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-neutral-800 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all">
+                    <Upload className="w-3.5 h-3.5 text-neutral-600" />
+                    <span>{isUploadingHero ? 'Unggah...' : 'Upload'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        if (f) {
+                          setIsUploadingHero(true);
+                          try {
+                            const res = await uploadMedia(f, 'hero');
+                            setHeroImage(res.url);
+                            onShowToast('✓ Foto hero berhasil diunggah!');
+                          } finally {
+                            setIsUploadingHero(false);
+                          }
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-neutral-700">Judul Hero Banner</label>
+                <input
+                  type="text"
+                  value={heroTitle}
+                  onChange={(e) => setHeroTitle(e.target.value)}
+                  className="w-full h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-neutral-700">Badge / Subjudul Singkat</label>
+                  <input
+                    type="text"
+                    value={heroSubtitle}
+                    onChange={(e) => setHeroSubtitle(e.target.value)}
+                    placeholder="HOMESTAY KELUARGA ASLI"
+                    className="w-full h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-neutral-700">Deskripsi Hero</label>
+                  <input
+                    type="text"
+                    value={heroDescription}
+                    onChange={(e) => setHeroDescription(e.target.value)}
+                    placeholder="Penginapan keluarga nyaman dekat pantai..."
+                    className="w-full h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card Baru: Fasilitas Lengkap Penginapan di Beranda */}
+          <div className="p-4 rounded-2xl bg-white border border-neutral-200/90 shadow-2xs space-y-3">
+            <div className="flex items-center gap-2 pb-2 border-b border-neutral-100">
+              <Sparkles className="w-4 h-4 text-emerald-800" />
+              <div>
+                <h3 className="text-xs font-bold text-neutral-900">Fasilitas Lengkap Penginapan (Beranda)</h3>
+                <p className="text-[10px] text-neutral-400">Atur foto dan butir-butir fasilitas yang tampil di section fasilitas Beranda</p>
+              </div>
+            </div>
+
+            <div className="space-y-2.5">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-neutral-700">Foto Banner Fasilitas</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={facilityImage}
+                    onChange={(e) => setFacilityImage(e.target.value)}
+                    placeholder="URL foto fasilitas penginapan..."
+                    className="flex-1 h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 focus:outline-none"
+                  />
+                  <label className="h-8 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-neutral-800 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all">
+                    <Upload className="w-3.5 h-3.5 text-neutral-600" />
+                    <span>{isUploadingFacility ? 'Unggah...' : 'Upload'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        if (f) {
+                          setIsUploadingFacility(true);
+                          try {
+                            const res = await uploadMedia(f, 'fasilitas');
+                            setFacilityImage(res.url);
+                            onShowToast('✓ Foto fasilitas berhasil diunggah!');
+                          } finally {
+                            setIsUploadingFacility(false);
+                          }
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-neutral-700 flex items-center justify-between">
+                  <span>Daftar Fasilitas Penginapan</span>
+                  <span className="text-[10px] text-neutral-400 font-normal">Pisahkan dengan koma</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={generalFacilities}
+                  onChange={(e) => setGeneralFacilities(e.target.value)}
+                  placeholder="Contoh: Semua Kamar Ber-AC, KM Duduk & Jongkok, Dapur Lengkap & Gas, Kulkas & TV Keluarga, Tersedia 13 Extra Bed, Free WiFi Cepat"
+                  className="w-full p-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 resize-none leading-relaxed focus:outline-none focus:ring-1 focus:ring-emerald-700"
+                />
+                <p className="text-[10px] text-neutral-500">
+                  Daftar di atas otomatis tampil dengan ikon yang sesuai di Beranda, tersusun dalam kartu ringkas yang dapat diperluas oleh tamu.
+                </p>
               </div>
             </div>
           </div>

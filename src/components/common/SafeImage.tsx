@@ -116,16 +116,14 @@ export const SafeImage: React.FC<SafeImageProps> = ({
 
   return (
     <div
-      className={`relative overflow-hidden bg-neutral-900 ${containerClassName}`}
+      className={`relative overflow-hidden bg-neutral-100 ${containerClassName}`}
       data-image-source={currentSrc.startsWith('data:') ? 'cms-uploaded-dataurl' : currentSrc}
       data-source-origin={currentSrc.startsWith('data:') ? 'CMS_DATABASE_UPLOAD' : 'CMS_DATABASE'}
       title={`[Sumber Gambar CMS]: ${currentSrc.startsWith('data:') ? 'CMS Upload (Base64 Data URL)' : currentSrc}`}
     >
-      {/* Skeleton loading yang ringan & optimal untuk mobile */}
+      {/* Skeleton loading shimmer abu-abu lembut (mencegah kotak hitam polos) */}
       {!isLoaded && !hasError && (
-        <div className="absolute inset-0 bg-neutral-800 animate-pulse flex items-center justify-center z-10 pointer-events-none">
-          <div className="w-5 h-5 border-2 border-neutral-600 border-t-emerald-500 rounded-full animate-spin" />
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-r from-neutral-200 via-neutral-100 to-neutral-200 animate-pulse pointer-events-none" />
       )}
 
       {/* Indikator Pengecekan Sumber Gambar Saat Debugging (hanya muncul jika mode debug aktif) */}
@@ -137,13 +135,13 @@ export const SafeImage: React.FC<SafeImageProps> = ({
         </div>
       )}
 
-      {/* Fallback Placeholder (Mencegah layar putih kosong, mempertahankan tata letak UI) */}
+      {/* Fallback Placeholder Lembut (Mencegah kotak hitam / layar putih, ramah mata) */}
       {hasError ? (
-        <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950 flex flex-col items-center justify-center p-3 text-center z-20 select-none">
-          <div className="w-9 h-9 rounded-xl bg-neutral-800 border border-neutral-700/80 flex items-center justify-center text-emerald-400 mb-1.5 shadow-xs">
-            <Home className="w-4 h-4 text-emerald-400" />
+        <div className="absolute inset-0 bg-neutral-100 border border-neutral-200/80 flex flex-col items-center justify-center p-3 text-center z-20 select-none">
+          <div className="w-8 h-8 rounded-xl bg-white border border-neutral-200 flex items-center justify-center text-emerald-600 mb-1 shadow-2xs">
+            <Home className="w-4 h-4 text-emerald-600" />
           </div>
-          <span className="text-[11px] font-bold text-neutral-200 line-clamp-1 max-w-[90%]">
+          <span className="text-[11px] font-bold text-neutral-700 line-clamp-1 max-w-[90%]">
             {fallbackText}
           </span>
           <span className="text-[9px] text-neutral-400 font-medium mt-0.5">
