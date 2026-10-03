@@ -53,8 +53,7 @@ export const CustomerDashboard: React.FC = () => {
 
   // Ambil nomor WhatsApp Admin secara terpadu dari pengaturan website (konsisten dengan BookingFlow & Admin -> Pengaturan)
   const rawAdminPhone =
-    getWebsiteSetting?.('admin_whatsapp') ||
-    getWebsiteSetting?.('footer_whatsapp') ||
+    getWebsiteSetting?.('admin_whatsapp', adminWhatsappNumber || '082138613888') ||
     adminWhatsappNumber ||
     '082138613888';
   let formattedAdminWa = rawAdminPhone.replace(/\D/g, '');

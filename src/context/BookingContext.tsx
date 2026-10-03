@@ -618,6 +618,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const [adminWhatsappNumber, setAdminWhatsappNumber] = useState<string>(() => {
     try {
+      const cmsSetting = CMSDatabase.getWebsiteSetting('admin_whatsapp');
+      if (cmsSetting) return cmsSetting;
       const saved = localStorage.getItem(LOCAL_STORAGE_ADMIN_WA_KEY);
       if (saved) return saved;
     } catch {
@@ -628,6 +630,9 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const updateAdminWhatsappNumber = (num: string) => {
     setAdminWhatsappNumber(num);
+    CMSDatabase.saveSetting('admin_whatsapp', num, 'kontak');
+    CMSDatabase.saveSetting('footer_whatsapp', num, 'kontak');
+    setWebsiteSettingsList(CMSDatabase.getWebsiteSettings());
     try {
       localStorage.setItem(LOCAL_STORAGE_ADMIN_WA_KEY, num);
     } catch {
@@ -1360,11 +1365,45 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const updateWebsiteSetting = (key: string, value: string, kategori?: TB_Website_Settings['kategori']) => {
     CMSDatabase.saveSetting(key, value, kategori);
     setWebsiteSettingsList(CMSDatabase.getWebsiteSettings());
+    if (key === 'admin_whatsapp' || key === 'footer_whatsapp') {
+      setAdminWhatsappNumber(value);
+      try {
+        localStorage.setItem(LOCAL_STORAGE_ADMIN_WA_KEY, value);
+      } catch {
+        // ignore
+      }
+    }
+    if (key === 'facility_image') {
+      setFacilityImage(value);
+      try {
+        localStorage.setItem('barokah_facility_img_v2', value);
+      } catch {
+        // ignore
+      }
+    }
   };
 
   const updateMultipleSettings = (records: Record<string, { value: string; kategori?: TB_Website_Settings['kategori'] }>) => {
     CMSDatabase.saveMultipleSettings(records);
     setWebsiteSettingsList(CMSDatabase.getWebsiteSettings());
+    const waVal = records['admin_whatsapp']?.value || records['footer_whatsapp']?.value;
+    if (waVal) {
+      setAdminWhatsappNumber(waVal);
+      try {
+        localStorage.setItem(LOCAL_STORAGE_ADMIN_WA_KEY, waVal);
+      } catch {
+        // ignore
+      }
+    }
+    const facVal = records['facility_image']?.value;
+    if (facVal) {
+      setFacilityImage(facVal);
+      try {
+        localStorage.setItem('barokah_facility_img_v2', facVal);
+      } catch {
+        // ignore
+      }
+    }
   };
 
   const saveCmsUser = (user: TB_User) => {

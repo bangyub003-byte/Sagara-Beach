@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useBooking } from '../../context/BookingContext';
-import { UserCheck, Lock, Mail, ArrowLeft, Eye, EyeOff, AlertCircle, Sparkles, QrCode } from 'lucide-react';
+import { UserCheck, Lock, Mail, ArrowLeft, Eye, EyeOff, AlertCircle, QrCode } from 'lucide-react';
 
 export const ReceptionistLoginPage: React.FC = () => {
   const { loginReceptionist, setCurrentView, navigateTo, language, t } = useBooking();
-  const [email, setEmail] = useState('resepsionis@griyabarokah.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -39,12 +39,6 @@ export const ReceptionistLoginPage: React.FC = () => {
       setErrorMsg(language === 'id' ? 'Gagal melakukan verifikasi.' : 'Authentication error.');
       setIsSubmitting(false);
     }
-  };
-
-  const handleQuickFill = (emailStr: string, passStr: string) => {
-    setEmail(emailStr);
-    setPassword(passStr);
-    setErrorMsg('');
   };
 
   const handleBackToGuest = () => {
@@ -164,30 +158,6 @@ export const ReceptionistLoginPage: React.FC = () => {
               <span>{isSubmitting ? 'Memverifikasi...' : t.loginButton}</span>
             </button>
           </form>
-
-          {/* Demo Hint Helper */}
-          <div className="pt-3 border-t border-neutral-100 space-y-2">
-            <div className="flex items-center gap-1 text-[11px] text-neutral-500">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-600" />
-              <span className="font-semibold">{t.demoHintReception}</span>
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('resepsionis@griyabarokah.com', 'frontdesk')}
-                className="flex-1 py-1.5 px-2 bg-neutral-100 hover:bg-neutral-200/80 rounded-xl text-[11px] font-mono font-medium text-neutral-700 text-center transition-colors"
-              >
-                frontdesk
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('resepsionis@griyabarokah.com', 'lobi123')}
-                className="flex-1 py-1.5 px-2 bg-neutral-100 hover:bg-neutral-200/80 rounded-xl text-[11px] font-mono font-medium text-neutral-700 text-center transition-colors"
-              >
-                lobi123
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 

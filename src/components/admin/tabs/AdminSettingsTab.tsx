@@ -409,7 +409,7 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
                 </div>
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-neutral-700 flex items-center justify-between">
                   <span>Daftar Fasilitas Penginapan</span>
                   <span className="text-[10px] text-neutral-400 font-normal">Pisahkan dengan koma</span>
@@ -421,6 +421,43 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
                   placeholder="Contoh: Semua Kamar Ber-AC, KM Duduk & Jongkok, Dapur Lengkap & Gas, Kulkas & TV Keluarga, Tersedia 13 Extra Bed, Free WiFi Cepat"
                   className="w-full p-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 resize-none leading-relaxed focus:outline-none focus:ring-1 focus:ring-emerald-700"
                 />
+
+                {/* Preview Butir Fasilitas Aktif & Tombol Hapus Cepat */}
+                <div className="space-y-1 pt-0.5">
+                  <span className="text-[10px] font-bold text-neutral-500 block">
+                    Butir Fasilitas Aktif ({generalFacilities.split(/,|\n/).map((i) => i.trim()).filter(Boolean).length}):
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {generalFacilities
+                      .split(/,|\n/)
+                      .map((item) => item.trim())
+                      .filter(Boolean)
+                      .map((item, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 text-[10px] font-semibold border border-emerald-200"
+                        >
+                          <span>{item}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const items = generalFacilities
+                                .split(/,|\n/)
+                                .map((i) => i.trim())
+                                .filter(Boolean);
+                              items.splice(idx, 1);
+                              setGeneralFacilities(items.join(', '));
+                            }}
+                            className="hover:text-rose-600 text-neutral-400 cursor-pointer ml-0.5 font-bold"
+                            title={`Hapus "${item}"`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                  </div>
+                </div>
+
                 <p className="text-[10px] text-neutral-500">
                   Daftar di atas otomatis tampil dengan ikon yang sesuai di Beranda, tersusun dalam kartu ringkas yang dapat diperluas oleh tamu.
                 </p>
