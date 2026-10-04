@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="mBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#163828"/>
+      <stop offset="50%" stop-color="#13281E"/>
+      <stop offset="100%" stop-color="#0B1A13"/>
+    </linearGradient>
+    <linearGradient id="mGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="mAccentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Full-bleed background for maskable safe-zone -->
+  <rect width="512" height="512" fill="url(#mBgGrad)"/>
+
+  <!-- Centered content strictly inside the safe zone (within circle r=200) -->
+  <g transform="translate(256, 230) scale(0.85)">
+    <!-- Roof Silhouette -->
+    <path d="M 0 -130 L 140 -20 L 105 -20 L 105 110 L -105 110 L -105 -20 L -140 -20 Z" 
+          fill="none" stroke="url(#mGoldGrad)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- Top Peak Accent -->
+    <path d="M 0 -145 L 0 -120" stroke="url(#mAccentGrad)" stroke-width="12" stroke-linecap="round"/>
+    <circle cx="0" cy="-155" r="9" fill="url(#mAccentGrad)"/>
+
+    <!-- Inner Doorway / Arch -->
+    <path d="M -45 110 L -45 25 C -45 -15, 45 -15, 45 25 L 45 110 Z" 
+          fill="url(#mGoldGrad)" fill-opacity="0.15" stroke="url(#mGoldGrad)" stroke-width="12"/>
+
+    <!-- Warm Glowing Window Light -->
+    <circle cx="0" cy="20" r="16" fill="url(#mAccentGrad)"/>
+
+    <!-- Crescent Moon inside door -->
+    <path d="M 0 50 A 14 14 0 0 0 14 68 A 12 12 0 1 1 2 52 Z" fill="#FCD34D"/>
+  </g>
+
+  <!-- Typography Brand Bar within safe area -->
+  <text x="256" y="405" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="30" fill="#FFFFFF" text-anchor="middle" letter-spacing="3">
+    GRIYA BAROKAH
+  </text>
+  <text x="256" y="435" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="16" fill="#34D399" text-anchor="middle" letter-spacing="4">
+    HOMESTAY
+  </text>
+</svg>

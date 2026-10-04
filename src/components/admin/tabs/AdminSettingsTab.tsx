@@ -40,8 +40,14 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
   const [brandLogo, setBrandLogo] = useState(
     getWebsiteSetting('brand_logo', '/images/sundak_fullhouse_1790552054893.jpg')
   );
+  const [pwaIcon, setPwaIcon] = useState(
+    getWebsiteSetting('pwa_icon', '/icon-192.png')
+  );
   const [whatsapp, setWhatsapp] = useState(
     getWebsiteSetting('admin_whatsapp') || getWebsiteSetting('footer_whatsapp', '082138613888')
+  );
+  const [layananTambahanWhatsapp, setLayananTambahanWhatsapp] = useState(
+    getWebsiteSetting('layanan_tambahan_whatsapp', '082138613888')
   );
   const [alamat, setAlamat] = useState(
     getWebsiteSetting('footer_address', 'Pantai Sundak & Trenggole, Sidoharjo, Tepus, Gunungkidul, D.I. Yogyakarta')
@@ -74,6 +80,7 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
 
   const [isUploadingHero, setIsUploadingHero] = useState(false);
   const [isUploadingFacility, setIsUploadingFacility] = useState(false);
+  const [isUploadingPwaIcon, setIsUploadingPwaIcon] = useState(false);
 
   const [checkInTime, setCheckInTime] = useState(
     getWebsiteSetting('checkin_time', '14:00 WIB')
@@ -136,8 +143,10 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
     updateMultipleSettings({
       brand_name: { value: brandName, kategori: 'homepage' },
       brand_logo: { value: brandLogo, kategori: 'homepage' },
+      pwa_icon: { value: pwaIcon, kategori: 'homepage' },
       footer_whatsapp: { value: whatsapp, kategori: 'kontak' },
       admin_whatsapp: { value: whatsapp, kategori: 'kontak' },
+      layanan_tambahan_whatsapp: { value: layananTambahanWhatsapp, kategori: 'kontak' },
       footer_address: { value: alamat, kategori: 'footer' },
       facility_image: { value: facilityImage, kategori: 'homepage' },
       general_facilities: { value: generalFacilities, kategori: 'homepage' },
@@ -232,8 +241,59 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
 
               <div className="space-y-1">
                 <label className="text-[11px] font-bold text-neutral-700 flex items-center justify-between">
-                  <span>WhatsApp Pengelola (CS)</span>
-                  <span className="text-[10px] text-emerald-700 font-semibold">Tersambung ke Semua Tombol Beranda &amp; Booking</span>
+                  <span>Ikon PWA (Install Aplikasi HP)</span>
+                  <span className="text-[10px] text-emerald-700 font-semibold">Home Screen &amp; App Launcher</span>
+                </label>
+                <div className="flex gap-2 items-center">
+                  <div className="w-8 h-8 rounded-lg overflow-hidden bg-neutral-900 shrink-0 border border-neutral-200">
+                    <img
+                      src={pwaIcon}
+                      alt="PWA Icon"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/icon-192.png';
+                      }}
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    value={pwaIcon}
+                    onChange={(e) => setPwaIcon(e.target.value)}
+                    placeholder="/icon-192.png"
+                    className="flex-1 h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 focus:outline-none"
+                  />
+                  <label className="h-8 px-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 border border-neutral-200 text-neutral-800 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all shrink-0">
+                    <Upload className="w-3.5 h-3.5 text-neutral-600" />
+                    <span>{isUploadingPwaIcon ? 'Unggah...' : 'Upload'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        if (f) {
+                          setIsUploadingPwaIcon(true);
+                          try {
+                            const res = await uploadMedia(f, 'hero');
+                            setPwaIcon(res.url);
+                            onShowToast('✓ Ikon PWA berhasil diunggah!');
+                          } finally {
+                            setIsUploadingPwaIcon(false);
+                          }
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+                <p className="text-[10px] text-neutral-500">
+                  Ikon yang tampil di layar utama HP pengguna saat aplikasi diinstal (&quot;Tambahkan ke Layar Utama&quot;).
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-neutral-700 flex items-center justify-between">
+                  <span>WhatsApp Pengelola (CS Utama)</span>
+                  <span className="text-[10px] text-emerald-700 font-semibold">Tersambung ke Booking &amp; Header</span>
                 </label>
                 <input
                   type="text"
@@ -243,7 +303,24 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
                   className="w-full h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
                 />
                 <p className="text-[10px] text-neutral-500">
-                  Nomor terpadu untuk: Header WhatsApp Beranda, Layanan Tambahan (Pesanan Makanan, Sewa Jeep, Info Tanah), Chat CS Langsung, dan Laporan BookingFlow.
+                  Nomor utama untuk: Header WhatsApp Beranda, Chat CS Langsung, dan Konfirmasi Pesanan BookingFlow.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-neutral-700 flex items-center justify-between">
+                  <span>Nomor WhatsApp Layanan Tambahan</span>
+                  <span className="text-[10px] text-teal-700 font-semibold">Khusus Bagian Layanan Tambahan</span>
+                </label>
+                <input
+                  type="text"
+                  value={layananTambahanWhatsapp}
+                  onChange={(e) => setLayananTambahanWhatsapp(e.target.value)}
+                  placeholder="Contoh: 082138613888"
+                  className="w-full h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs text-neutral-900 focus:outline-none focus:ring-1 focus:ring-teal-700"
+                />
+                <p className="text-[10px] text-neutral-500">
+                  Nomor khusus untuk tombol &quot;Pesan&quot; Makanan, &quot;Booking&quot; Sewa Jeep, &quot;Tanya&quot; Info Jual Beli Tanah, serta teks &quot;Hubungi WhatsApp&quot; di bagian Layanan Tambahan Beranda.
                 </p>
               </div>
 

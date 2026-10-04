@@ -63,6 +63,17 @@ export const CustomerDashboard: React.FC = () => {
     formattedAdminWa = '62' + formattedAdminWa;
   }
 
+  // Nomor WhatsApp Khusus untuk Bagian Layanan Tambahan (Pesanan Makanan, Sewa Jeep, Info Jual Beli Tanah)
+  const rawLayananWa =
+    getWebsiteSetting?.('layanan_tambahan_whatsapp') ||
+    rawAdminPhone;
+  let formattedLayananWa = rawLayananWa.replace(/\D/g, '');
+  if (formattedLayananWa.startsWith('0')) {
+    formattedLayananWa = '62' + formattedLayananWa.substring(1);
+  } else if (!formattedLayananWa.startsWith('62')) {
+    formattedLayananWa = '62' + formattedLayananWa;
+  }
+
   // Ambil data langsung dari CMS Database sebagai sumber utama
   const sundakCms = cmsHomestays?.find((h) => h.id === 'homestay-sundak') || cmsHomestays?.[0];
   const trenggoleCms = cmsHomestays?.find((h) => h.id === 'homestay-trenggole') || cmsHomestays?.[1];
@@ -646,7 +657,7 @@ export const CustomerDashboard: React.FC = () => {
                 </div>
               </div>
               <a
-                href={`https://wa.me/${formattedAdminWa}?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20pesan%20makanan`}
+                href={`https://wa.me/${formattedLayananWa}?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20pesan%20makanan`}
                 target="_blank"
                 rel="noreferrer"
                 className="px-2.5 py-1 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white text-[10px] font-bold active:scale-95 transition-transform"
@@ -664,7 +675,7 @@ export const CustomerDashboard: React.FC = () => {
                 </div>
               </div>
               <a
-                href={`https://wa.me/${formattedAdminWa}?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20sewa%20Jeep%20wisata`}
+                href={`https://wa.me/${formattedLayananWa}?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20sewa%20Jeep%20wisata`}
                 target="_blank"
                 rel="noreferrer"
                 className="px-2.5 py-1 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white text-[10px] font-bold active:scale-95 transition-transform"
@@ -682,7 +693,7 @@ export const CustomerDashboard: React.FC = () => {
                 </div>
               </div>
               <a
-                href={`https://wa.me/${formattedAdminWa}?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20info%20properti%20tanah%20rumah`}
+                href={`https://wa.me/${formattedLayananWa}?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20info%20properti%20tanah%20rumah`}
                 target="_blank"
                 rel="noreferrer"
                 className="px-2.5 py-1 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white text-[10px] font-bold active:scale-95 transition-transform"
@@ -694,15 +705,15 @@ export const CustomerDashboard: React.FC = () => {
 
           <div className="pt-1 flex items-center justify-between border-t border-emerald-200/70 text-[11px]">
             <span className="text-emerald-950 font-medium">
-              Hubungi WhatsApp: <strong>{rawAdminPhone}</strong>
+              Hubungi WhatsApp: <strong>{rawLayananWa}</strong>
             </span>
             <a
-              href={`https://wa.me/${formattedAdminWa}`}
+              href={`https://wa.me/${formattedLayananWa}`}
               target="_blank"
               rel="noreferrer"
               className="font-bold text-emerald-800 hover:underline flex items-center gap-1 active:scale-95 transition-transform"
             >
-              <span>Chat CS Langsung</span>
+              <span>Chat Layanan Langsung</span>
               <ArrowRight className="w-3 h-3" />
             </a>
           </div>

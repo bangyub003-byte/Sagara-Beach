@@ -458,9 +458,10 @@ export const DEFAULT_MEDIA: TB_Media[] = [
 ];
 
 export const DEFAULT_WEBSITE_SETTINGS: TB_Website_Settings[] = [
-  // Navbar
+  // Navbar & Branding
   { id: 'set-nav-brand', key: 'navbar_brand_name', value: 'Griya Barokah Homestay', kategori: 'navbar' },
   { id: 'set-nav-logo', key: 'navbar_logo_url', value: '/images/sundak_fullhouse_1790552054893.jpg', kategori: 'navbar' },
+  { id: 'set-pwa-icon', key: 'pwa_icon', value: '/icon-192.png', kategori: 'navbar' },
   { id: 'set-nav-tag', key: 'navbar_tagline', value: 'Homestay Keluarga Pantai Gunungkidul', kategori: 'navbar' },
 
   // Homepage
@@ -488,6 +489,7 @@ export const DEFAULT_WEBSITE_SETTINGS: TB_Website_Settings[] = [
   { id: 'set-foot-addr', key: 'footer_address', value: 'Kawasan Pantai Sundak & Pantai Trenggole, Sidoharjo, Kec. Tepus, Gunungkidul, D.I. Yogyakarta', kategori: 'footer' },
   { id: 'set-foot-wa', key: 'footer_whatsapp', value: '082138613888', kategori: 'kontak' },
   { id: 'set-admin-wa', key: 'admin_whatsapp', value: '082138613888', kategori: 'kontak' },
+  { id: 'set-layanan-wa', key: 'layanan_tambahan_whatsapp', value: '082138613888', kategori: 'kontak' },
   { id: 'set-foot-phone', key: 'footer_phone', value: '+62 821-3861-3888', kategori: 'kontak' },
   { id: 'set-foot-hours', key: 'footer_service_hours', value: 'Setiap Hari (24 Jam Pelayanan Resepsionis)', kategori: 'footer' },
   { id: 'set-foot-extra', key: 'footer_extra_info', value: 'Pesanan hidangan makanan & seafood pantai, Sewa Jeep wisata jelajah pantai & tebing Gunungkidul, Informasi jual beli tanah / aset kawasan pantai', kategori: 'footer' },
