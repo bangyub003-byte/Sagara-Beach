@@ -11,7 +11,6 @@ import {
   Bed,
   Bath,
   ArrowRight,
-  Palmtree,
   Sparkles,
   Wind,
   Flame,
@@ -32,9 +31,6 @@ export const AccommodationsView: React.FC = () => {
     setSelectedProperty,
     setSelectedRoomType,
     setCurrentView,
-    language,
-    setLanguage,
-    t,
     cmsHomestays,
     cmsRooms,
     getWebsiteSetting,
@@ -77,62 +73,17 @@ export const AccommodationsView: React.FC = () => {
   return (
     <div className="min-h-[100dvh] bg-[#F6F7F9] text-[#11141A] flex flex-col justify-between select-none pb-28">
       {/* ==============================================================
-          TOP HEADER (Sesuai Referensi Gambar #1)
-          - Logo Griya Barokah Homestay
-          - Language toggle pill (ID | EN)
-          - Subtitle: 🌴 GRIYA BAROKAH HOMESTAY
-          - Title: Pilihan Penginapan Homestay (2 Lokasi)
-          - Location filter pills: Semua Lokasi, Pantai Sundak, Pantai Trenggole
+          TOP HEADER (Bersih & Fokus: Judul Halaman & Filter Lokasi)
          ============================================================== */}
       <header className="sticky top-0 z-30 bg-[#F6F7F9]/95 backdrop-blur-md px-4 sm:px-5 pt-3.5 pb-2.5 border-b border-neutral-200/80">
-        {/* Brand & Language Row */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-800 flex items-center justify-center border border-emerald-200/80 shadow-2xs">
-              <Palmtree className="w-4 h-4 text-emerald-700" />
-            </div>
-            <span className="font-extrabold text-sm text-neutral-900 tracking-tight">
-              Griya Barokah Homestay
-            </span>
-          </div>
-
-          {/* Language Toggle Pill */}
-          <div className="flex items-center p-0.5 rounded-full bg-neutral-200/90 text-[11px] font-bold">
-            <button
-              type="button"
-              onClick={() => setLanguage('id')}
-              className={`px-2.5 py-0.5 rounded-full transition-all cursor-pointer ${
-                language === 'id'
-                  ? 'bg-white text-neutral-900 shadow-2xs'
-                  : 'text-neutral-500 hover:text-neutral-800'
-              }`}
-            >
-              ID
-            </button>
-            <button
-              type="button"
-              onClick={() => setLanguage('en')}
-              className={`px-2.5 py-0.5 rounded-full transition-all cursor-pointer ${
-                language === 'en'
-                  ? 'bg-white text-neutral-900 shadow-2xs'
-                  : 'text-neutral-500 hover:text-neutral-800'
-              }`}
-            >
-              EN
-            </button>
-          </div>
-        </div>
-
-        {/* Section Heading & Location Counter */}
-        <div className="flex items-end justify-between mt-3">
           <div>
-            <div className="flex items-center gap-1 text-[11px] font-extrabold text-emerald-800 uppercase tracking-wider">
-              <Palmtree className="w-3.5 h-3.5 text-emerald-700" />
-              <span>GRIYA BAROKAH HOMESTAY</span>
-            </div>
-            <h1 className="text-lg sm:text-xl font-black text-neutral-900 tracking-tight mt-0.5">
+            <h1 className="text-base sm:text-lg font-black text-neutral-900 tracking-tight leading-tight">
               Pilihan Penginapan Homestay
             </h1>
+            <p className="text-[11px] text-neutral-500 font-medium">
+              Kawasan Pantai Sundak &amp; Pantai Trenggole
+            </p>
           </div>
 
           <span className="px-3 py-1 rounded-full bg-white text-xs font-bold text-neutral-800 shadow-2xs border border-neutral-200/90 shrink-0">
@@ -141,7 +92,7 @@ export const AccommodationsView: React.FC = () => {
         </div>
 
         {/* Filter Chips (Semua Lokasi, Pantai Sundak, Pantai Trenggole) */}
-        <div className="flex gap-1.5 mt-3 p-1 bg-neutral-200/80 rounded-2xl">
+        <div className="flex gap-1.5 mt-2.5 p-1 bg-neutral-200/80 rounded-2xl">
           <button
             type="button"
             onClick={() => setSelectedAccId('all')}

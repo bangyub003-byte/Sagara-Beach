@@ -30,6 +30,8 @@ export const getPublicImageUrl = (rawUrl?: string): string => {
   return rawUrl;
 };
 
+const DEFAULT_PERMANENT_FALLBACK = '/images/sundak_fullhouse_1790552054893.jpg';
+
 export const SafeImage: React.FC<SafeImageProps> = ({
   src,
   alt,
@@ -73,6 +75,22 @@ export const SafeImage: React.FC<SafeImageProps> = ({
     }
   }, [src, alt]);
 
+  // Timeout guard untuk gambar eager di atas layar (above-the-fold) agar tidak pernah menggantung di skeleton kosong
+  useEffect(() => {
+    if (loading === 'eager' && !isLoaded && !hasError) {
+      const timer = setTimeout(() => {
+        if (!isLoaded && !hasError) {
+          const targetFallback = fallbackSrc ? getPublicImageUrl(fallbackSrc) : DEFAULT_PERMANENT_FALLBACK;
+          if (currentSrc !== targetFallback) {
+            console.warn(`[SafeImage Timeout] Gambar eager lambat/stuck, langsung beralih ke: ${targetFallback}`);
+            setCurrentSrc(targetFallback);
+          }
+        }
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, isLoaded, hasError, currentSrc, fallbackSrc]);
+
   // Cek mode visual debug jika parameter ?debug=image atau flag window diaktifkan
   const isDebugMode =
     typeof window !== 'undefined' &&
@@ -87,29 +105,18 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   };
 
   const handleError = () => {
-    // Tampilkan log jika URL gambar gagal dipanggil tanpa mengoper objek DOM event circular
     console.warn(`[SafeImage Error] Gagal memuat gambar: "${currentSrc}" (Input: "${src}"). Alt: "${alt}".`);
 
-    if (!retryAttempted) {
+    const targetFallback = fallbackSrc ? getPublicImageUrl(fallbackSrc) : DEFAULT_PERMANENT_FALLBACK;
+
+    // Jika gambar yang gagal bukan fallback permanen, SEGERA beralih ke gambar default permanen
+    if (currentSrc !== targetFallback) {
+      setCurrentSrc(targetFallback);
       setRetryAttempted(true);
-      // Coba fallbackSrc kustom jika tersedia
-      if (fallbackSrc && fallbackSrc !== currentSrc) {
-        setCurrentSrc(getPublicImageUrl(fallbackSrc));
-        return;
-      }
-      // Coba path asli jika berbeda dari normalized
-      if (src && src !== currentSrc) {
-        setCurrentSrc(src);
-        return;
-      }
-      // Coba gambar default homestay jika belum dicoba
-      if (currentSrc !== '/images/sundak_fullhouse_1790552054893.jpg') {
-        setCurrentSrc('/images/sundak_fullhouse_1790552054893.jpg');
-        return;
-      }
+      return;
     }
 
-    // 4. Tambahkan fallback jika gambar gagal dimuat: tampilkan placeholder, jangan membuat halaman putih kosong
+    // Jika gambar fallback default pun gagal dimuat, tampilkan placeholder seketika (tanpa skeleton menggantung)
     setHasError(true);
     setIsLoaded(true);
   };

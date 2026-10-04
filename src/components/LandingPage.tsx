@@ -4,18 +4,24 @@ import { ArrowRight } from 'lucide-react';
 import { SafeImage } from './common/SafeImage';
 
 export const LandingPage: React.FC = () => {
-  const { setCurrentView, t, heroImage, homepageContent } = useBooking();
+  const { setCurrentView, t, homepageContent, getWebsiteSetting } = useBooking();
+
+  const heroImageSrc =
+    getWebsiteSetting?.('homepage_hero_image') ||
+    homepageContent?.hero_image ||
+    '/images/sundak_fullhouse_1790552054893.jpg';
 
   return (
     <div className="relative w-full h-full min-h-[100dvh] sm:min-h-[850px] bg-[#FBFBFC] text-[#0F141A] flex flex-col justify-between overflow-hidden select-none">
       {/* Hero Image Section - Mobile Aspect Ratio with Complete Building View & Smooth Fade */}
       <div className="relative w-full h-[46dvh] sm:h-[420px] shrink-0 overflow-hidden">
         <SafeImage
-          src={homepageContent?.hero_image || heroImage || '/images/sundak_fullhouse_1790552054893.jpg'}
+          src={heroImageSrc}
           alt="Griya Barokah Pantai Sundak & Trenggole"
           fallbackText="Griya Barokah Homestay"
           className="w-full h-full object-cover object-[center_30%]"
           containerClassName="w-full h-full"
+          loading="eager"
         />
 
         {/* Soft Vignette at Top and Smooth Gradient Fade at Bottom */}

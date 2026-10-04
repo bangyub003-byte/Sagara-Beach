@@ -53,18 +53,26 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
     getWebsiteSetting('footer_address', 'Pantai Sundak & Trenggole, Sidoharjo, Tepus, Gunungkidul, D.I. Yogyakarta')
   );
 
-  // Hero Banner Beranda (Tersambung langsung ke homepageContent)
+  // Hero Banner Beranda (Tersambung langsung ke website_settings / homepageContent)
   const [heroTitle, setHeroTitle] = useState(
-    homepageContent?.hero_title || 'Griya Barokah Homestay Pantai Sundak & Trenggole'
+    getWebsiteSetting('homepage_hero_title') ||
+    homepageContent?.hero_title ||
+    'Griya Barokah Homestay Pantai Sundak & Trenggole'
   );
   const [heroSubtitle, setHeroSubtitle] = useState(
-    homepageContent?.hero_subtitle || 'HOMESTAY KELUARGA ASLI'
+    getWebsiteSetting('homepage_hero_subtitle') ||
+    homepageContent?.hero_subtitle ||
+    'HOMESTAY KELUARGA ASLI'
   );
   const [heroDescription, setHeroDescription] = useState(
-    homepageContent?.hero_description || 'Penginapan keluarga nyaman dekat pantai Gunungkidul dengan fasilitas lengkap.'
+    getWebsiteSetting('homepage_hero_description') ||
+    homepageContent?.hero_description ||
+    'Penginapan keluarga nyaman dekat pantai Gunungkidul dengan fasilitas lengkap.'
   );
   const [heroImage, setHeroImage] = useState(
-    homepageContent?.hero_image || '/images/sundak_fullhouse_1790552054893.jpg'
+    getWebsiteSetting('homepage_hero_image') ||
+    homepageContent?.hero_image ||
+    '/images/sundak_fullhouse_1790552054893.jpg'
   );
 
   // Fasilitas Lengkap Penginapan di Beranda

@@ -464,7 +464,14 @@ export const DEFAULT_WEBSITE_SETTINGS: TB_Website_Settings[] = [
   { id: 'set-pwa-icon', key: 'pwa_icon', value: '/icon-192.png', kategori: 'navbar' },
   { id: 'set-nav-tag', key: 'navbar_tagline', value: 'Homestay Keluarga Pantai Gunungkidul', kategori: 'navbar' },
 
-  // Homepage
+  // Homepage (Hero & Section Content)
+  { id: 'set-home-hero-img', key: 'homepage_hero_image', value: '/images/sundak_fullhouse_1790552054893.jpg', kategori: 'homepage' },
+  { id: 'set-home-hero-title', key: 'homepage_hero_title', value: 'Griya Barokah Homestay Pantai Sundak & Trenggole', kategori: 'homepage' },
+  { id: 'set-home-hero-sub', key: 'homepage_hero_subtitle', value: 'HOMESTAY KELUARGA ASLI', kategori: 'homepage' },
+  { id: 'set-home-hero-desc', key: 'homepage_hero_description', value: 'Penginapan keluarga nyaman dekat pantai Gunungkidul dengan fasilitas lengkap.', kategori: 'homepage' },
+  { id: 'set-home-cta-text', key: 'homepage_cta_text', value: 'Pilih & Pesan Homestay Sekarang', kategori: 'homepage' },
+  { id: 'set-home-cta-link', key: 'homepage_cta_link', value: 'accommodations', kategori: 'homepage' },
+  { id: 'set-home-loc-badge', key: 'homepage_location_badge', value: 'Pantai Sundak & Trenggole, Gunungkidul', kategori: 'homepage' },
   { id: 'set-home-title', key: 'homepage_section_title', value: 'Pilihan Penginapan Homestay', kategori: 'homepage' },
   { id: 'set-home-desc', key: 'homepage_section_desc', value: 'Penginapan keluarga nyaman, ber-AC, dan dekat dengan pantai pasir putih', kategori: 'homepage' },
 
@@ -599,59 +606,90 @@ export class CMSDatabase {
     }
   }
 
-  // --- 1. TB_Homepage_Content ---
+  // --- 1. TB_Homepage_Content (Tersinkronisasi Terpadu melalui website_settings) ---
   static getHomepageContent(): TB_Homepage_Content {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY_HOMEPAGE);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        return {
-          ...DEFAULT_HOMEPAGE_CONTENT,
-          ...parsed,
-          hero_image: parsed.hero_image || DEFAULT_HOMEPAGE_CONTENT.hero_image,
-        };
-      }
-    } catch {
-      // fallback
-    }
-    return DEFAULT_HOMEPAGE_CONTENT;
+    const heroImage =
+      this.getSetting('homepage_hero_image') ||
+      this.getSetting('hero_image') ||
+      DEFAULT_HOMEPAGE_CONTENT.hero_image;
+    const heroTitle =
+      this.getSetting('homepage_hero_title') ||
+      DEFAULT_HOMEPAGE_CONTENT.hero_title;
+    const heroSubtitle =
+      this.getSetting('homepage_hero_subtitle') ||
+      DEFAULT_HOMEPAGE_CONTENT.hero_subtitle;
+    const heroDescription =
+      this.getSetting('homepage_hero_description') ||
+      DEFAULT_HOMEPAGE_CONTENT.hero_description;
+    const ctaText =
+      this.getSetting('homepage_cta_text') ||
+      DEFAULT_HOMEPAGE_CONTENT.cta_text;
+    const ctaLink =
+      this.getSetting('homepage_cta_link') ||
+      DEFAULT_HOMEPAGE_CONTENT.cta_link;
+    const locationBadge =
+      this.getSetting('homepage_location_badge') ||
+      DEFAULT_HOMEPAGE_CONTENT.location_badge;
+
+    return {
+      id: DEFAULT_HOMEPAGE_CONTENT.id,
+      hero_image: heroImage,
+      hero_title: heroTitle,
+      hero_subtitle: heroSubtitle,
+      hero_description: heroDescription,
+      cta_text: ctaText,
+      cta_link: ctaLink,
+      location_badge: locationBadge,
+    };
   }
 
   static saveHomepageContent(
     data: Partial<TB_Homepage_Content>,
     user?: { id: string; nama: string; role: 'admin' | 'resepsionis' }
   ): TB_Homepage_Content {
-    const current = this.getHomepageContent();
-    const updated: TB_Homepage_Content = {
-      ...current,
-      ...data,
-      hero_title: data.hero_title || current.hero_title || DEFAULT_HOMEPAGE_CONTENT.hero_title,
-      hero_image: data.hero_image || current.hero_image || DEFAULT_HOMEPAGE_CONTENT.hero_image,
-    };
+    const recordsToSave: Record<string, { value: string; kategori?: TB_Website_Settings['kategori'] }> = {};
+
+    if (data.hero_image !== undefined) {
+      recordsToSave['homepage_hero_image'] = { value: data.hero_image, kategori: 'homepage' };
+      recordsToSave['hero_image'] = { value: data.hero_image, kategori: 'homepage' };
+    }
+    if (data.hero_title !== undefined) {
+      recordsToSave['homepage_hero_title'] = { value: data.hero_title, kategori: 'homepage' };
+    }
+    if (data.hero_subtitle !== undefined) {
+      recordsToSave['homepage_hero_subtitle'] = { value: data.hero_subtitle, kategori: 'homepage' };
+    }
+    if (data.hero_description !== undefined) {
+      recordsToSave['homepage_hero_description'] = { value: data.hero_description, kategori: 'homepage' };
+    }
+    if (data.cta_text !== undefined) {
+      recordsToSave['homepage_cta_text'] = { value: data.cta_text, kategori: 'homepage' };
+    }
+    if (data.cta_link !== undefined) {
+      recordsToSave['homepage_cta_link'] = { value: data.cta_link, kategori: 'homepage' };
+    }
+    if (data.location_badge !== undefined) {
+      recordsToSave['homepage_location_badge'] = { value: data.location_badge, kategori: 'homepage' };
+    }
+
+    this.saveMultipleSettings(recordsToSave, user);
+
+    const updated = this.getHomepageContent();
     try {
       localStorage.setItem(STORAGE_KEY_HOMEPAGE, JSON.stringify(updated));
-      this.notifyChange();
-      if (isSupabaseConfigured && data.hero_image) {
-        supabase.from('website_settings').upsert({
-          id: 'set_hero_image',
-          key: 'hero_image',
-          value: data.hero_image,
-          kategori: 'homepage',
-        }).then(({ error }) => {
-          if (error) console.warn('[Supabase hero_image sync error]', error.message);
-        });
-      }
-      this.logActivity({
-        user_id: user?.id || 'admin',
-        user_nama: user?.nama || 'Admin',
-        role: user?.role || 'admin',
-        aksi: 'Update Konten Hero Landing Page',
-        kategori: 'homepage',
-        detail: `Judul: "${updated.hero_title.slice(0, 40)}..."`,
-      });
-    } catch (err) {
-      console.error('[CMSDatabase Error] Gagal simpan homepage content:', err);
+    } catch {
+      // ignore
     }
+
+    this.logActivity({
+      user_id: user?.id || 'admin',
+      user_nama: user?.nama || 'Admin',
+      role: user?.role || 'admin',
+      aksi: 'Update Konten Hero Landing Page',
+      kategori: 'homepage',
+      detail: `Hero image & judul homepage disinkronkan ke website_settings`,
+    });
+
     return updated;
   }
 
@@ -980,6 +1018,9 @@ export class CMSDatabase {
     try {
       // 1. Upload ke Supabase Storage bucket 'media'
       const publicUrl = await uploadImageToSupabaseStorage(file, kategori);
+      if (!publicUrl) {
+        throw new Error('Upload gagal, periksa koneksi dan coba lagi');
+      }
 
       // Hitung perkiraan ukuran
       const approximateSizeKb = Math.round(file.size / 1024);
@@ -995,27 +1036,10 @@ export class CMSDatabase {
         user
       );
       return media;
-    } catch (err) {
+    } catch (err: any) {
       console.error('[CMSDatabase Error] Gagal proses upload file:', err);
-      // Fallback
-      let fallbackUrl = '/images/sundak_fullhouse_1790552054893.jpg';
-      if (typeof window !== 'undefined' && window.URL && window.URL.createObjectURL) {
-        try {
-          fallbackUrl = window.URL.createObjectURL(file);
-        } catch {
-          // ignore
-        }
-      }
-      return CMSDatabase.addMediaItem(
-        {
-          kategori,
-          url: fallbackUrl,
-          nama_file: file.name,
-          tanggal_upload: new Date().toISOString().split('T')[0],
-          ukuran: `${Math.round(file.size / 1024)} KB`,
-        },
-        user
-      );
+      // Jika upload gagal, JANGAN simpan apapun sebagai gambar baru — lempar error agar admin mendapat notifikasi jelas
+      throw new Error(err?.message || 'Upload gagal, coba lagi');
     }
   }
 

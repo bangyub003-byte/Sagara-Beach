@@ -99,9 +99,7 @@ interface BookingContextType {
   mobileFrameMode: boolean;
   setMobileFrameMode: (enabled: boolean) => void;
 
-  // Foto Hero, Foto Fasilitas & Kontak WA Admin
-  heroImage: string;
-  updateHeroImage: (url: string) => void;
+  // Foto Fasilitas & Kontak WA Admin
   facilityImage: string;
   updateFacilityImage: (url: string) => void;
   adminWhatsappNumber: string;
@@ -141,7 +139,6 @@ const LOCAL_STORAGE_LANG_KEY = 'barokah_language_v1';
 const LOCAL_STORAGE_FAV_KEY = 'barokah_favs_v1';
 const LOCAL_STORAGE_ADMIN_AUTH_KEY = 'barokah_admin_auth_v1';
 const LOCAL_STORAGE_RECEPTION_AUTH_KEY = 'barokah_reception_auth_v1';
-const LOCAL_STORAGE_HERO_IMAGE_KEY = 'barokah_hero_img_v2';
 const LOCAL_STORAGE_ADMIN_WA_KEY = 'barokah_admin_wa_v2';
 
 export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -567,29 +564,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   });
 
-  // 6. Foto Hero, Foto Fasilitas & Nomor WhatsApp Admin
-  const [heroImage, setHeroImage] = useState<string>(() => {
-    try {
-      const cmsHero = CMSDatabase.getHomepageContent()?.hero_image;
-      if (cmsHero) return cmsHero;
-      const saved = localStorage.getItem(LOCAL_STORAGE_HERO_IMAGE_KEY);
-      if (saved && !saved.includes('unsplash.com')) return saved;
-    } catch {
-      // fallback
-    }
-    return '/images/sundak_fullhouse_1790552054893.jpg';
-  });
-
-  const updateHeroImage = (url: string) => {
-    setHeroImage(url);
-    CMSDatabase.saveHomepageContent({ hero_image: url });
-    setHomepageContentState(CMSDatabase.getHomepageContent());
-    try {
-      localStorage.setItem(LOCAL_STORAGE_HERO_IMAGE_KEY, url);
-    } catch {
-      // ignore
-    }
-  };
+  // 6. Foto Fasilitas & Nomor WhatsApp Admin
 
   const [facilityImage, setFacilityImage] = useState<string>(() => {
     try {
@@ -1299,14 +1274,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const updateHomepageContent = (data: Partial<TB_Homepage_Content>) => {
     const updated = CMSDatabase.saveHomepageContent(data);
     setHomepageContentState(updated);
-    if (data.hero_image) {
-      setHeroImage(data.hero_image);
-      try {
-        localStorage.setItem(LOCAL_STORAGE_HERO_IMAGE_KEY, data.hero_image);
-      } catch {
-        // ignore
-      }
-    }
+    setWebsiteSettingsList(CMSDatabase.getWebsiteSettings());
   };
 
   const updateCmsHomestay = (id: string, data: Partial<TB_Homestay>) => {
@@ -1480,8 +1448,6 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isFavorite,
         mobileFrameMode,
         setMobileFrameMode,
-        heroImage,
-        updateHeroImage,
         facilityImage,
         updateFacilityImage,
         adminWhatsappNumber,
