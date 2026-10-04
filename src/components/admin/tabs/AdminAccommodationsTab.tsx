@@ -270,8 +270,8 @@ export const AdminAccommodationsTab: React.FC<Props> = ({ onShowToast }) => {
               key={h.id}
               className="p-3.5 rounded-2xl bg-white border border-neutral-200/90 shadow-2xs space-y-3"
             >
-              <div className="flex gap-3">
-                <div className="relative w-24 h-24 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200 shrink-0">
+              <div className="flex gap-2.5 sm:gap-3">
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200 shrink-0">
                   <SafeImage
                     src={h.foto_utama || homestayGaleri[0]}
                     alt={h.nama}
@@ -292,9 +292,9 @@ export const AdminAccommodationsTab: React.FC<Props> = ({ onShowToast }) => {
                 </div>
 
                 <div className="min-w-0 flex-1 space-y-1">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-1">
                     <h3 className="text-xs font-black text-neutral-900 truncate">{h.nama}</h3>
-                    <div className="flex items-center gap-1 text-[10px] text-amber-600 font-bold">
+                    <div className="flex items-center gap-1 text-[10px] text-amber-600 font-bold shrink-0">
                       <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                       <span>{h.rating || 4.9}</span>
                     </div>
@@ -310,14 +310,14 @@ export const AdminAccommodationsTab: React.FC<Props> = ({ onShowToast }) => {
                     <span className="text-[10px] font-normal text-neutral-500">{h.harga_label}</span>
                   </div>
 
-                  <div className="flex items-center gap-2 text-[10px] text-neutral-500 pt-0.5">
-                    <span className="bg-neutral-100 px-1.5 py-0.5 rounded font-medium">
+                  <div className="flex flex-wrap items-center gap-1.5 text-[9px] sm:text-[10px] text-neutral-500 pt-0.5">
+                    <span className="bg-neutral-100 px-1.5 py-0.5 rounded font-medium whitespace-nowrap">
                       Kapasitas {h.kapasitas} org
                     </span>
-                    <span className="bg-neutral-100 px-1.5 py-0.5 rounded font-medium">
+                    <span className="bg-neutral-100 px-1.5 py-0.5 rounded font-medium whitespace-nowrap">
                       Min. {h.min_booking} org
                     </span>
-                    <span className="bg-emerald-50 text-emerald-800 px-1.5 py-0.5 rounded font-bold">
+                    <span className="bg-emerald-50 text-emerald-800 px-1.5 py-0.5 rounded font-bold whitespace-nowrap">
                       {h.property_type === 'full_homestay' ? 'Full House' : 'Per Kamar'}
                     </span>
                   </div>
@@ -328,15 +328,15 @@ export const AdminAccommodationsTab: React.FC<Props> = ({ onShowToast }) => {
               <div className="flex items-center gap-2 pt-2 border-t border-neutral-100">
                 <button
                   onClick={() => openEditModal(h)}
-                  className="flex-1 h-8 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-[11px] font-bold flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+                  className="flex-1 min-w-0 h-8 px-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-[11px] font-bold flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all truncate"
                 >
-                  <Edit3 className="w-3.5 h-3.5 text-neutral-600" />
-                  <span>Edit Data & Galeri ({homestayGaleri.length})</span>
+                  <Edit3 className="w-3.5 h-3.5 text-neutral-600 shrink-0" />
+                  <span className="truncate">Edit Data & Galeri ({homestayGaleri.length})</span>
                 </button>
 
                 <button
                   onClick={() => setDeletingId(h.id)}
-                  className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 flex items-center justify-center cursor-pointer active:scale-95 transition-all border border-rose-200"
+                  className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 flex items-center justify-center cursor-pointer active:scale-95 transition-all border border-rose-200 shrink-0"
                   title="Hapus Penginapan"
                 >
                   <Trash2 className="w-3.5 h-3.5" />

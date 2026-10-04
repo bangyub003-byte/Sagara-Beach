@@ -168,46 +168,46 @@ export const AdminOverviewTab: React.FC<Props> = ({ onNavigateTab }) => {
       )}
 
       {/* 1. Ringkasan Kartu Booking */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
         <div
           onClick={() => onNavigateTab('booking')}
-          className="p-3 rounded-2xl bg-white border border-neutral-200/90 shadow-2xs hover:border-amber-400 transition-all cursor-pointer"
+          className="p-2.5 sm:p-3 rounded-2xl bg-white border border-neutral-200/90 shadow-2xs hover:border-amber-400 transition-all cursor-pointer"
         >
-          <div className="flex items-center justify-between text-[10px] font-semibold text-neutral-500">
-            <span>Menunggu</span>
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
+          <div className="flex items-center justify-between text-[9px] sm:text-[10px] font-semibold text-neutral-500">
+            <span className="truncate">Menunggu</span>
+            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-500 shrink-0" />
           </div>
-          <div className="text-xl font-black text-neutral-900 mt-1">{pendingBookings.length}</div>
-          <div className="text-[10px] text-amber-700 font-medium">Perlu review</div>
+          <div className="text-lg sm:text-xl font-black text-neutral-900 mt-1">{pendingBookings.length}</div>
+          <div className="text-[9px] sm:text-[10px] text-amber-700 font-medium truncate">Perlu review</div>
         </div>
 
         <div
           onClick={() => onNavigateTab('booking')}
-          className="p-3 rounded-2xl bg-white border border-neutral-200/90 shadow-2xs hover:border-emerald-400 transition-all cursor-pointer"
+          className="p-2.5 sm:p-3 rounded-2xl bg-white border border-neutral-200/90 shadow-2xs hover:border-emerald-400 transition-all cursor-pointer"
         >
-          <div className="flex items-center justify-between text-[10px] font-semibold text-neutral-500">
-            <span>Siap Masuk</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          <div className="flex items-center justify-between text-[9px] sm:text-[10px] font-semibold text-neutral-500">
+            <span className="truncate">Siap Masuk</span>
+            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 shrink-0" />
           </div>
-          <div className="text-xl font-black text-neutral-900 mt-1">{verifiedBookings.length}</div>
-          <div className="text-[10px] text-emerald-700 font-medium">Siap check-in</div>
+          <div className="text-lg sm:text-xl font-black text-neutral-900 mt-1">{verifiedBookings.length}</div>
+          <div className="text-[9px] sm:text-[10px] text-emerald-700 font-medium truncate">Siap check-in</div>
         </div>
 
         <div
           onClick={() => onNavigateTab('booking')}
-          className="p-3 rounded-2xl bg-white border border-neutral-200/90 shadow-2xs hover:border-blue-400 transition-all cursor-pointer"
+          className="p-2.5 sm:p-3 rounded-2xl bg-white border border-neutral-200/90 shadow-2xs hover:border-blue-400 transition-all cursor-pointer"
         >
-          <div className="flex items-center justify-between text-[10px] font-semibold text-neutral-500">
-            <span>Menginap</span>
-            <span className="w-2 h-2 rounded-full bg-blue-500" />
+          <div className="flex items-center justify-between text-[9px] sm:text-[10px] font-semibold text-neutral-500">
+            <span className="truncate">Menginap</span>
+            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500 shrink-0" />
           </div>
-          <div className="text-xl font-black text-neutral-900 mt-1">{checkedInBookings.length}</div>
-          <div className="text-[10px] text-blue-700 font-medium">Di homestay</div>
+          <div className="text-lg sm:text-xl font-black text-neutral-900 mt-1">{checkedInBookings.length}</div>
+          <div className="text-[9px] sm:text-[10px] text-blue-700 font-medium truncate">Di homestay</div>
         </div>
       </div>
 
       {/* 2. Pendapatan Homestay */}
-      <div className="p-4 rounded-2xl bg-white border border-neutral-200/90 shadow-2xs space-y-3">
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-neutral-200/90 shadow-2xs space-y-3">
         <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
@@ -223,21 +223,21 @@ export const AdminOverviewTab: React.FC<Props> = ({ onNavigateTab }) => {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5">
-          <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
-            <div className="text-[10px] font-semibold text-emerald-800">Pendapatan Masuk (DP/Lunas)</div>
-            <div className="text-base font-extrabold text-emerald-950 mt-0.5">
+        <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+          <div className="p-2.5 sm:p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
+            <div className="text-[9px] sm:text-[10px] font-semibold text-emerald-800 leading-tight">Pendapatan Masuk</div>
+            <div className="text-sm sm:text-base font-extrabold text-emerald-950 mt-0.5 truncate">
               Rp {totalPaidRevenue.toLocaleString('id-ID')}
             </div>
-            <div className="text-[9px] text-emerald-700 mt-0.5">Sudah terverifikasi rekening</div>
+            <div className="text-[8px] sm:text-[9px] text-emerald-700 mt-0.5 truncate">Terverifikasi rekening</div>
           </div>
 
-          <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200">
-            <div className="text-[10px] font-semibold text-neutral-600">Sisa Pelunasan Tamu</div>
-            <div className="text-base font-extrabold text-neutral-900 mt-0.5">
+          <div className="p-2.5 sm:p-3 rounded-xl bg-neutral-50 border border-neutral-200">
+            <div className="text-[9px] sm:text-[10px] font-semibold text-neutral-600 leading-tight">Sisa Pelunasan Tamu</div>
+            <div className="text-sm sm:text-base font-extrabold text-neutral-900 mt-0.5 truncate">
               Rp {remainingReceivable.toLocaleString('id-ID')}
             </div>
-            <div className="text-[9px] text-neutral-500 mt-0.5">Dibayar saat check-in</div>
+            <div className="text-[8px] sm:text-[9px] text-neutral-500 mt-0.5 truncate">Bayar saat check-in</div>
           </div>
         </div>
 

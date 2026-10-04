@@ -102,30 +102,30 @@ export const AdminBookingsTab: React.FC<Props> = ({ onShowToast }) => {
     switch (status) {
       case 'pending_verification':
         return (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
-            <Clock className="w-3 h-3 text-amber-600" />
-            <span>Menunggu Verifikasi</span>
+          <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1 shrink-0 whitespace-nowrap">
+            <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+            <span>Menunggu</span>
           </span>
         );
       case 'verified':
       case 'ready_checkin':
         return (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-            <span>Siap Check-in</span>
+          <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1 shrink-0 whitespace-nowrap">
+            <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+            <span>Siap Masuk</span>
           </span>
         );
       case 'checked_in':
         return (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-1">
-            <Building className="w-3 h-3 text-blue-600" />
-            <span>Sudah Check-in</span>
+          <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-1 shrink-0 whitespace-nowrap">
+            <Building className="w-3 h-3 text-blue-600 shrink-0" />
+            <span>Check-in</span>
           </span>
         );
       case 'completed':
         return (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-neutral-100 text-neutral-800 border border-neutral-300 flex items-center gap-1">
-            <Check className="w-3 h-3" />
+          <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-neutral-100 text-neutral-800 border border-neutral-300 flex items-center gap-1 shrink-0 whitespace-nowrap">
+            <Check className="w-3 h-3 shrink-0" />
             <span>Selesai</span>
           </span>
         );
@@ -133,9 +133,9 @@ export const AdminBookingsTab: React.FC<Props> = ({ onShowToast }) => {
       case 'rejected':
       default:
         return (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200 flex items-center gap-1">
-            <X className="w-3 h-3 text-rose-600" />
-            <span>Dibatalkan</span>
+          <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200 flex items-center gap-1 shrink-0 whitespace-nowrap">
+            <X className="w-3 h-3 text-rose-600 shrink-0" />
+            <span>Batal</span>
           </span>
         );
     }
@@ -165,8 +165,8 @@ export const AdminBookingsTab: React.FC<Props> = ({ onShowToast }) => {
         </div>
       </div>
 
-      {/* Filter Status Chips */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
+      {/* Filter Status Chips (Horizontal Scrollable) */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar overscroll-x-contain touch-pan-x text-xs">
         {[
           { id: 'all', label: `Semua (${bookings.length})` },
           { id: 'pending_verification', label: 'Menunggu' },
@@ -178,10 +178,10 @@ export const AdminBookingsTab: React.FC<Props> = ({ onShowToast }) => {
           <button
             key={item.id}
             onClick={() => setFilterStatus(item.id)}
-            className={`h-7 px-3 rounded-lg font-bold transition-all cursor-pointer shrink-0 ${
+            className={`h-7 px-3 rounded-lg font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap active:scale-95 ${
               filterStatus === item.id
                 ? 'bg-neutral-900 text-white shadow-2xs'
-                : 'bg-white text-neutral-600 border border-neutral-200'
+                : 'bg-white text-neutral-600 border border-neutral-200 hover:bg-neutral-50'
             }`}
           >
             {item.label}
@@ -203,24 +203,26 @@ export const AdminBookingsTab: React.FC<Props> = ({ onShowToast }) => {
             return (
               <div
                 key={b.id}
-                className={`p-3.5 rounded-2xl bg-white border transition-all shadow-2xs space-y-3 ${
+                className={`p-3 sm:p-3.5 rounded-2xl bg-white border transition-all shadow-2xs space-y-2.5 overflow-hidden ${
                   isPending
                     ? 'border-amber-300 ring-1 ring-amber-400/50 bg-amber-50/20'
                     : 'border-neutral-200/90'
                 }`}
               >
                 {/* Header Card: ID & Status */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-black text-neutral-900 font-mono">{b.id}</span>
-                    <span className="text-[10px] text-neutral-400">• {b.checkInDate}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-xs font-black text-neutral-900 font-mono truncate">{b.id}</span>
+                    <span className="text-[10px] text-neutral-400 shrink-0">• {b.checkInDate}</span>
                   </div>
-                  {getStatusBadge(b.status)}
+                  <div className="shrink-0">
+                    {getStatusBadge(b.status)}
+                  </div>
                 </div>
 
                 {/* Detail Tamu & Penginapan */}
-                <div className="flex gap-3">
-                  <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200 shrink-0">
+                <div className="flex gap-2.5 sm:gap-3">
+                  <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200 shrink-0">
                     <SafeImage
                       src={b.propertyImage}
                       alt={b.propertyName}
@@ -235,7 +237,7 @@ export const AdminBookingsTab: React.FC<Props> = ({ onShowToast }) => {
                     <p className="text-[10px] text-neutral-500 truncate">
                       {b.roomTypeName || 'Unit Sewa'} • {b.guestsCount} Tamu ({b.totalNights} Malam)
                     </p>
-                    <div className="text-xs font-extrabold text-emerald-950 pt-0.5">
+                    <div className="text-xs font-extrabold text-emerald-950 pt-0.5 break-words">
                       Rp {b.totalAmount.toLocaleString('id-ID')}{' '}
                       <span className="text-[9px] font-bold text-neutral-500 uppercase">
                         ({b.paymentType === 'full_100'
@@ -246,69 +248,71 @@ export const AdminBookingsTab: React.FC<Props> = ({ onShowToast }) => {
                   </div>
                 </div>
 
-                {/* Aksi Cepat Admin */}
-                <div className="flex items-center gap-1.5 pt-2 border-t border-neutral-100">
+                {/* Aksi Cepat Admin (Responsif tidak terpotong di HP 360px) */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-neutral-100">
                   {/* Tombol Verifikasi Utama jika Pending */}
                   {isPending ? (
                     <button
                       onClick={() => handleVerify(b)}
-                      className="flex-1 h-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-xs cursor-pointer active:scale-95 transition-all"
+                      className="flex-1 min-w-[130px] h-8 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center justify-center gap-1 shadow-xs cursor-pointer active:scale-95 transition-all truncate"
                     >
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Verifikasi Pembayaran</span>
+                      <Check className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">Verifikasi Pembayaran</span>
                     </button>
                   ) : (
                     /* Dropdown Ganti Status jika Sudah Terverifikasi */
                     <select
                       value={b.status}
                       onChange={(e) => handleStatusChange(b.id, e.target.value as BookingStatus)}
-                      className="flex-1 h-8 px-2 rounded-xl bg-neutral-100 text-neutral-800 text-[11px] font-bold border border-neutral-200 focus:outline-none cursor-pointer"
+                      className="flex-1 min-w-[110px] h-8 px-2 rounded-xl bg-neutral-100 text-neutral-800 text-[11px] font-bold border border-neutral-200 focus:outline-none cursor-pointer truncate"
                     >
                       <option value="pending_verification">Menunggu</option>
-                      <option value="verified">Siap Check-in</option>
-                      <option value="checked_in">Sudah Check-in</option>
+                      <option value="verified">Siap Masuk</option>
+                      <option value="checked_in">Check-in</option>
                       <option value="completed">Selesai</option>
                       <option value="cancelled">Dibatalkan</option>
                     </select>
                   )}
 
-                  {/* Tombol Lihat Bukti Transfer */}
-                  {b.paymentProofUrl && (
-                    <button
-                      onClick={() =>
-                        setPreviewReceipt({
-                          url: b.paymentProofUrl,
-                          title: `Bukti Transfer: ${b.guestName} (${b.id})`,
-                        })
-                      }
-                      className="h-8 px-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-[11px] font-bold flex items-center gap-1 border border-neutral-200 cursor-pointer"
-                      title="Lihat Bukti Transfer"
-                    >
-                      <CreditCard className="w-3.5 h-3.5" />
-                      <span>Bukti</span>
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1 shrink-0 ml-auto">
+                    {/* Tombol Lihat Bukti Transfer */}
+                    {b.paymentProofUrl && (
+                      <button
+                        onClick={() =>
+                          setPreviewReceipt({
+                            url: b.paymentProofUrl!,
+                            title: `Bukti Transfer: ${b.guestName} (${b.id})`,
+                          })
+                        }
+                        className="h-8 px-2 sm:px-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-[10px] sm:text-[11px] font-bold flex items-center gap-1 border border-neutral-200 cursor-pointer active:scale-95 shrink-0"
+                        title="Lihat Bukti Transfer"
+                      >
+                        <CreditCard className="w-3.5 h-3.5 shrink-0" />
+                        <span>Bukti</span>
+                      </button>
+                    )}
 
-                  {/* Tombol Detail Lengkap Tamu */}
-                  <button
-                    onClick={() => setSelectedBooking(b)}
-                    className="h-8 px-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-[11px] font-bold flex items-center gap-1 border border-neutral-200 cursor-pointer"
-                    title="Detail Lengkap"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>Detail</span>
-                  </button>
-
-                  {/* Tombol Batalkan / Tolak */}
-                  {b.status !== 'cancelled' && b.status !== 'completed' && (
+                    {/* Tombol Detail Lengkap Tamu */}
                     <button
-                      onClick={() => setRejectingBooking(b)}
-                      className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 flex items-center justify-center border border-rose-200 cursor-pointer"
-                      title="Batalkan Booking"
+                      onClick={() => setSelectedBooking(b)}
+                      className="h-8 px-2 sm:px-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-[10px] sm:text-[11px] font-bold flex items-center gap-1 border border-neutral-200 cursor-pointer active:scale-95 shrink-0"
+                      title="Detail Lengkap"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <Eye className="w-3.5 h-3.5 shrink-0" />
+                      <span>Detail</span>
                     </button>
-                  )}
+
+                    {/* Tombol Batalkan / Tolak */}
+                    {b.status !== 'cancelled' && b.status !== 'completed' && (
+                      <button
+                        onClick={() => setRejectingBooking(b)}
+                        className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 flex items-center justify-center border border-rose-200 cursor-pointer shrink-0 active:scale-95"
+                        title="Batalkan Booking"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );

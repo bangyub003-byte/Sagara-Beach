@@ -194,26 +194,26 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
   return (
     <div className="space-y-4">
       {/* Sub Tabs: Pengaturan Website & Activity Log */}
-      <div className="flex rounded-xl bg-neutral-200/80 p-1 text-xs font-bold">
+      <div className="flex rounded-xl bg-neutral-200/80 p-1 text-xs font-bold gap-1">
         <button
           type="button"
           onClick={() => setActiveSubTab('settings')}
-          className={`flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+          className={`flex-1 py-1.5 px-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer min-w-0 ${
             activeSubTab === 'settings' ? 'bg-white text-neutral-900 shadow-2xs' : 'text-neutral-600'
           }`}
         >
-          <Settings className="w-3.5 h-3.5" />
-          <span>Pengaturan Website</span>
+          <Settings className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">Pengaturan Website</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveSubTab('logs')}
-          className={`flex-1 py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+          className={`flex-1 py-1.5 px-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer min-w-0 ${
             activeSubTab === 'logs' ? 'bg-white text-neutral-900 shadow-2xs' : 'text-neutral-600'
           }`}
         >
-          <History className="w-3.5 h-3.5" />
-          <span>Activity Log ({cmsActivityLogs.length})</span>
+          <History className="w-3.5 h-3.5 shrink-0" />
+          <span className="truncate">Activity Log ({cmsActivityLogs.length})</span>
         </button>
       </div>
 

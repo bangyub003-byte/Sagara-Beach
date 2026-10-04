@@ -103,7 +103,7 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="min-h-[100dvh] bg-[#F6F7F9] text-[#11141A] flex flex-col justify-between select-none pb-20 max-w-md mx-auto">
       {/* Header Admin Mobile-Friendly */}
-      <header className="px-3.5 sm:px-4 py-2.5 flex items-center justify-between border-b border-neutral-200/60 bg-white sticky top-0 z-20 shadow-2xs">
+      <header className="px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2 border-b border-neutral-200/60 bg-white sticky top-0 z-20 shadow-2xs">
         <div className="flex items-center gap-2 min-w-0">
           <button
             onClick={() => {
@@ -122,23 +122,23 @@ export const AdminDashboard: React.FC = () => {
               </h1>
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
             </div>
-            <p className="text-[10px] text-neutral-400 truncate">
+            <p className="text-[10px] text-neutral-400 truncate max-w-[110px] sm:max-w-[180px]">
               {brandName}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Badge Diagnosis Koneksi Supabase Real-Time */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Badge Status Supabase Real-Time (Kompak di Mobile) */}
           {isSupabaseOnline ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[9px] sm:text-[10px] font-semibold tracking-tight">
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-[9px] sm:text-[10px] font-bold tracking-tight whitespace-nowrap">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
-              Database: Supabase (Online)
+              <span className="hidden xs:inline">Supabase </span>Online
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200 text-rose-600 text-[9px] sm:text-[10px] font-semibold tracking-tight">
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 text-[9px] sm:text-[10px] font-bold tracking-tight whitespace-nowrap">
               <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
-              Database: Mode Lokal (Supabase Tidak Terhubung)
+              Lokal
             </span>
           )}
 
@@ -147,18 +147,18 @@ export const AdminDashboard: React.FC = () => {
               logoutStaff();
               if (navigateTo) navigateTo('/');
             }}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold hover:bg-rose-100 active:scale-95 transition-all cursor-pointer shrink-0"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-[10px] sm:text-[11px] font-bold hover:bg-rose-100 active:scale-95 transition-all cursor-pointer shrink-0"
             title="Keluar Sesi Admin"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span className="text-[10px]">Logout</span>
+            <span className="hidden xs:inline">Logout</span>
           </button>
         </div>
       </header>
 
-      {/* Menu Navigasi Horizontal Scrollable (Mobile Friendly, Card Sederhana & Rapi) */}
-      <div className="px-3 pt-2.5 pb-1">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar">
+      {/* Menu Navigasi Horizontal Scrollable (Mobile Friendly, Scroll Halus & Tidak Terpotong) */}
+      <div className="px-2.5 sm:px-3 pt-2 pb-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar overscroll-x-contain touch-pan-x">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -167,7 +167,7 @@ export const AdminDashboard: React.FC = () => {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 active:scale-95 ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap active:scale-95 ${
                   isActive
                     ? 'bg-[#13281E] text-white shadow-xs'
                     : 'bg-white text-neutral-700 border border-neutral-200/90 hover:bg-neutral-50'
@@ -177,7 +177,7 @@ export const AdminDashboard: React.FC = () => {
                 <span>{item.label}</span>
                 {item.badge !== undefined && item.badge > 0 && (
                   <span
-                    className={`ml-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-black ${
+                    className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black leading-none ${
                       isActive ? 'bg-amber-400 text-neutral-900' : 'bg-amber-500 text-white'
                     }`}
                   >

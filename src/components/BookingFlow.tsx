@@ -160,13 +160,8 @@ export const BookingFlow: React.FC = () => {
   const [checkInDate, setCheckInDate] = useState<string>('2025-10-18');
   const [checkOutDate, setCheckOutDate] = useState<string>('2025-10-20');
 
-  // Trenggole: pilihan kamar (multi-select atau single)
-  const [trenggoleSelectedRooms, setTrenggoleSelectedRooms] = useState<string[]>(() => {
-    if (selectedRoomType && selectedRoomType.id.startsWith('trenggole-')) {
-      return [selectedRoomType.id];
-    }
-    return ['trenggole-kamar-1'];
-  });
+  // Trenggole: pilihan kamar (multi-select atau single) - default kosong agar pengguna memilih sendiri
+  const [trenggoleSelectedRooms, setTrenggoleSelectedRooms] = useState<string[]>([]);
 
   // State tampilan showcase kamar di Step 2 (Sesuai Referensi Gambar #2)
   const [activePreviewRoomId, setActivePreviewRoomId] = useState<string>(() => {
@@ -769,6 +764,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                     setSelectedProperty(
                       accommodations.find((a) => a.id === 'homestay-sundak') || accommodations[0]
                     );
+                    setTrenggoleSelectedRooms([]);
                     setErrorNotice('');
                   }}
                   className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
@@ -787,6 +783,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                     setSelectedProperty(
                       accommodations.find((a) => a.id === 'homestay-trenggole') || accommodations[1]
                     );
+                    setTrenggoleSelectedRooms([]);
                     setErrorNotice('');
                   }}
                   className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer text-center ${
@@ -866,16 +863,6 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                       </span>
                     ))}
                   </div>
-
-                  {/* Button Pilih & Lanjut */}
-                  <button
-                    type="button"
-                    onClick={() => setActiveStep(2)}
-                    className="w-full h-11 px-4 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer mt-1"
-                  >
-                    <span>Lanjut ke Pilih Kamar &amp; Tanggal</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
                 </div>
               </div>
             )}
@@ -946,16 +933,6 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                       </span>
                     ))}
                   </div>
-
-                  {/* Button Pilih & Lanjut */}
-                  <button
-                    type="button"
-                    onClick={() => setActiveStep(2)}
-                    className="w-full h-11 px-4 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer mt-1"
-                  >
-                    <span>Lanjut ke Pilih Kamar &amp; Tanggal</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
                 </div>
               </div>
             )}
@@ -1226,17 +1203,17 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                                   type="button"
                                   onClick={() => {
                                     setTrenggoleSelectedRooms([room.id]);
+                                    setSelectedRoomType(room);
                                     setErrorNotice('');
-                                    setActiveStep(3);
                                   }}
                                   className={`h-11 px-5 rounded-full text-xs font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer ${
                                     isSelected
-                                      ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                                      ? 'bg-emerald-700 hover:bg-emerald-800 text-white ring-2 ring-emerald-500/30'
                                       : 'bg-[#13281E] hover:bg-[#1A3428] text-white'
                                   }`}
                                 >
-                                  <span>{isSelected ? '✓ Terpilih (Lanjut)' : 'Pilih Kamar'}</span>
-                                  <ArrowRight className="w-3.5 h-3.5" />
+                                  {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                                  <span>{isSelected ? 'Kamar Terpilih' : 'Pilih Kamar'}</span>
                                 </button>
                               ) : (
                                 <span className="px-3.5 py-2 rounded-full bg-rose-100 text-rose-800 text-xs font-bold">
@@ -1974,7 +1951,9 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
             {activeStep === 5 ? `Total Bayar (${paymentType === 'full_100' ? 'Lunas' : 'DP 30%'})` : 'Total Biaya'}
           </span>
           <span className="text-[16px] font-black text-neutral-900">
-            {activeStep === 3 && isSundak && (totalGuests < 6 || totalGuests > 21)
+            {activeStep === 2 && !isSundak && trenggoleSelectedRooms.length === 0
+              ? '-'
+              : activeStep === 3 && isSundak && (totalGuests < 6 || totalGuests > 21)
               ? '-'
               : activeStep === 5
               ? `Rp ${dpAmount.toLocaleString('id-ID')}`
@@ -1988,21 +1967,51 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
             onClick={() => setActiveStep(2)}
             className="h-12 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
           >
-            <span>Pilih Tanggal</span>
+            <span>Lanjut ke Pilih Kamar &amp; Tanggal</span>
             <ArrowRight className="w-4 h-4 text-white" />
           </button>
         )}
 
-        {activeStep === 2 && (
+        {activeStep === 2 && isSundak && (
           <button
             type="button"
             onClick={handleValidateAndProceedStep2}
-            className="h-12 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
+            disabled={!isSundakAvailable}
+            className="h-12 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer disabled:bg-neutral-300 disabled:text-neutral-500 disabled:cursor-not-allowed"
           >
             <span>Isi Data Tamu</span>
             <ArrowRight className="w-4 h-4 text-white" />
           </button>
         )}
+
+        {activeStep === 2 && !isSundak && (() => {
+          const isSelected = trenggoleSelectedRooms.length > 0;
+          const selectedRoom = (activeProp.roomTypes || []).find((r) =>
+            trenggoleSelectedRooms.includes(r.id)
+          );
+          const activeCmsRoom = cmsRooms?.find((r) => r.id === selectedRoom?.id);
+          const fullName = activeCmsRoom?.nama_kamar || selectedRoom?.name || '';
+          const matchKamar = fullName.match(/Kamar\s*\d+/i);
+          const roomLabel = matchKamar ? matchKamar[0] : fullName || 'Kamar';
+
+          return (
+            <button
+              type="button"
+              onClick={handleValidateAndProceedStep2}
+              disabled={!isSelected}
+              className={`h-12 px-5 rounded-full font-bold text-xs flex items-center gap-1.5 shadow-md transition-all ${
+                isSelected
+                  ? 'bg-[#13281E] hover:bg-[#1A3428] active:scale-[0.98] text-white cursor-pointer'
+                  : 'bg-neutral-200 text-neutral-400 cursor-not-allowed shadow-none'
+              }`}
+            >
+              <span>
+                {isSelected ? `Lanjut dengan ${roomLabel}` : 'Pilih Kamar Dahulu'}
+              </span>
+              <ArrowRight className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-neutral-400'}`} />
+            </button>
+          );
+        })()}
 
         {activeStep === 3 && (
           <button
