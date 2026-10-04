@@ -26,7 +26,6 @@ import {
   Users,
   AlertCircle,
   MessageCircle,
-  Sparkles,
   ShieldCheck,
   Building,
   Car,
@@ -38,6 +37,37 @@ import {
   Eye,
   UtensilsCrossed,
 } from 'lucide-react';
+
+// Helper validasi format nomor WhatsApp di Langkah 3:
+// - Harus diawali "08" (minimal 10 digit) atau "+62"/"62" (minimal 11 digit)
+// - Hanya boleh berisi angka (spasi dan strip diabaikan saat validasi)
+export const validateWhatsAppNumber = (phone: string): boolean => {
+  if (!phone) return false;
+  const trimmed = phone.trim();
+  // Pastikan hanya berisi angka, spasi, strip, dan opsional "+" di awal
+  if (!/^\+?[\d\s-]+$/.test(trimmed)) {
+    return false;
+  }
+  // Hilangkan spasi dan strip untuk pengecekan pola dan panjang digit
+  const cleaned = trimmed.replace(/[\s-]/g, '');
+
+  // 1. Diawali "08" (minimal 10 digit, yaitu "08" + minimal 8 digit)
+  if (/^08\d{8,}$/.test(cleaned)) {
+    return true;
+  }
+
+  // 2. Diawali "+62" (minimal 11 digit, yaitu "+62" + minimal 9 digit)
+  if (/^\+62\d{9,}$/.test(cleaned)) {
+    return true;
+  }
+
+  // 3. Diawali "62" (minimal 11 digit, yaitu "62" + minimal 9 digit)
+  if (/^62\d{9,}$/.test(cleaned)) {
+    return true;
+  }
+
+  return false;
+};
 
 export const BookingFlow: React.FC = () => {
   const {
@@ -347,6 +377,13 @@ export const BookingFlow: React.FC = () => {
   const handleValidateAndProceedStep3 = () => {
     if (!namaLengkap.trim() || !asalKota.trim() || !noHp.trim() || !withWhom.trim()) {
       setErrorNotice('Lengkapi data terlebih dahulu sebelum melanjutkan pemesanan.');
+      return;
+    }
+
+    if (!validateWhatsAppNumber(noHp)) {
+      setErrorNotice(
+        'Nomor WhatsApp tidak valid. Pastikan nomor aktif dan bisa dihubungi, contoh: 081234567890'
+      );
       return;
     }
 
@@ -858,8 +895,8 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                   {/* Fasilitas Utama */}
                   <div className="flex flex-wrap gap-1.5 pt-0.5">
                     {(sundakProp?.highlights && sundakProp.highlights.length > 0 ? sundakProp.highlights.slice(0, 4) : ['4 Kamar AC', '3 KM Dalam', 'Dapur Lengkap', 'WiFi Gratis']).map((f: string, fIdx: number) => (
-                      <span key={fIdx} className="px-2.5 py-1 rounded-lg bg-neutral-100 text-neutral-700 text-[11px] font-semibold flex items-center gap-1">
-                        <Sparkles className="w-3 h-3 text-emerald-700" /> {f}
+                      <span key={fIdx} className="px-2.5 py-1 rounded-lg bg-neutral-100 text-neutral-700 text-[11px] font-semibold">
+                        {f}
                       </span>
                     ))}
                   </div>
@@ -928,8 +965,8 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                   {/* Fasilitas Utama */}
                   <div className="flex flex-wrap gap-1.5 pt-0.5">
                     {(trenggoleProp?.highlights && trenggoleProp.highlights.length > 0 ? trenggoleProp.highlights.slice(0, 4) : ['View Pantai', 'AC Dingin', '2 Bed / Kamar', 'WiFi Cepat']).map((f: string, fIdx: number) => (
-                      <span key={fIdx} className="px-2.5 py-1 rounded-lg bg-neutral-100 text-neutral-700 text-[11px] font-semibold flex items-center gap-1">
-                        <Sparkles className="w-3 h-3 text-sky-600" /> {f}
+                      <span key={fIdx} className="px-2.5 py-1 rounded-lg bg-neutral-100 text-neutral-700 text-[11px] font-semibold">
+                        {f}
                       </span>
                     ))}
                   </div>
@@ -1179,9 +1216,9 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                             {roomFacilities.map((f: string, fIdx: number) => (
                               <span
                                 key={fIdx}
-                                className="px-2.5 py-1 rounded-lg bg-neutral-100 text-neutral-700 text-[10px] font-semibold flex items-center gap-1"
+                                className="px-2.5 py-1 rounded-lg bg-neutral-100 text-neutral-700 text-[10px] font-semibold"
                               >
-                                <Sparkles className="w-3 h-3 text-sky-600" /> {f}
+                                {f}
                               </span>
                             ))}
                           </div>
@@ -1439,11 +1476,23 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                   value={noHp}
                   onChange={(e) => {
                     setNoHp(e.target.value);
-                    setErrorNotice('');
+                    if (errorNotice.includes('WhatsApp')) {
+                      setErrorNotice('');
+                    }
                   }}
                   placeholder="Contoh: 081234567890"
-                  className="w-full h-11 px-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
+                  className={`w-full h-11 px-3.5 rounded-2xl bg-[#F6F7F9] border text-xs font-semibold text-neutral-900 focus:outline-none transition-colors ${
+                    errorNotice.includes('WhatsApp')
+                      ? 'border-rose-400 bg-rose-50/30 focus:ring-1 focus:ring-rose-500'
+                      : 'border-neutral-200 focus:ring-1 focus:ring-emerald-700'
+                  }`}
                 />
+                {errorNotice.includes('WhatsApp') && (
+                  <p className="text-[11px] text-rose-600 font-semibold mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{errorNotice}</span>
+                  </p>
+                )}
               </div>
 
               {/* Dengan Siapa Berkunjung (Wajib Mahrom) */}

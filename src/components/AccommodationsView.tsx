@@ -11,7 +11,6 @@ import {
   Bed,
   Bath,
   ArrowRight,
-  Sparkles,
   Wind,
   Flame,
   Tv,
@@ -231,9 +230,9 @@ export const AccommodationsView: React.FC = () => {
                   {facilitiesList.map((f, fIdx) => (
                     <span
                       key={fIdx}
-                      className="px-2.5 py-1 rounded-lg bg-neutral-100 text-neutral-700 text-[11px] font-semibold flex items-center gap-1"
+                      className="px-2.5 py-1 rounded-lg bg-neutral-100 text-neutral-700 text-[11px] font-semibold"
                     >
-                      <Sparkles className="w-3 h-3 text-emerald-700" /> {f}
+                      {f}
                     </span>
                   ))}
                 </div>
@@ -335,8 +334,7 @@ export const AccommodationsView: React.FC = () => {
 
         {/* Layanan Tambahan Banner */}
         <div className="p-4 rounded-[24px] bg-gradient-to-br from-emerald-50 to-teal-50/50 border border-emerald-200/90 text-xs space-y-2">
-          <div className="flex items-center gap-1.5 text-emerald-950 font-bold">
-            <Sparkles className="w-4 h-4 text-emerald-700" />
+          <div className="text-emerald-950 font-bold">
             <span>Layanan Tambahan Tersedia:</span>
           </div>
           <ul className="text-neutral-700 text-xs space-y-0.5 list-disc list-inside font-medium pl-1">

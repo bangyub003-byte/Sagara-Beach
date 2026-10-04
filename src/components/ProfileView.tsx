@@ -9,7 +9,6 @@ import {
   ShieldCheck,
   UserCheck,
   ChevronRight,
-  Sparkles,
   MapPin,
   Clock,
   HelpCircle,

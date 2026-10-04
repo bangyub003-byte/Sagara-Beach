@@ -7,7 +7,6 @@ import {
   MapPin,
   Users,
   ArrowRight,
-  Sparkles,
   UtensilsCrossed,
   Compass,
   MessageCircle,
@@ -35,6 +34,7 @@ export const CustomerDashboard: React.FC = () => {
     setSelectedRoomType,
     setCurrentView,
     language,
+    t,
     homepageContent,
     adminWhatsappNumber,
     getWebsiteSetting,
@@ -136,7 +136,7 @@ export const CustomerDashboard: React.FC = () => {
     if (lower.includes('parkir') || lower.includes('mobil') || lower.includes('motor')) {
       return <Car className="w-3.5 h-3.5 text-neutral-600 shrink-0" />;
     }
-    return <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />;
+    return null;
   };
 
   const displayedFacilities = showAllFacilities ? facilitiesList : facilitiesList.slice(0, 4);
@@ -254,10 +254,10 @@ export const CustomerDashboard: React.FC = () => {
           </div>
           <div>
             <h1 className="text-sm font-black text-neutral-900 leading-tight">
-              Pantai Sundak &amp; Trenggole
+              {t.locationSundakTrenggole}
             </h1>
             <span className="text-[11px] text-neutral-500 font-medium block">
-              Gunungkidul, D.I. Yogyakarta
+              {t.gunungkidulYogyakarta}
             </span>
           </div>
         </div>
@@ -269,7 +269,7 @@ export const CustomerDashboard: React.FC = () => {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-neutral-200/90 text-xs font-bold text-neutral-800 shadow-xs hover:bg-neutral-50 active:scale-95 transition-all"
         >
           <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-          <span>WhatsApp</span>
+          <span>{t.chatWhatsapp}</span>
         </a>
       </header>
 
@@ -282,7 +282,7 @@ export const CustomerDashboard: React.FC = () => {
           <div className="relative h-60 w-full">
             <SafeImage
               src={heroImageSrc}
-              alt={homepageContent?.hero_title || 'Griya Barokah Homestay Pantai Sundak & Trenggole'}
+              alt={language === 'en' ? t.heroDefaultTitle : (homepageContent?.hero_title || t.heroDefaultTitle)}
               className="w-full h-full object-cover opacity-90"
               containerClassName="w-full h-full"
               loading="eager"
@@ -292,20 +292,20 @@ export const CustomerDashboard: React.FC = () => {
             <div className="absolute inset-0 p-5 flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="px-3 py-1 rounded-full bg-emerald-600/90 backdrop-blur-md text-[10px] font-black text-white uppercase tracking-wider border border-white/20">
-                  {homepageContent?.hero_subtitle || 'HOMESTAY KELUARGA ASLI'}
+                  {language === 'en' ? t.heroDefaultSubtitle : (homepageContent?.hero_subtitle || t.heroDefaultSubtitle)}
                 </span>
                 <span className="text-[11px] font-bold text-emerald-200 flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Keluarga & Mahrom</span>
+                  <span>{t.familyAndMahrom}</span>
                 </span>
               </div>
 
               <div>
                 <h1 className="text-[21px] font-black leading-tight text-white tracking-tight">
-                  {homepageContent?.hero_title || 'Griya Barokah Homestay Pantai Sundak & Trenggole'}
+                  {language === 'en' ? t.heroDefaultTitle : (homepageContent?.hero_title || t.heroDefaultTitle)}
                 </h1>
                 <p className="text-xs text-neutral-200 mt-1.5 leading-relaxed font-normal">
-                  {homepageContent?.hero_description || 'Penginapan keluarga nyaman dekat pantai Gunungkidul dengan fasilitas lengkap.'}
+                  {language === 'en' ? t.heroDefaultDesc : (homepageContent?.hero_description || t.heroDefaultDesc)}
                 </p>
               </div>
             </div>
@@ -320,10 +320,10 @@ export const CustomerDashboard: React.FC = () => {
           <div className="flex items-center justify-between pb-1 border-b border-neutral-100">
             <span className="text-xs font-black uppercase tracking-wider text-neutral-800 flex items-center gap-1.5">
               <Building className="w-4 h-4 text-emerald-700" />
-              <span>Rencana Kunjungan Anda</span>
+              <span>{t.yourVisitPlan}</span>
             </span>
             <span className="text-[11px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              Booking Mudah
+              {t.easyBookingBadge}
             </span>
           </div>
 
@@ -332,7 +332,7 @@ export const CustomerDashboard: React.FC = () => {
             <div>
               <label className="block text-[11px] font-bold text-neutral-700 mb-1.5 flex items-center gap-1">
                 <Users className="w-3.5 h-3.5 text-neutral-400" />
-                <span>Jumlah Tamu (Orang)</span>
+                <span>{t.guestCountLabel}</span>
               </label>
               <select
                 value={guestCountEstimate}
@@ -348,24 +348,23 @@ export const CustomerDashboard: React.FC = () => {
                 }}
                 className="w-full h-11 px-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-neutral-900"
               >
-                <option value={2}>2 Orang (Keluarga Kecil / Pasangan)</option>
-                <option value={4}>4 Orang (Keluarga Standar - Pas 1 Kamar Trenggole)</option>
-                <option value={6}>6 Orang (Keluarga Sedang - Pas Sewa 2 Kamar Sundak)</option>
-                <option value={12}>12 Orang (Keluarga Besar - Pas Rumah Penuh Sundak)</option>
-                <option value={16}>16 Orang (Rombongan 4 Kamar Trenggole / Sundak + Extra Bed)</option>
-                <option value={21}>21 Orang (Kapasitas Maksimal Rumah Penuh Sundak)</option>
+                <option value={2}>{t.guestOption2}</option>
+                <option value={4}>{t.guestOption4}</option>
+                <option value={6}>{t.guestOption6}</option>
+                <option value={12}>{t.guestOption12}</option>
+                <option value={16}>{t.guestOption16}</option>
+                <option value={21}>{t.guestOption21}</option>
               </select>
 
               {/* Rekomendasi Otomatis Berdasarkan Jumlah Tamu */}
-              <div className="mt-2.5 p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-[11px] text-emerald-950 flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+              <div className="mt-2.5 p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-[11px] text-emerald-950">
                 {guestCountEstimate < 6 ? (
                   <span>
-                    Rekomendasi otomatis: <strong>Pantai Trenggole</strong> (kamar individual view pantai). Pantai Sundak khusus rombongan min. 6 orang.
+                    {t.recTrenggoleDesc}
                   </span>
                 ) : (
                   <span>
-                    Rekomendasi: <strong>Pantai Sundak</strong> (Satu Rumah Penuh) &amp; <strong>Pantai Trenggole</strong> cocok untuk rombongan ini.
+                    {t.recBothDesc}
                   </span>
                 )}
               </div>
@@ -378,7 +377,7 @@ export const CustomerDashboard: React.FC = () => {
                 onClick={handleCariHomestay}
                 className="h-12 rounded-full bg-[#13281E] hover:bg-[#1A3428] active:scale-[0.98] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-[#13281E]/20 transition-all cursor-pointer"
               >
-                <span>Cari Homestay</span>
+                <span>{t.searchHomestayBtn}</span>
                 <ArrowRight className="w-3.5 h-3.5 text-white" />
               </button>
 
@@ -387,8 +386,7 @@ export const CustomerDashboard: React.FC = () => {
                 onClick={() => handlePesanSekarang()}
                 className="h-12 rounded-full bg-emerald-700 hover:bg-emerald-800 active:scale-[0.98] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-700/20 transition-all cursor-pointer"
               >
-                <span>Pesan Sekarang</span>
-                <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
+                <span>{t.bookNowBtn}</span>
               </button>
             </div>
           </div>
@@ -400,23 +398,22 @@ export const CustomerDashboard: React.FC = () => {
         <section id="pilihan-penginapan" className="space-y-4 scroll-mt-6">
           <div className="flex items-center justify-between px-1">
             <h2 className="text-xs font-black uppercase tracking-wider text-neutral-700">
-              Pilihan Penginapan Kami
+              {t.ourLodgingOptions}
             </h2>
             <button
               onClick={() => setCurrentView('accommodations')}
               className="text-xs font-bold text-emerald-800 hover:underline flex items-center gap-1 cursor-pointer"
             >
-              <span>Lihat Detail Kamar</span>
+              <span>{t.viewRoomDetails}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
           {/* Notifikasi info kapasitas jika tamu < 6 orang */}
           {guestCountEstimate < 6 && (
-            <div className="p-3 bg-sky-50 border border-sky-200/80 text-sky-950 rounded-2xl text-xs flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-sky-700 shrink-0" />
+            <div className="p-3 bg-sky-50 border border-sky-200/80 text-sky-950 rounded-2xl text-xs">
               <span>
-                Jumlah tamu <strong>{guestCountEstimate} orang</strong> cocok untuk <strong>Pantai Trenggole</strong> (kamar individual). Pantai Sundak khusus rombongan minimal 6 orang (Satu Rumah Penuh).
+                {t.guestCountNotificationPrefix} <strong>{guestCountEstimate} {t.peopleCount}</strong> {t.guestCountNotificationSuffix}
               </span>
             </div>
           )}
@@ -572,16 +569,11 @@ export const CustomerDashboard: React.FC = () => {
             4. FASILITAS LENGKAP PENGINAPAN
            ============================================================== */}
         <section className="bg-white rounded-[28px] p-5 shadow-xs border border-neutral-200/90 space-y-3.5">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-xs font-black uppercase tracking-wider text-neutral-800">
-                Fasilitas Lengkap Penginapan
-              </h2>
-              <span className="text-[10px] text-neutral-400">Tersedia di Griya Barokah Pantai Sundak & Trenggole</span>
-            </div>
+          <div>
+            <h2 className="text-xs font-black uppercase tracking-wider text-neutral-800">
+              Fasilitas Lengkap Penginapan
+            </h2>
+            <span className="text-[10px] text-neutral-400">Tersedia di Griya Barokah Pantai Sundak & Trenggole</span>
           </div>
 
           {/* Foto Fasilitas dari CMS */}
@@ -631,18 +623,13 @@ export const CustomerDashboard: React.FC = () => {
             5. LAYANAN TAMBAHAN (MAKANAN, JEEP WISATA, INFO PROPERTI, WHATSAPP)
            ============================================================== */}
         <section className="bg-gradient-to-br from-emerald-50 to-teal-50/60 rounded-[28px] p-5 border border-emerald-200 shadow-xs space-y-3.5">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-emerald-800 text-white flex items-center justify-center">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-[13px] font-black text-emerald-950">
-                Layanan Tambahan Tersedia
-              </h2>
-              <span className="text-[11px] text-emerald-700">
-                Siap memfasilitasi kebutuhan rombongan Anda
-              </span>
-            </div>
+          <div>
+            <h2 className="text-[13px] font-black text-emerald-950">
+              Layanan Tambahan Tersedia
+            </h2>
+            <span className="text-[11px] text-emerald-700">
+              Siap memfasilitasi kebutuhan rombongan Anda
+            </span>
           </div>
 
           <div className="space-y-2 text-xs">

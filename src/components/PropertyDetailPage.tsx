@@ -13,7 +13,6 @@ import {
   Bath,
   Maximize2,
   ArrowRight,
-  Sparkles,
   Users,
   CheckCircle2,
   AlertCircle,
@@ -359,8 +358,7 @@ export const PropertyDetailPage: React.FC = () => {
 
           {/* Banner Layanan Tambahan */}
           <div className="p-4 rounded-[26px] bg-gradient-to-br from-emerald-50 to-teal-50/50 border border-emerald-200/90 text-xs space-y-2">
-            <div className="flex items-center gap-1.5 text-emerald-950 font-bold">
-              <Sparkles className="w-4 h-4 text-emerald-700" />
+            <div className="text-emerald-950 font-bold">
               <span>Layanan tambahan tersedia:</span>
             </div>
             <ul className="text-neutral-700 text-xs space-y-0.5 list-disc list-inside font-medium pl-1">
