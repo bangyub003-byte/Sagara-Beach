@@ -134,14 +134,9 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
   const handleAddUrlToGaleri = () => {
     const trimmed = urlInput.trim();
     if (!trimmed) return;
-    if (!galeri.includes(trimmed)) {
-      const updated = [...galeri, trimmed];
-      setGaleri(updated);
-      if (!fotoUtama) {
-        setFotoUtama(trimmed);
-      }
-      onShowToast('✓ Foto berhasil ditambahkan ke galeri!');
-    }
+    setGaleri((prev) => (!prev.includes(trimmed) ? [...prev, trimmed] : prev));
+    setFotoUtama((prev) => prev || trimmed);
+    onShowToast('✓ Foto berhasil ditambahkan ke galeri!');
     setUrlInput('');
   };
 
@@ -155,11 +150,13 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
       alert('Minimal harus ada 1 foto di dalam galeri!');
       return;
     }
-    const updated = galeri.filter((u) => u !== urlToDelete);
-    setGaleri(updated);
-    if (fotoUtama === urlToDelete) {
-      setFotoUtama(updated[0]);
-    }
+    setGaleri((prev) => {
+      const updated = prev.filter((u) => u !== urlToDelete);
+      if (fotoUtama === urlToDelete && updated.length > 0) {
+        setFotoUtama(updated[0]);
+      }
+      return updated;
+    });
     onShowToast('✓ Foto dihapus dari galeri kamar.');
   };
 
@@ -168,14 +165,16 @@ export const AdminRoomsTab: React.FC<Props> = ({ onShowToast }) => {
     if (file) {
       try {
         const media = await uploadMedia(file, 'kamar');
-        const updatedGaleri = [...galeri, media.url];
-        setGaleri(updatedGaleri);
-        if (!fotoUtama) {
-          setFotoUtama(media.url);
+        if (!media || !media.url || media.url.startsWith('data:')) {
+          throw new Error('Upload gagal, periksa koneksi internet dan coba lagi');
         }
+        setGaleri((prev) => [...prev, media.url]);
+        setFotoUtama((prev) => prev || media.url);
         onShowToast('✓ Foto baru berhasil diunggah & masuk ke galeri kamar!');
       } catch (err: any) {
-        alert(err.message || 'Gagal mengunggah foto.');
+        alert(err.message || 'Upload gagal, periksa koneksi internet dan coba lagi');
+      } finally {
+        e.target.value = '';
       }
     }
   };

@@ -30,12 +30,12 @@ export const uploadImageToSupabaseStorage = async (
   file: File,
   folder = 'media'
 ): Promise<string> => {
-  // 1. Kompresi gambar asli
-  const compressedDataUrl = await compressImageFile(file, 1400, 0.85);
-
   if (!isSupabaseConfigured) {
-    return compressedDataUrl;
+    throw new Error('Upload gagal: Supabase Storage belum dikonfigurasi. Periksa koneksi atau konfigurasi Supabase.');
   }
+
+  // 1. Kompresi gambar asli untuk efisiensi transfer
+  const compressedDataUrl = await compressImageFile(file, 1400, 0.85);
 
   try {
     const blob = dataUrlToBlob(compressedDataUrl);
@@ -54,15 +54,19 @@ export const uploadImageToSupabaseStorage = async (
       });
 
     if (uploadError) {
-      console.warn('[Supabase Storage Upload Warning]', uploadError.message);
-      return compressedDataUrl;
+      console.error('[Supabase Storage Upload Error]', uploadError);
+      throw new Error(`Upload gagal, periksa koneksi internet dan coba lagi (${uploadError.message})`);
     }
 
     const { data: urlData } = supabase.storage.from('media').getPublicUrl(filePath);
-    return urlData.publicUrl || compressedDataUrl;
-  } catch (err) {
-    console.warn('[Supabase Storage Error] Gagal upload gambar:', err);
-    return compressedDataUrl;
+    if (!urlData?.publicUrl) {
+      throw new Error('Upload gagal, tidak dapat memperoleh URL publik dari Supabase Storage.');
+    }
+
+    return urlData.publicUrl;
+  } catch (err: any) {
+    console.error('[Supabase Storage Error] Gagal upload gambar:', err);
+    throw new Error(err?.message || 'Upload gagal, periksa koneksi internet dan coba lagi');
   }
 };
 

@@ -24,9 +24,34 @@ export const ProfileView: React.FC = () => {
     navigateTo,
     bookings,
     t,
+    getWebsiteSetting,
+    adminWhatsappNumber,
   } = useBooking();
 
   const userBookingsCount = bookings.length;
+
+  const rawAdminWhatsapp = getWebsiteSetting
+    ? getWebsiteSetting('admin_whatsapp', adminWhatsappNumber || '082138613888')
+    : adminWhatsappNumber || '082138613888';
+
+  const formatWhatsappDisplay = (phone: string) => {
+    const clean = phone.replace(/\D/g, '');
+    if (clean.startsWith('62')) {
+      return `+${clean.slice(0, 2)} ${clean.slice(2, 5)}-${clean.slice(5, 9)}-${clean.slice(9)}`;
+    }
+    if (clean.startsWith('0')) {
+      return `+62 ${clean.slice(1, 4)}-${clean.slice(4, 8)}-${clean.slice(8)}`;
+    }
+    return phone;
+  };
+
+  const getWaLinkNumber = (phone: string) => {
+    let digits = phone.replace(/\D/g, '');
+    if (digits.startsWith('0')) {
+      digits = '62' + digits.slice(1);
+    }
+    return digits;
+  };
 
   const handleOpenStaffPortal = (path: '/admin' | '/receptionist') => {
     if (navigateTo) {
@@ -145,13 +170,21 @@ export const ProfileView: React.FC = () => {
           </h3>
 
           <div className="space-y-2 text-xs">
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-50 text-neutral-700">
+            <a
+              href={`https://wa.me/${getWaLinkNumber(rawAdminWhatsapp)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-50 hover:bg-neutral-100 transition-colors text-neutral-700 active:scale-[0.99] cursor-pointer"
+              title="Hubungi WhatsApp Pengelola"
+            >
               <span className="flex items-center gap-2">
                 <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />
                 <span>{t.managerWhatsapp}</span>
               </span>
-              <span className="font-mono font-bold text-neutral-900">+62 812-3456-7890</span>
-            </div>
+              <span className="font-mono font-bold text-neutral-900">
+                {formatWhatsappDisplay(rawAdminWhatsapp)}
+              </span>
+            </a>
 
             <div className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-50 text-neutral-700">
               <span className="flex items-center gap-2">

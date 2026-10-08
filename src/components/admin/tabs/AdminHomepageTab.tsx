@@ -107,11 +107,17 @@ export const AdminHomepageTab: React.FC<Props> = ({ onShowToast }) => {
       setIsUploading(true);
       try {
         const uploaded = await uploadMedia(file, 'hero');
+        if (!uploaded || !uploaded.url || uploaded.url.startsWith('data:')) {
+          throw new Error('Upload gagal, periksa koneksi internet dan coba lagi');
+        }
         setForm((prev) => ({ ...prev, hero_image: uploaded.url }));
         updateHomepageContent({ hero_image: uploaded.url });
         onShowToast('✓ Foto hero berhasil diunggah & langsung diterapkan ke Beranda!');
+      } catch (err: any) {
+        alert(err.message || 'Upload gagal, periksa koneksi internet dan coba lagi');
       } finally {
         setIsUploading(false);
+        e.target.value = '';
       }
     }
   };
@@ -349,10 +355,16 @@ export const AdminHomepageTab: React.FC<Props> = ({ onShowToast }) => {
                       setIsUploadingFacility(true);
                       try {
                         const res = await uploadMedia(f, 'fasilitas');
+                        if (!res || !res.url || res.url.startsWith('data:')) {
+                          throw new Error('Upload gagal, periksa koneksi internet dan coba lagi');
+                        }
                         setFacilityBannerImage(res.url);
                         onShowToast('✓ Foto fasilitas berhasil diunggah!');
+                      } catch (err: any) {
+                        alert(err.message || 'Upload gagal, periksa koneksi internet dan coba lagi');
                       } finally {
                         setIsUploadingFacility(false);
+                        e.target.value = '';
                       }
                     }
                   }}

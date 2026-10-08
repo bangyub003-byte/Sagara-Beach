@@ -49,9 +49,15 @@ export const AdminMediaTab: React.FC<Props> = ({ onShowToast }) => {
       setIsUploading(true);
       try {
         const res = await uploadMedia(file, selectedKategori);
+        if (!res || !res.url || res.url.startsWith('data:')) {
+          throw new Error('Upload gagal, periksa koneksi internet dan coba lagi');
+        }
         onShowToast(`✓ Foto "${res.nama_file}" berhasil disimpan ke database CMS!`);
+      } catch (err: any) {
+        alert(err.message || 'Upload gagal, periksa koneksi internet dan coba lagi');
       } finally {
         setIsUploading(false);
+        e.target.value = '';
       }
     }
   };

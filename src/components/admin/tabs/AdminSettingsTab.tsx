@@ -284,10 +284,16 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
                           setIsUploadingPwaIcon(true);
                           try {
                             const res = await uploadMedia(f, 'hero');
+                            if (!res || !res.url || res.url.startsWith('data:')) {
+                              throw new Error('Upload gagal, periksa koneksi internet dan coba lagi');
+                            }
                             setPwaIcon(res.url);
                             onShowToast('✓ Ikon PWA berhasil diunggah!');
+                          } catch (err: any) {
+                            alert(err.message || 'Upload gagal, periksa koneksi internet dan coba lagi');
                           } finally {
                             setIsUploadingPwaIcon(false);
+                            e.target.value = '';
                           }
                         }
                       }}
@@ -402,10 +408,16 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
                           setIsUploadingHero(true);
                           try {
                             const res = await uploadMedia(f, 'hero');
+                            if (!res || !res.url || res.url.startsWith('data:')) {
+                              throw new Error('Upload gagal, periksa koneksi internet dan coba lagi');
+                            }
                             setHeroImage(res.url);
                             onShowToast('✓ Foto hero berhasil diunggah!');
+                          } catch (err: any) {
+                            alert(err.message || 'Upload gagal, periksa koneksi internet dan coba lagi');
                           } finally {
                             setIsUploadingHero(false);
+                            e.target.value = '';
                           }
                         }
                       }}
@@ -483,10 +495,16 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
                           setIsUploadingFacility(true);
                           try {
                             const res = await uploadMedia(f, 'fasilitas');
+                            if (!res || !res.url || res.url.startsWith('data:')) {
+                              throw new Error('Upload gagal, periksa koneksi internet dan coba lagi');
+                            }
                             setFacilityImage(res.url);
                             onShowToast('✓ Foto fasilitas berhasil diunggah!');
+                          } catch (err: any) {
+                            alert(err.message || 'Upload gagal, periksa koneksi internet dan coba lagi');
                           } finally {
                             setIsUploadingFacility(false);
+                            e.target.value = '';
                           }
                         }
                       }}

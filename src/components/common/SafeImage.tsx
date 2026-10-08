@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Home } from 'lucide-react';
 
 interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -47,13 +47,26 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   const [hasError, setHasError] = useState<boolean>(false);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [retryAttempted, setRetryAttempted] = useState<boolean>(false);
+  const imgRef = useRef<HTMLImageElement>(null);
 
-  // Synchronize state when src prop changes
+  // Synchronize state when src prop changes (hanya amati perubahan 'src', lepaskan 'alt')
   useEffect(() => {
     const next = getPublicImageUrl(src);
     setCurrentSrc(next);
     setHasError(false);
-    setIsLoaded(false);
+
+    // Periksa apakah gambar pada ref sudah selesai dimuat (complete) di DOM sebelum me-reset isLoaded
+    if (
+      imgRef.current &&
+      imgRef.current.complete &&
+      imgRef.current.naturalWidth > 0 &&
+      (imgRef.current.currentSrc === next || imgRef.current.src === next)
+    ) {
+      setIsLoaded(true);
+    } else {
+      setIsLoaded(false);
+    }
+
     setRetryAttempted(false);
 
     // Logging pengecekan sumber gambar saat debugging
@@ -73,13 +86,24 @@ export const SafeImage: React.FC<SafeImageProps> = ({
         'color: #0284c7; font-weight: 600;'
       );
     }
-  }, [src, alt]);
+  }, [src]);
+
+  // Pengecekan img.complete saat elemen terpasang di DOM agar gambar yang sudah dicache browser tidak stuck
+  useEffect(() => {
+    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0 && !isLoaded && !hasError) {
+      setIsLoaded(true);
+    }
+  });
 
   // Timeout guard untuk gambar eager di atas layar (above-the-fold) agar tidak pernah menggantung di skeleton kosong
   useEffect(() => {
     if (loading === 'eager' && !isLoaded && !hasError) {
       const timer = setTimeout(() => {
         if (!isLoaded && !hasError) {
+          if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
+            setIsLoaded(true);
+            return;
+          }
           const targetFallback = fallbackSrc ? getPublicImageUrl(fallbackSrc) : DEFAULT_PERMANENT_FALLBACK;
           if (currentSrc !== targetFallback) {
             console.warn(`[SafeImage Timeout] Gambar eager lambat/stuck, langsung beralih ke: ${targetFallback}`);
@@ -157,6 +181,7 @@ export const SafeImage: React.FC<SafeImageProps> = ({
         </div>
       ) : (
         <img
+          ref={imgRef}
           src={currentSrc}
           alt={alt}
           referrerPolicy="no-referrer"

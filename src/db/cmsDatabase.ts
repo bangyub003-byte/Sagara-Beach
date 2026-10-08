@@ -974,6 +974,9 @@ export class CMSDatabase {
     item: Omit<TB_Media, 'id'>,
     user?: { id: string; nama: string; role: 'admin' | 'resepsionis' }
   ): TB_Media {
+    if (item.url && item.url.startsWith('data:')) {
+      throw new Error('Upload gagal: Format gambar Base64 tidak diizinkan. Semua foto harus melalui Supabase Storage.');
+    }
     const list = this.getMediaList();
     const newMedia: TB_Media = {
       ...item,
@@ -1002,7 +1005,7 @@ export class CMSDatabase {
         role: user?.role || 'admin',
         aksi: `Tambah Media: ${newMedia.nama_file}`,
         kategori: 'media',
-        detail: `Kategori: ${newMedia.kategori}, URL: ${newMedia.url}`,
+        detail: `Kategori: ${newMedia.kategori}, File: ${newMedia.nama_file}`,
       });
     } catch (err) {
       console.error('[CMSDatabase Error] Gagal tambah media:', err);
@@ -1022,8 +1025,8 @@ export class CMSDatabase {
     try {
       // 1. Upload ke Supabase Storage bucket 'media'
       const publicUrl = await uploadImageToSupabaseStorage(file, kategori);
-      if (!publicUrl) {
-        throw new Error('Upload gagal, periksa koneksi dan coba lagi');
+      if (!publicUrl || publicUrl.startsWith('data:')) {
+        throw new Error('Upload gagal, periksa koneksi internet dan coba lagi');
       }
 
       // Hitung perkiraan ukuran
@@ -1043,7 +1046,7 @@ export class CMSDatabase {
     } catch (err: any) {
       console.error('[CMSDatabase Error] Gagal proses upload file:', err);
       // Jika upload gagal, JANGAN simpan apapun sebagai gambar baru — lempar error agar admin mendapat notifikasi jelas
-      throw new Error(err?.message || 'Upload gagal, coba lagi');
+      throw new Error(err?.message || 'Upload gagal, periksa koneksi internet dan coba lagi');
     }
   }
 

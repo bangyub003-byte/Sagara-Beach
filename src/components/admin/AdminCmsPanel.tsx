@@ -73,10 +73,19 @@ export const AdminCmsPanel: React.FC = () => {
   const handleHeroFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const media = await uploadMedia(file, 'hero');
-      setHeroForm((prev) => ({ ...prev, hero_image: media.url }));
-      updateHomepageContent({ hero_image: media.url });
-      showToast('✓ Foto Hero berhasil diupload & disimpan!');
+      try {
+        const media = await uploadMedia(file, 'hero');
+        if (!media || !media.url || media.url.startsWith('data:')) {
+          throw new Error('Upload gagal, periksa koneksi internet dan coba lagi');
+        }
+        setHeroForm((prev) => ({ ...prev, hero_image: media.url }));
+        updateHomepageContent({ hero_image: media.url });
+        showToast('✓ Foto Hero berhasil diupload & disimpan!');
+      } catch (err: any) {
+        showToast(err.message || 'Upload gagal, periksa koneksi internet dan coba lagi');
+      } finally {
+        e.target.value = '';
+      }
     }
   };
 
@@ -105,15 +114,24 @@ export const AdminCmsPanel: React.FC = () => {
   const handleHomestayPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const media = await uploadMedia(file, 'penginapan');
-      const updated = {
-        ...homestayForm,
-        foto_utama: media.url,
-        galeri: homestayForm.galeri.includes(media.url) ? homestayForm.galeri : [media.url, ...homestayForm.galeri],
-      };
-      setHomestayForm(updated);
-      updateCmsHomestay(homestayForm.id, updated);
-      showToast('✓ Foto penginapan berhasil diupload & diperbarui!');
+      try {
+        const media = await uploadMedia(file, 'penginapan');
+        if (!media || !media.url || media.url.startsWith('data:')) {
+          throw new Error('Upload gagal, periksa koneksi internet dan coba lagi');
+        }
+        const updated = {
+          ...homestayForm,
+          foto_utama: media.url,
+          galeri: homestayForm.galeri.includes(media.url) ? homestayForm.galeri : [media.url, ...homestayForm.galeri],
+        };
+        setHomestayForm(updated);
+        updateCmsHomestay(homestayForm.id, updated);
+        showToast('✓ Foto penginapan berhasil diupload & diperbarui!');
+      } catch (err: any) {
+        showToast(err.message || 'Upload gagal, periksa koneksi internet dan coba lagi');
+      } finally {
+        e.target.value = '';
+      }
     }
   };
 
@@ -140,11 +158,20 @@ export const AdminCmsPanel: React.FC = () => {
   const handleRoomPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const media = await uploadMedia(file, 'kamar');
-      const updated = { ...roomForm, foto: media.url };
-      setRoomForm(updated);
-      updateCmsRoom(roomForm.id, updated);
-      showToast('✓ Foto kamar berhasil diupload & diperbarui!');
+      try {
+        const media = await uploadMedia(file, 'kamar');
+        if (!media || !media.url || media.url.startsWith('data:')) {
+          throw new Error('Upload gagal, periksa koneksi internet dan coba lagi');
+        }
+        const updated = { ...roomForm, foto: media.url };
+        setRoomForm(updated);
+        updateCmsRoom(roomForm.id, updated);
+        showToast('✓ Foto kamar berhasil diupload & diperbarui!');
+      } catch (err: any) {
+        showToast(err.message || 'Upload gagal, periksa koneksi internet dan coba lagi');
+      } finally {
+        e.target.value = '';
+      }
     }
   };
 
@@ -160,8 +187,17 @@ export const AdminCmsPanel: React.FC = () => {
   const handleGeneralMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>, kategori: TB_Media['kategori']) => {
     const file = e.target.files?.[0];
     if (file) {
-      await uploadMedia(file, kategori);
-      showToast(`✓ Foto berhasil diupload ke kategori ${kategori}!`);
+      try {
+        const media = await uploadMedia(file, kategori);
+        if (!media || !media.url || media.url.startsWith('data:')) {
+          throw new Error('Upload gagal, periksa koneksi internet dan coba lagi');
+        }
+        showToast(`✓ Foto berhasil diupload ke kategori ${kategori}!`);
+      } catch (err: any) {
+        showToast(err.message || 'Upload gagal, periksa koneksi internet dan coba lagi');
+      } finally {
+        e.target.value = '';
+      }
     }
   };
 
