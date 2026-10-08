@@ -61,11 +61,11 @@ export const ProfileView: React.FC = () => {
           <div className="min-w-0 flex-grow">
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                Tamu Homestay
+                {t.homestayGuestBadge}
               </span>
             </div>
             <h2 className="text-base font-bold text-neutral-900 tracking-tight mt-1 truncate">
-              {language === 'id' ? 'Keluarga Tamu Homestay' : 'Homestay Guest Family'}
+              {t.guestFamilyName}
             </h2>
             <p className="text-xs text-neutral-500 truncate">
               +62 812-3456-7890 • Gunungkidul, DIY
@@ -89,7 +89,7 @@ export const ProfileView: React.FC = () => {
                   {t.navBookings}
                 </span>
                 <span className="text-[11px] text-neutral-500">
-                  {userBookingsCount} {language === 'id' ? 'reservasi tersimpan' : 'saved reservations'}
+                  {userBookingsCount} {t.savedReservationsCount}
                 </span>
               </div>
             </div>
@@ -104,7 +104,7 @@ export const ProfileView: React.FC = () => {
               </div>
               <div>
                 <span className="text-xs font-bold text-neutral-900 block">
-                  {language === 'id' ? 'Bahasa Aplikasi' : 'App Language'}
+                  {t.appLanguageLabel}
                 </span>
                 <span className="text-[11px] text-neutral-500">
                   {language === 'id' ? 'Bahasa Indonesia' : 'English'}
@@ -141,14 +141,14 @@ export const ProfileView: React.FC = () => {
         <div className="bg-white rounded-[24px] p-4 shadow-xs border border-neutral-200/80 space-y-3">
           <h3 className="text-xs font-bold text-neutral-900 uppercase tracking-wider flex items-center gap-1.5">
             <Palmtree className="w-3.5 h-3.5 text-emerald-600" />
-            <span>{language === 'id' ? 'Kontak & Bantuan Pengelola' : 'Homestay Management Contact'}</span>
+            <span>{t.contactAndHelp}</span>
           </h3>
 
           <div className="space-y-2 text-xs">
             <div className="flex items-center justify-between p-2.5 rounded-xl bg-neutral-50 text-neutral-700">
               <span className="flex items-center gap-2">
                 <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />
-                <span>WhatsApp Pengelola</span>
+                <span>{t.managerWhatsapp}</span>
               </span>
               <span className="font-mono font-bold text-neutral-900">+62 812-3456-7890</span>
             </div>
@@ -166,7 +166,7 @@ export const ProfileView: React.FC = () => {
         {/* Akses Staf Pengelola & Resepsionis */}
         <div className="pt-4 border-t border-neutral-200/70 space-y-2">
           <span className="text-[10px] font-black uppercase tracking-wider text-neutral-400 block text-center">
-            Akses Pengelola & Staf
+            {t.staffAccessTitle}
           </span>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -174,7 +174,7 @@ export const ProfileView: React.FC = () => {
               className="h-10 rounded-2xl bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-700 text-xs font-bold shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <ShieldCheck className="w-4 h-4 text-emerald-700" />
-              <span>Login Admin</span>
+              <span>{t.adminLoginBtn}</span>
             </button>
 
             <button
@@ -182,7 +182,7 @@ export const ProfileView: React.FC = () => {
               className="h-10 rounded-2xl bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-700 text-xs font-bold shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <UserCheck className="w-4 h-4 text-sky-700" />
-              <span>Login Resepsionis</span>
+              <span>{t.receptionistLoginBtn}</span>
             </button>
           </div>
         </div>
@@ -193,7 +193,7 @@ export const ProfileView: React.FC = () => {
             Griya Barokah Homestay • Pantai Sundak & Trenggole
           </p>
           <p className="text-[10px] text-neutral-400 mt-0.5">
-            Versi 2.4.0 • Gunungkidul, DI Yogyakarta
+            {t.versionInfo}
           </p>
         </div>
       </main>

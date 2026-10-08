@@ -568,6 +568,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const [facilityImage, setFacilityImage] = useState<string>(() => {
     try {
+      const bannerSetting = CMSDatabase.getWebsiteSetting('facility_banner_image');
+      if (bannerSetting) return bannerSetting;
       const setting = CMSDatabase.getWebsiteSetting('facility_image');
       if (setting) return setting;
       const mediaFacility = CMSDatabase.getMediaList('fasilitas')?.[0]?.url;
@@ -582,6 +584,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const updateFacilityImage = (url: string) => {
     setFacilityImage(url);
+    CMSDatabase.saveWebsiteSetting('facility_banner_image', url, 'homepage');
     CMSDatabase.saveWebsiteSetting('facility_image', url, 'homepage');
     setWebsiteSettingsList(CMSDatabase.getWebsiteSettings());
     try {
@@ -1341,7 +1344,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // ignore
       }
     }
-    if (key === 'facility_image') {
+    if (key === 'facility_image' || key === 'facility_banner_image') {
       setFacilityImage(value);
       try {
         localStorage.setItem('barokah_facility_img_v2', value);
@@ -1363,7 +1366,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // ignore
       }
     }
-    const facVal = records['facility_image']?.value;
+    const facVal = records['facility_banner_image']?.value || records['facility_image']?.value;
     if (facVal) {
       setFacilityImage(facVal);
       try {

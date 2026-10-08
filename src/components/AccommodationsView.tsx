@@ -35,6 +35,8 @@ export const AccommodationsView: React.FC = () => {
     getWebsiteSetting,
     isLocationPreselected,
     setIsLocationPreselected,
+    language,
+    t,
   } = useBooking();
 
   const [selectedAccId, setSelectedAccId] = useState<string>(() => {
@@ -78,15 +80,15 @@ export const AccommodationsView: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-base sm:text-lg font-black text-neutral-900 tracking-tight leading-tight">
-              Pilihan Penginapan Homestay
+              {t.accommodationsTitle}
             </h1>
             <p className="text-[11px] text-neutral-500 font-medium">
-              Kawasan Pantai Sundak &amp; Pantai Trenggole
+              {t.accommodationsSub}
             </p>
           </div>
 
           <span className="px-3 py-1 rounded-full bg-white text-xs font-bold text-neutral-800 shadow-2xs border border-neutral-200/90 shrink-0">
-            {accommodations.length} Lokasi
+            {accommodations.length} {t.locationsCount}
           </span>
         </div>
 
@@ -101,7 +103,7 @@ export const AccommodationsView: React.FC = () => {
                 : 'text-neutral-600 hover:text-neutral-900'
             }`}
           >
-            Semua Lokasi
+            {t.allLocationsFilter}
           </button>
           {accommodations.map((acc) => {
             const isSelected = acc.id === selectedAccId;
@@ -119,7 +121,9 @@ export const AccommodationsView: React.FC = () => {
                     : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
-                {acc.name.replace('Griya Barokah ', '')}
+                {language === 'en'
+                  ? (acc.id === 'homestay-sundak' ? t.filterSundak : t.filterTrenggole)
+                  : acc.name.replace('Griya Barokah ', '')}
               </button>
             );
           })}
@@ -135,11 +139,15 @@ export const AccommodationsView: React.FC = () => {
             currentAcc.id === 'homestay-sundak' ||
             currentAcc.propertyType === 'full_homestay';
           const cmsData = cmsHomestays?.find((h) => h.id === currentAcc.id);
-          const badgeText = cmsData?.badge || currentAcc.badge || (isSundak ? 'Satu Rumah Penuh (Full House)' : 'Penginapan Kamar & Full House');
-          const conceptText = cmsData?.konsep || currentAcc.concept || (isSundak
-            ? 'Konsep: Satu Rumah Penuh (Bukan Per Kamar). Tarif Rp75.000/orang/malam (minimal 4 orang). Total biaya: Jumlah orang × Jumlah malam × Rp75.000.'
-            : 'Konsep: Kamar Individual (Sewa Per Kamar). Tersedia 4 pilihan kamar AC view pantai. Mulai Rp285.000/malam. Kapasitas 4 orang per kamar (2 bed: ranjang + bed lantai).');
-          const descText = cmsData?.deskripsi || currentAcc.description;
+          const badgeText = language === 'en'
+            ? (isSundak ? t.sundakBadgeFullHouse : t.trenggoleBadgeRooms)
+            : (cmsData?.badge || currentAcc.badge || (isSundak ? 'Satu Rumah Penuh (Full House)' : 'Penginapan Kamar & Full House'));
+          const conceptText = language === 'en'
+            ? (isSundak ? t.sundakConceptDesc : t.trenggoleConceptDesc)
+            : (cmsData?.konsep || currentAcc.concept || (isSundak ? t.sundakConceptDesc : t.trenggoleConceptDesc));
+          const descText = language === 'en'
+            ? (currentAcc.descriptionEn || t.landingDesc)
+            : (cmsData?.deskripsi || currentAcc.description);
           const facilitiesList = (cmsData?.fasilitas && cmsData.fasilitas.length > 0)
             ? cmsData.fasilitas.slice(0, 4)
             : (currentAcc.highlights && currentAcc.highlights.length > 0 ? currentAcc.highlights.slice(0, 4) : []);
@@ -174,7 +182,7 @@ export const AccommodationsView: React.FC = () => {
                     <span>★</span>
                     <span>{cmsData?.rating || currentAcc.rating}</span>
                     <span className="text-[10px] text-white/85 font-medium">
-                      ({cmsData?.reviews_count || currentAcc.reviewsCount} Ulasan)
+                      ({cmsData?.reviews_count || currentAcc.reviewsCount} {t.reviewsCount})
                     </span>
                   </div>
                 </div>
@@ -209,8 +217,8 @@ export const AccommodationsView: React.FC = () => {
                   <div className="min-w-0 flex-1">
                     <h4 className="text-xs font-extrabold text-neutral-900 leading-snug">
                       {isSundak
-                        ? 'Konsep: Satu Rumah Penuh (Bukan Per Kamar)'
-                        : 'Konsep: Kamar Individual (Sewa Per Kamar)'}
+                        ? t.sundakConceptTitle
+                        : t.trenggoleConceptTitle}
                     </h4>
                     <p className="text-[11px] text-neutral-600 mt-1 leading-relaxed">
                       {conceptText}
@@ -245,7 +253,7 @@ export const AccommodationsView: React.FC = () => {
                     className="flex-1 h-10 px-4 rounded-full bg-neutral-100 hover:bg-neutral-200/80 text-neutral-800 text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-neutral-200/60"
                   >
                     <Eye className="w-3.5 h-3.5 text-neutral-600" />
-                    <span>Lihat Detail</span>
+                    <span>{t.viewDetailBtn}</span>
                   </button>
 
                   <button
@@ -253,7 +261,7 @@ export const AccommodationsView: React.FC = () => {
                     onClick={() => handleDirectReserve(currentAcc)}
                     className="flex-1 h-10 px-4 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                   >
-                    <span>Pilih &amp; Pesan</span>
+                    <span>{t.selectAndBookBtn}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -272,7 +280,7 @@ export const AccommodationsView: React.FC = () => {
                     >
                       <span className="flex items-center gap-1.5">
                         <Bed className="w-3.5 h-3.5 text-emerald-700" />
-                        <span>Lihat 4 Pilihan Kamar Trenggole</span>
+                        <span>{t.view4RoomsTrenggole}</span>
                       </span>
                       <ChevronRight
                         className={`w-4 h-4 text-neutral-400 transition-transform ${
@@ -286,6 +294,9 @@ export const AccommodationsView: React.FC = () => {
                         {currentAcc.roomTypes.map((room) => {
                           const cmsRoom = cmsRooms?.find((cr) => cr.id === room.id);
                           const roomImgSrc = cmsRoom?.foto_utama || cmsRoom?.foto || room.image;
+                          const roomDisplayName = language === 'en'
+                            ? (room.nameEn || room.name)
+                            : (cmsRoom?.nama_kamar || room.name);
 
                           return (
                             <div
@@ -295,17 +306,17 @@ export const AccommodationsView: React.FC = () => {
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <SafeImage
                                   src={roomImgSrc}
-                                  alt={cmsRoom?.nama_kamar || room.name}
-                                  fallbackText={cmsRoom?.nama_kamar || room.name}
+                                  alt={roomDisplayName}
+                                  fallbackText={roomDisplayName}
                                   className="w-12 h-12 rounded-xl object-cover shrink-0"
                                   containerClassName="w-12 h-12 rounded-xl shrink-0 overflow-hidden"
                                 />
                                 <div className="min-w-0">
                                   <h5 className="font-extrabold text-xs text-neutral-900 truncate">
-                                    {cmsRoom?.nama_kamar || room.name}
+                                    {roomDisplayName}
                                   </h5>
                                 <span className="text-[10px] text-neutral-500 block">
-                                  {room.capacityGuests} Tamu • {room.bedsCount} Bed • Lt.{room.floor || 1}
+                                  {room.capacityGuests} {t.detailGuests} • {room.bedsCount} {t.bedsUnit} • {t.floorLabel}{room.floor || 1}
                                 </span>
                                 <span className="text-[11px] font-black text-emerald-800">
                                   Rp {room.pricePerNight.toLocaleString('id-ID')}
@@ -318,7 +329,7 @@ export const AccommodationsView: React.FC = () => {
                               onClick={() => handleDirectReserve(currentAcc, room)}
                               className="px-3 py-1.5 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white text-[11px] font-bold shrink-0 shadow-2xs cursor-pointer active:scale-95"
                             >
-                              Pilih Kamar
+                              {t.selectRoomBtn}
                             </button>
                           </div>
                         );
@@ -335,7 +346,7 @@ export const AccommodationsView: React.FC = () => {
         {/* Layanan Tambahan Banner */}
         <div className="p-4 rounded-[24px] bg-gradient-to-br from-emerald-50 to-teal-50/50 border border-emerald-200/90 text-xs space-y-2">
           <div className="text-emerald-950 font-bold">
-            <span>Layanan Tambahan Tersedia:</span>
+            <span>{t.additionalServicesTitle}:</span>
           </div>
           <ul className="text-neutral-700 text-xs space-y-0.5 list-disc list-inside font-medium pl-1">
             {getWebsiteSetting?.('footer_extra_info') ? (
@@ -346,9 +357,9 @@ export const AccommodationsView: React.FC = () => {
                 ))
             ) : (
               <>
-                <li>Pesanan hidangan makanan & seafood pantai</li>
-                <li>Sewa Jeep wisata jelajah pantai & tebing Gunungkidul</li>
-                <li>Informasi jual beli tanah / aset kawasan pantai</li>
+                <li>{t.extraFoodInfo}</li>
+                <li>{t.extraJeepInfo}</li>
+                <li>{t.extraPropertyInfo}</li>
               </>
             )}
           </ul>

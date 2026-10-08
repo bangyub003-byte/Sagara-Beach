@@ -54,7 +54,9 @@ export const PropertyDetailPage: React.FC = () => {
     if (navigator.share) {
       navigator.share({
         title: prop.name,
-        text: `Nikmati liburan mewah di ${prop.name} - Sagara Beach Stay`,
+        text: language === 'en'
+          ? `Enjoy your stay at ${prop.name} - Griya Barokah Homestay`
+          : `Nikmati liburan menyenangkan di ${prop.name} - Griya Barokah Homestay`,
         url: window.location.href,
       }).catch(() => {});
     } else {
@@ -70,7 +72,7 @@ export const PropertyDetailPage: React.FC = () => {
       return;
     }
     if (!selectedRoomType.isAvailable) {
-      setRoomErrorNotice('Tipe kamar ini sedang tidak tersedia / penuh.');
+      setRoomErrorNotice(language === 'en' ? 'This room type is currently full or unavailable.' : 'Tipe kamar ini sedang tidak tersedia / penuh.');
       return;
     }
     setRoomErrorNotice('');
@@ -160,7 +162,7 @@ export const PropertyDetailPage: React.FC = () => {
         {/* Share Toast */}
         {shareToast && (
           <div className="mx-5 my-2 p-2.5 bg-neutral-900 text-white rounded-2xl text-xs text-center">
-            Tautan berhasil disalin ke papan klip!
+            {t.copyLinkSuccess}
           </div>
         )}
 
@@ -221,11 +223,11 @@ export const PropertyDetailPage: React.FC = () => {
                   {t.detailChooseRoom}
                 </h2>
                 <p className="text-[11px] text-neutral-500">
-                  Pilih tipe kamar yang sesuai dengan rencana liburan Anda
+                  {t.chooseRoomSub}
                 </p>
               </div>
               <span className="text-xs font-bold text-neutral-400">
-                {prop.roomTypes.length} Pilihan
+                {prop.roomTypes.length} {t.optionsCount}
               </span>
             </div>
 
@@ -242,6 +244,7 @@ export const PropertyDetailPage: React.FC = () => {
                 const isSelected = selectedRoomType?.id === room.id;
                 const cmsRoom = cmsRooms?.find((cr) => cr.id === room.id);
                 const roomImage = cmsRoom?.foto_utama || cmsRoom?.foto || room.image;
+                const roomDisplayName = language === 'id' ? room.name : room.nameEn;
 
                 return (
                   <div
@@ -266,8 +269,8 @@ export const PropertyDetailPage: React.FC = () => {
                             ? room.gallery
                             : [roomImage]
                         }
-                        alt={cmsRoom?.nama_kamar || room.name}
-                        fallbackText={cmsRoom?.nama_kamar || room.name}
+                        alt={cmsRoom?.nama_kamar || roomDisplayName}
+                        fallbackText={cmsRoom?.nama_kamar || roomDisplayName}
                         className="w-full h-full object-cover"
                         containerClassName="w-full h-full"
                       />
@@ -277,12 +280,12 @@ export const PropertyDetailPage: React.FC = () => {
                       <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
                         <span className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[11px] font-bold flex items-center gap-1 shadow-sm">
                           <Bed className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>{room.name}</span>
+                          <span>{roomDisplayName}</span>
                         </span>
 
                         {isSelected && (
                           <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-black shadow-sm">
-                            ✓ Terpilih
+                            {t.roomSelectedBadge}
                           </span>
                         )}
                       </div>
@@ -295,14 +298,14 @@ export const PropertyDetailPage: React.FC = () => {
                             : `Rp ${room.pricePerNight.toLocaleString('id-ID')}`}
                         </span>
                         <span className="text-[10px] text-white/80 font-medium">
-                          {prop.id === 'homestay-sundak' ? '/orang/malam' : `/${t.perNight}`}
+                          {prop.id === 'homestay-sundak' ? t.perPersonNight : `/${t.perNight}`}
                         </span>
                       </div>
 
                       {/* Kapasitas di Kiri Bawah Foto */}
                       <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 text-white/90 text-xs font-semibold">
                         <Users className="w-3.5 h-3.5 text-emerald-300" />
-                        <span>{room.capacityGuests} Tamu</span>
+                        <span>{room.capacityGuests} {t.detailGuests}</span>
                       </div>
                     </div>
 
@@ -310,7 +313,7 @@ export const PropertyDetailPage: React.FC = () => {
                     <div className="p-3.5 space-y-2.5">
                       <div className="flex items-center justify-between gap-2">
                         <h3 className="text-sm font-black text-neutral-900 leading-snug">
-                          {language === 'id' ? room.name : room.nameEn}
+                          {roomDisplayName}
                         </h3>
                         {room.bedInfo && (
                           <span className="text-[10px] text-amber-900 font-semibold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/80">
@@ -327,11 +330,11 @@ export const PropertyDetailPage: React.FC = () => {
                       <div className="flex items-center gap-3 text-[11px] font-semibold text-neutral-600 pt-1 border-t border-neutral-100">
                         <div className="flex items-center gap-1">
                           <Bed className="w-3.5 h-3.5 text-emerald-700" />
-                          <span>{room.bedsCount} Bed</span>
+                          <span>{room.bedsCount} {t.bedsUnit}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Bath className="w-3.5 h-3.5 text-blue-600" />
-                          <span>{room.bathsCount} KM</span>
+                          <span>{room.bathsCount} {t.bathsUnit}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Maximize2 className="w-3.5 h-3.5 text-neutral-400" />
@@ -359,16 +362,16 @@ export const PropertyDetailPage: React.FC = () => {
           {/* Banner Layanan Tambahan */}
           <div className="p-4 rounded-[26px] bg-gradient-to-br from-emerald-50 to-teal-50/50 border border-emerald-200/90 text-xs space-y-2">
             <div className="text-emerald-950 font-bold">
-              <span>Layanan tambahan tersedia:</span>
+              <span>{t.additionalServicesTitle}:</span>
             </div>
             <ul className="text-neutral-700 text-xs space-y-0.5 list-disc list-inside font-medium pl-1">
-              <li>Pesanan makanan</li>
-              <li>Sewa Jeep wisata</li>
-              <li>Informasi jual beli tanah/rumah</li>
+              <li>{t.serviceFoodTitle}</li>
+              <li>{t.serviceJeepTitle}</li>
+              <li>{t.servicePropertyTitle}</li>
             </ul>
             <div className="pt-1 flex items-center justify-between text-xs border-t border-emerald-200/60">
               <span className="text-neutral-600 font-medium">
-                Hubungi WhatsApp: <strong className="text-neutral-900">082138613xxx</strong>
+                {t.contactWaLabel} <strong className="text-neutral-900">082138613888</strong>
               </span>
               <a
                 href="https://wa.me/6282138613888"
@@ -376,7 +379,7 @@ export const PropertyDetailPage: React.FC = () => {
                 rel="noreferrer"
                 className="px-3 py-1 rounded-full bg-emerald-800 text-white font-bold text-[11px] hover:bg-emerald-900 transition-colors shadow-2xs"
               >
-                Chat WhatsApp
+                {t.chatWhatsapp}
               </a>
             </div>
           </div>
@@ -387,7 +390,7 @@ export const PropertyDetailPage: React.FC = () => {
       <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-white/95 backdrop-blur-md border-t border-neutral-200/80 max-w-md mx-auto shadow-lg flex items-center justify-between">
         <div>
           <span className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider block">
-            {selectedRoomType ? (language === 'id' ? selectedRoomType.name : selectedRoomType.nameEn) : 'Pilih Kamar'}
+            {selectedRoomType ? (language === 'id' ? selectedRoomType.name : selectedRoomType.nameEn) : t.selectRoomBtn}
           </span>
           <span className="text-[17px] font-black text-neutral-900">
             {selectedRoomType

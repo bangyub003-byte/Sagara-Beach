@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import { SafeImage } from './common/SafeImage';
 
 export const LandingPage: React.FC = () => {
-  const { setCurrentView, t, homepageContent, getWebsiteSetting } = useBooking();
+  const { setCurrentView, t, homepageContent, getWebsiteSetting, language } = useBooking();
 
   const heroImageSrc =
     getWebsiteSetting?.('homepage_hero_image') ||
@@ -17,8 +17,8 @@ export const LandingPage: React.FC = () => {
       <div className="relative w-full h-[46dvh] sm:h-[420px] shrink-0 overflow-hidden">
         <SafeImage
           src={heroImageSrc}
-          alt="Griya Barokah Pantai Sundak & Trenggole"
-          fallbackText="Griya Barokah Homestay"
+          alt={language === 'en' ? t.heroDefaultTitle : 'Griya Barokah Pantai Sundak & Trenggole'}
+          fallbackText={t.appName}
           className="w-full h-full object-cover object-[center_30%]"
           containerClassName="w-full h-full"
           loading="eager"
@@ -34,17 +34,27 @@ export const LandingPage: React.FC = () => {
         {/* Headline & Description tightly integrated near the hero image */}
         <div className="space-y-2 sm:space-y-2.5">
           <h1 className="text-[26px] sm:text-[32px] font-extrabold leading-[1.14] tracking-tight text-[#0F1C15]">
-            {homepageContent?.hero_title || (
+            {language === 'en' ? (
               <>
                 {t.landingTitle1}
                 <br />
                 {t.landingTitle2}
               </>
+            ) : (
+              homepageContent?.hero_title || (
+                <>
+                  {t.landingTitle1}
+                  <br />
+                  {t.landingTitle2}
+                </>
+              )
             )}
           </h1>
 
           <p className="text-[13px] sm:text-[14px] leading-relaxed text-[#596560] max-w-[340px] font-normal">
-            {homepageContent?.hero_description || t.landingDesc}
+            {language === 'en'
+              ? t.landingDesc
+              : (homepageContent?.hero_description || t.landingDesc)}
           </p>
         </div>
 

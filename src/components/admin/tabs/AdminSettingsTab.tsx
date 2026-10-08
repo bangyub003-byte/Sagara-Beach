@@ -156,6 +156,7 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
       admin_whatsapp: { value: whatsapp, kategori: 'kontak' },
       layanan_tambahan_whatsapp: { value: layananTambahanWhatsapp, kategori: 'kontak' },
       footer_address: { value: alamat, kategori: 'footer' },
+      facility_banner_image: { value: facilityImage, kategori: 'homepage' },
       facility_image: { value: facilityImage, kategori: 'homepage' },
       general_facilities: { value: generalFacilities, kategori: 'homepage' },
       checkin_time: { value: checkInTime, kategori: 'booking' },

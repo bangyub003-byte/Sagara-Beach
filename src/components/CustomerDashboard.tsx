@@ -89,11 +89,24 @@ export const CustomerDashboard: React.FC = () => {
   const sundakImageSrc = sundakCms?.foto_utama || sundakProp?.image || '/images/sundak_fullhouse_1790552054893.jpg';
   const trenggoleImageSrc = trenggoleCms?.foto_utama || trenggoleProp?.image || '/images/trenggole_house_1790552065368.jpg';
   const facilityImageSrc =
+    getWebsiteSetting?.('facility_banner_image') ||
     getWebsiteSetting?.('facility_image') ||
     facilityImage ||
     cmsMedia?.find((m) => m.kategori === 'fasilitas')?.url ||
     sundakCms?.galeri?.[1] ||
     '/images/living_room_1790552074900.jpg';
+
+  // Judul & Subjudul Banner Fasilitas Dinamis dari Pengaturan CMS
+  const customFacilityTitle = getWebsiteSetting?.('facility_banner_title');
+  const customFacilitySub = getWebsiteSetting?.('facility_banner_subtitle');
+
+  const facilityBannerDisplayTitle = language === 'en'
+    ? t.livingRoomSharedTitle
+    : (customFacilityTitle || t.livingRoomSharedTitle);
+
+  const facilityBannerDisplaySub = language === 'en'
+    ? t.livingRoomSharedDesc
+    : (customFacilitySub || t.livingRoomSharedDesc);
 
   // Daftar fasilitas dinamis dari CMS (Admin -> Pengaturan / Homepage)
   const facilitiesRaw = getWebsiteSetting?.(
@@ -431,12 +444,12 @@ export const CustomerDashboard: React.FC = () => {
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
               <div className="absolute top-3 left-3 z-10">
                 <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold shadow-xs">
-                  {sundakCms?.badge || 'Satu Rumah Penuh (Full House)'}
+                  {language === 'en' ? t.sundakBadgeFullHouse : (sundakCms?.badge || t.sundakBadgeFullHouse)}
                 </span>
               </div>
               <div className="absolute bottom-3 left-4 right-4 text-white z-10 pointer-events-none">
                 <span className="text-[11px] text-emerald-300 font-semibold block">
-                  Kawasan Wisata Pantai Sundak
+                  {t.sundakAreaSubtitle}
                 </span>
                 <h3 className="text-base sm:text-lg font-black text-white leading-tight">
                   {sundakCms?.nama || 'Griya Barokah Pantai Sundak'}
@@ -451,11 +464,11 @@ export const CustomerDashboard: React.FC = () => {
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                   <span>{sundakCms?.rating || '4.9'}</span>
                   <span className="text-[10px] text-neutral-400 font-normal">
-                    ({sundakCms?.reviews_count || 42} Ulasan)
+                    ({sundakCms?.reviews_count || 42} {t.reviewsCount})
                   </span>
                 </div>
                 <span className="text-[11px] font-semibold text-neutral-500">
-                  ±50m ke Pasir Pantai Sundak
+                  {t.distSundakBeach}
                 </span>
               </div>
 
@@ -463,10 +476,10 @@ export const CustomerDashboard: React.FC = () => {
               <div className="flex items-center justify-between pt-2 border-t border-neutral-100">
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block">
-                    Mulai dari
+                    {t.startingFromLabel}
                   </span>
                   <span className="text-[10px] text-neutral-500">
-                    Satu Rumah Penuh (Min. 6 org)
+                    {t.sundakConceptMin6}
                   </span>
                 </div>
                 <div className="text-right">
@@ -474,7 +487,7 @@ export const CustomerDashboard: React.FC = () => {
                     Rp 75.000
                   </span>
                   <span className="text-[10px] text-neutral-400 block -mt-0.5">
-                    /orang/malam
+                    {t.perPersonNight}
                   </span>
                 </div>
               </div>
@@ -485,7 +498,7 @@ export const CustomerDashboard: React.FC = () => {
                 onClick={() => handleViewAccommodation('homestay-sundak')}
                 className="w-full py-2.5 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs cursor-pointer"
               >
-                <span>Lihat Detail &amp; Pesan</span>
+                <span>{t.viewDetailAndBook}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -504,12 +517,12 @@ export const CustomerDashboard: React.FC = () => {
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
               <div className="absolute top-3 left-3 z-10">
                 <span className="px-2.5 py-1 rounded-full bg-sky-600 text-white text-[10px] font-extrabold shadow-xs">
-                  {trenggoleCms?.badge || 'Kamar Individual • Tepi Pantai'}
+                  {language === 'en' ? t.trenggoleBadgeRooms : (trenggoleCms?.badge || t.trenggoleBadgeRooms)}
                 </span>
               </div>
               <div className="absolute bottom-3 left-4 right-4 text-white z-10 pointer-events-none">
                 <span className="text-[11px] text-sky-300 font-semibold block">
-                  Jalur Wisata Pantai Trenggole
+                  {t.trenggoleAreaSubtitle}
                 </span>
                 <h3 className="text-base sm:text-lg font-black text-white leading-tight">
                   {trenggoleCms?.nama || 'Griya Barokah Pantai Trenggole'}
@@ -524,11 +537,11 @@ export const CustomerDashboard: React.FC = () => {
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                   <span>{trenggoleCms?.rating || '4.8'}</span>
                   <span className="text-[10px] text-neutral-400 font-normal">
-                    ({trenggoleCms?.reviews_count || 38} Ulasan)
+                    ({trenggoleCms?.reviews_count || 38} {t.reviewsCount})
                   </span>
                 </div>
                 <span className="text-[11px] font-semibold text-neutral-500">
-                  4 Pilihan Kamar AC View Pantai
+                  {t.fourRoomsBeachView}
                 </span>
               </div>
 
@@ -536,10 +549,10 @@ export const CustomerDashboard: React.FC = () => {
               <div className="flex items-center justify-between pt-2 border-t border-neutral-100">
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block">
-                    Mulai dari
+                    {t.startingFromLabel}
                   </span>
                   <span className="text-[10px] text-neutral-500">
-                    Sewa Kamar Individual
+                    {t.trenggoleConceptRent}
                   </span>
                 </div>
                 <div className="text-right">
@@ -547,7 +560,7 @@ export const CustomerDashboard: React.FC = () => {
                     Rp 285.000
                   </span>
                   <span className="text-[10px] text-neutral-400 block -mt-0.5">
-                    /kamar/malam
+                    {t.perRoomNight}
                   </span>
                 </div>
               </div>
@@ -558,7 +571,7 @@ export const CustomerDashboard: React.FC = () => {
                 onClick={() => handleViewAccommodation('homestay-trenggole')}
                 className="w-full py-2.5 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs cursor-pointer"
               >
-                <span>Lihat Detail &amp; Pesan</span>
+                <span>{t.viewDetailAndBook}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -571,23 +584,24 @@ export const CustomerDashboard: React.FC = () => {
         <section className="bg-white rounded-[28px] p-5 shadow-xs border border-neutral-200/90 space-y-3.5">
           <div>
             <h2 className="text-xs font-black uppercase tracking-wider text-neutral-800">
-              Fasilitas Lengkap Penginapan
+              {t.completeFacilitiesTitle}
             </h2>
-            <span className="text-[10px] text-neutral-400">Tersedia di Griya Barokah Pantai Sundak & Trenggole</span>
+            <span className="text-[10px] text-neutral-400">{t.facilitiesAvailableAt}</span>
           </div>
 
           {/* Foto Fasilitas dari CMS */}
           <div className="relative h-36 w-full rounded-2xl overflow-hidden bg-neutral-900">
             <SafeImage
               src={facilityImageSrc}
-              alt="Fasilitas Griya Barokah Homestay"
+              alt={facilityBannerDisplayTitle}
+              fallbackText={facilityBannerDisplayTitle}
               className="w-full h-full object-cover"
               containerClassName="w-full h-full"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
             <div className="absolute bottom-2.5 left-3 right-3 text-white">
-              <span className="text-[10px] font-bold text-emerald-300 block">Ruang Keluarga & Fasilitas Bersama</span>
-              <p className="text-[11px] text-neutral-200 line-clamp-1">Suasana hangat untuk berkumpul bersama keluarga santai</p>
+              <span className="text-[10px] font-bold text-emerald-300 block">{facilityBannerDisplayTitle}</span>
+              <p className="text-[11px] text-neutral-200 line-clamp-1">{facilityBannerDisplaySub}</p>
             </div>
           </div>
 
@@ -613,7 +627,7 @@ export const CustomerDashboard: React.FC = () => {
               onClick={() => setShowAllFacilities((prev) => !prev)}
               className="w-full py-2 rounded-xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/80 text-[11px] font-bold text-emerald-800 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
-              <span>{showAllFacilities ? 'Tampilkan Lebih Sedikit' : `Lihat Semua Fasilitas (${facilitiesList.length})`}</span>
+              <span>{showAllFacilities ? t.showFewerFacilities : `${t.showAllFacilities} (${facilitiesList.length})`}</span>
               <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showAllFacilities ? 'rotate-180' : ''}`} />
             </button>
           )}
@@ -625,10 +639,10 @@ export const CustomerDashboard: React.FC = () => {
         <section className="bg-gradient-to-br from-emerald-50 to-teal-50/60 rounded-[28px] p-5 border border-emerald-200 shadow-xs space-y-3.5">
           <div>
             <h2 className="text-[13px] font-black text-emerald-950">
-              Layanan Tambahan Tersedia
+              {t.additionalServicesTitle}
             </h2>
             <span className="text-[11px] text-emerald-700">
-              Siap memfasilitasi kebutuhan rombongan Anda
+              {t.additionalServicesSub}
             </span>
           </div>
 
@@ -637,8 +651,8 @@ export const CustomerDashboard: React.FC = () => {
               <div className="flex items-center gap-2.5">
                 <UtensilsCrossed className="w-5 h-5 text-amber-600 shrink-0" />
                 <div>
-                  <span className="font-extrabold text-neutral-900 block">Pesanan Makanan</span>
-                  <span className="text-[10px] text-neutral-500">Santapan lezat nasi box & hidangan pantai</span>
+                  <span className="font-extrabold text-neutral-900 block">{t.serviceFoodTitle}</span>
+                  <span className="text-[10px] text-neutral-500">{t.serviceFoodDesc}</span>
                 </div>
               </div>
               <a
@@ -647,7 +661,7 @@ export const CustomerDashboard: React.FC = () => {
                 rel="noreferrer"
                 className="px-2.5 py-1 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white text-[10px] font-bold active:scale-95 transition-transform"
               >
-                Pesan
+                {t.serviceFoodBtn}
               </a>
             </div>
 
@@ -655,8 +669,8 @@ export const CustomerDashboard: React.FC = () => {
               <div className="flex items-center gap-2.5">
                 <Compass className="w-5 h-5 text-sky-600 shrink-0" />
                 <div>
-                  <span className="font-extrabold text-neutral-900 block">Sewa Jeep Wisata</span>
-                  <span className="text-[10px] text-neutral-500">Jelajah pantai & tebing karang Gunungkidul</span>
+                  <span className="font-extrabold text-neutral-900 block">{t.serviceJeepTitle}</span>
+                  <span className="text-[10px] text-neutral-500">{t.serviceJeepDesc}</span>
                 </div>
               </div>
               <a
@@ -665,7 +679,7 @@ export const CustomerDashboard: React.FC = () => {
                 rel="noreferrer"
                 className="px-2.5 py-1 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white text-[10px] font-bold active:scale-95 transition-transform"
               >
-                Booking
+                {t.serviceJeepBtn}
               </a>
             </div>
 
@@ -673,8 +687,8 @@ export const CustomerDashboard: React.FC = () => {
               <div className="flex items-center gap-2.5">
                 <Building className="w-5 h-5 text-emerald-600 shrink-0" />
                 <div>
-                  <span className="font-extrabold text-neutral-900 block">Info Jual Beli Tanah / Rumah</span>
-                  <span className="text-[10px] text-neutral-500">Peluang investasi properti pesisir pantai</span>
+                  <span className="font-extrabold text-neutral-900 block">{t.servicePropertyTitle}</span>
+                  <span className="text-[10px] text-neutral-500">{t.servicePropertyDesc}</span>
                 </div>
               </div>
               <a
@@ -683,14 +697,14 @@ export const CustomerDashboard: React.FC = () => {
                 rel="noreferrer"
                 className="px-2.5 py-1 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white text-[10px] font-bold active:scale-95 transition-transform"
               >
-                Tanya
+                {t.servicePropertyBtn}
               </a>
             </div>
           </div>
 
           <div className="pt-1 flex items-center justify-between border-t border-emerald-200/70 text-[11px]">
             <span className="text-emerald-950 font-medium">
-              Hubungi WhatsApp: <strong>{rawLayananWa}</strong>
+              {t.contactWaLabel} <strong>{rawLayananWa}</strong>
             </span>
             <a
               href={`https://wa.me/${formattedLayananWa}`}
@@ -698,7 +712,7 @@ export const CustomerDashboard: React.FC = () => {
               rel="noreferrer"
               className="font-bold text-emerald-800 hover:underline flex items-center gap-1 active:scale-95 transition-transform"
             >
-              <span>Chat Layanan Langsung</span>
+              <span>{t.directServiceChat}</span>
               <ArrowRight className="w-3 h-3" />
             </a>
           </div>

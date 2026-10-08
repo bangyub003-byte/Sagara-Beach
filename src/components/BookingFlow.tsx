@@ -91,6 +91,7 @@ export const BookingFlow: React.FC = () => {
     isLocationPreselected,
     setIsLocationPreselected,
     preselectedGuestCount,
+    t,
   } = useBooking();
 
   // Wizard Step: 1 | 2 | 3 | 4 | 5
@@ -287,14 +288,16 @@ export const BookingFlow: React.FC = () => {
   if (isSundak) {
     const effectivePax = totalGuests >= 6 && totalGuests <= 21 ? totalGuests : 0;
     grandTotal = effectivePax * totalNights * 75000;
-    bookingChoiceDisplayName = `Satu Rumah Penuh (Full House) • ${totalGuests} Tamu`;
+    bookingChoiceDisplayName = language === 'en'
+      ? `${t.sundakBadgeFullHouse} • ${totalGuests} ${t.adults}`
+      : `Satu Rumah Penuh (Full House) • ${totalGuests} Tamu`;
   } else {
     const selectedRoomsList = (activeProp?.roomTypes || []).filter((r) =>
       trenggoleSelectedRooms.includes(r.id)
     );
     const roomCostPerNight = selectedRoomsList.reduce((acc, curr) => acc + (curr.pricePerNight || 0), 0);
     grandTotal = roomCostPerNight * totalNights;
-    bookingChoiceDisplayName = selectedRoomsList.map((r) => `${r.name} (Lt.${r.floor || 1})`).join(', ') || 'Kamar Trenggole';
+    bookingChoiceDisplayName = selectedRoomsList.map((r) => `${r.name} (Lt.${r.floor || 1})`).join(', ') || (language === 'en' ? 'Trenggole Room' : 'Kamar Trenggole');
   }
 
   // Pilihan Pembayaran: DP 30% atau Lunas 100%
@@ -344,17 +347,17 @@ export const BookingFlow: React.FC = () => {
   // Validasi Step 2 (Tanggal & Ketersediaan)
   const handleValidateAndProceedStep2 = () => {
     if (!checkInDate || !checkOutDate) {
-      setErrorNotice('Tanggal check-in dan check-out wajib diisi.');
+      setErrorNotice(language === 'en' ? 'Check-in and check-out dates are required.' : 'Tanggal check-in dan check-out wajib diisi.');
       return;
     }
     if (new Date(checkOutDate) <= new Date(checkInDate)) {
-      setErrorNotice('Tanggal check-out harus setelah tanggal check-in.');
+      setErrorNotice(language === 'en' ? 'Check-out date must be after check-in date.' : 'Tanggal check-out harus setelah tanggal check-in.');
       return;
     }
 
     if (isSundak) {
       if (!isSundakAvailable) {
-        setErrorNotice('Griya Barokah Pantai Sundak (Full House) sudah penuh pada tanggal tersebut. Silakan pilih tanggal lain atau Pantai Trenggole.');
+        setErrorNotice(language === 'en' ? t.sundakUnavailablePrompt : 'Griya Barokah Pantai Sundak (Full House) sudah penuh pada tanggal tersebut. Silakan pilih tanggal lain atau Pantai Trenggole.');
         return;
       }
     } else {
@@ -364,7 +367,7 @@ export const BookingFlow: React.FC = () => {
       ).length;
 
       if (availCount === 0) {
-        setErrorNotice('Kamar yang dipilih tidak tersedia pada tanggal ini. Silakan pilih kamar yang bertanda AVAILABLE.');
+        setErrorNotice(language === 'en' ? t.trenggoleUnavailablePrompt : 'Kamar yang dipilih tidak tersedia pada tanggal ini. Silakan pilih kamar yang bertanda AVAILABLE.');
         return;
       }
     }
@@ -376,13 +379,15 @@ export const BookingFlow: React.FC = () => {
   // Validasi Step 3 (Data Pemesan Wajib Lengkap & Mahrom)
   const handleValidateAndProceedStep3 = () => {
     if (!namaLengkap.trim() || !asalKota.trim() || !noHp.trim() || !withWhom.trim()) {
-      setErrorNotice('Lengkapi data terlebih dahulu sebelum melanjutkan pemesanan.');
+      setErrorNotice(language === 'en' ? t.completeDataNotice : 'Lengkapi data terlebih dahulu sebelum melanjutkan pemesanan.');
       return;
     }
 
     if (!validateWhatsAppNumber(noHp)) {
       setErrorNotice(
-        'Nomor WhatsApp tidak valid. Pastikan nomor aktif dan bisa dihubungi, contoh: 081234567890'
+        language === 'en'
+          ? t.waInvalidError
+          : 'Nomor WhatsApp tidak valid. Pastikan nomor aktif dan bisa dihubungi, contoh: 081234567890'
       );
       return;
     }
@@ -390,28 +395,36 @@ export const BookingFlow: React.FC = () => {
     if (isSundak) {
       if (totalGuests < 6) {
         setErrorNotice(
-          'Minimal pemesanan untuk Griya Barokah Pantai Sundak (Full House) adalah 6 orang (maksimal 21 orang). Untuk rombongan di bawah 6 orang, silakan pilih kamar di Pantai Trenggole.'
+          language === 'en'
+            ? t.sundakMin6Warning
+            : 'Minimal pemesanan untuk Griya Barokah Pantai Sundak (Full House) adalah 6 orang (maksimal 21 orang). Untuk rombongan di bawah 6 orang, silakan pilih kamar di Pantai Trenggole.'
         );
         return;
       }
       if (totalGuests > 21) {
         setErrorNotice(
-          'Kapasitas maksimal Griya Barokah Pantai Sundak (Full House) adalah 21 orang.'
+          language === 'en'
+            ? t.sundakMax21Warning
+            : 'Kapasitas maksimal Griya Barokah Pantai Sundak (Full House) adalah 21 orang.'
         );
         return;
       }
     } else {
       if (trenggoleSelectedRooms.length === 0) {
-        setErrorNotice('Pilih minimal 1 kamar di Pantai Trenggole terlebih dahulu.');
+        setErrorNotice(language === 'en' ? t.trenggoleSelectRoomNotice : 'Pilih minimal 1 kamar di Pantai Trenggole terlebih dahulu.');
         return;
       }
       const maxCap = trenggoleSelectedRooms.length * 4;
       if (totalGuests > maxCap) {
-        setErrorNotice(`Jumlah tamu (${totalGuests} orang) melebihi kapasitas kamar yang dipilih (${maxCap} orang). Silakan pilih kamar tambahan di Pantai Trenggole.`);
+        setErrorNotice(
+          language === 'en'
+            ? `Number of guests (${totalGuests} people) exceeds capacity of selected rooms (${maxCap} people). Please add more rooms.`
+            : `Jumlah tamu (${totalGuests} orang) melebihi kapasitas kamar yang dipilih (${maxCap} orang). Silakan pilih kamar tambahan di Pantai Trenggole.`
+        );
         return;
       }
       if (totalGuests < 1) {
-        setErrorNotice('Jumlah tamu minimal 1 orang.');
+        setErrorNotice(language === 'en' ? 'Minimum 1 guest.' : 'Jumlah tamu minimal 1 orang.');
         return;
       }
     }
@@ -423,7 +436,7 @@ export const BookingFlow: React.FC = () => {
   // Validasi Step 4 (Pilihan Pembayaran)
   const handleProceedStep4 = () => {
     if (!dpTermsAccepted) {
-      setErrorNotice('Anda wajib menyetujui ketentuan: "DP akan hangus apabila pesanan dibatalkan."');
+      setErrorNotice(language === 'en' ? 'You must agree to the policy: "Deposit (DP) is non-refundable upon cancellation."' : 'Anda wajib menyetujui ketentuan: "DP akan hangus apabila pesanan dibatalkan."');
       return;
     }
     setErrorNotice('');
@@ -434,7 +447,7 @@ export const BookingFlow: React.FC = () => {
   // WAJIB: Upload bukti transfer sebelum booking dikirim!
   const handleSubmitBooking = async () => {
     if (!paymentProofImage) {
-      setErrorNotice('Wajib upload bukti transfer sebelum booking dikirim. Booking tidak boleh diproses jika bukti pembayaran kosong.');
+      setErrorNotice(language === 'en' ? t.proofMandatoryWarning : 'Wajib upload bukti transfer sebelum booking dikirim. Booking tidak boleh diproses jika bukti pembayaran kosong.');
       return;
     }
 
@@ -444,7 +457,9 @@ export const BookingFlow: React.FC = () => {
       if (isSundak) {
         if (!checkSundakAvailability(checkInDate, checkOutDate)) {
           setErrorNotice(
-            'Maaf, Griya Barokah Pantai Sundak (Full House) baru saja terisi atau tidak tersedia untuk rentang tanggal tersebut. Silakan pilih tanggal lain atau Pantai Trenggole.'
+            language === 'en'
+              ? t.sundakUnavailablePrompt
+              : 'Maaf, Griya Barokah Pantai Sundak (Full House) baru saja terisi atau tidak tersedia untuk rentang tanggal tersebut. Silakan pilih tanggal lain atau Pantai Trenggole.'
           );
           setIsSubmitting(false);
           return;
@@ -455,7 +470,9 @@ export const BookingFlow: React.FC = () => {
         );
         if (isConflict) {
           setErrorNotice(
-            'Maaf, salah satu kamar di Pantai Trenggole yang Anda pilih baru saja dipesan oleh tamu lain pada rentang tanggal tersebut. Silakan pilih kamar lain.'
+            language === 'en'
+              ? t.trenggoleUnavailablePrompt
+              : 'Maaf, salah satu kamar di Pantai Trenggole yang Anda pilih baru saja dipesan oleh tamu lain pada rentang tanggal tersebut. Silakan pilih kamar lain.'
           );
           setIsSubmitting(false);
           return;
@@ -580,7 +597,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
         <div className="text-center py-1">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EBF8F2] text-[#1DB954] text-xs font-bold border border-[#C6ECD8] shadow-2xs">
             <Check className="w-3.5 h-3.5 text-[#1DB954] stroke-[3]" />
-            <span>Reservasi Berhasil</span>
+            <span>{language === 'en' ? t.reservationSuccessBadge : 'Reservasi Berhasil'}</span>
           </div>
         </div>
 
@@ -599,7 +616,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                 {activeProp.name}
               </h2>
               <p className="text-[11px] text-emerald-800 font-bold truncate mt-0.5">
-                {isSundak ? 'Satu Rumah Penuh (Full House)' : bookingChoiceDisplayName}
+                {isSundak ? (language === 'en' ? t.sundakBadgeFullHouse : 'Satu Rumah Penuh (Full House)') : bookingChoiceDisplayName}
               </p>
               <span className="text-[10px] text-neutral-400 block truncate">
                 {activeProp.location}
@@ -610,38 +627,48 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
           {/* Rincian Pemesan & Menginap */}
           <div className="space-y-1.5 text-[11px]">
             <div className="flex items-center justify-between">
-              <span className="text-neutral-500 font-medium">Nama Pemesan:</span>
+              <span className="text-neutral-500 font-medium">
+                {language === 'en' ? 'Guest Name:' : 'Nama Pemesan:'}
+              </span>
               <strong className="text-neutral-900 font-bold truncate max-w-[190px] text-right">
                 {namaLengkap}
               </strong>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-neutral-500 font-medium">Jumlah Tamu:</span>
+              <span className="text-neutral-500 font-medium">
+                {language === 'en' ? 'Number of Guests:' : 'Jumlah Tamu:'}
+              </span>
               <strong className="text-neutral-900 font-bold text-right">
-                {totalGuests} Tamu
+                {totalGuests} {language === 'en' ? t.adults : 'Tamu'}
               </strong>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-neutral-500 font-medium">Tanggal Menginap:</span>
+              <span className="text-neutral-500 font-medium">
+                {language === 'en' ? 'Stay Dates:' : 'Tanggal Menginap:'}
+              </span>
               <strong className="text-neutral-900 font-bold text-right">
-                {checkInDate} s/d {checkOutDate} ({totalNights} Malam)
+                {checkInDate} {language === 'en' ? 'to' : 's/d'} {checkOutDate} ({totalNights} {language === 'en' ? t.nightsCount : 'Malam'})
               </strong>
             </div>
 
             <div className="flex items-center justify-between pt-1 border-t border-neutral-100">
-              <span className="text-neutral-500 font-medium">Status Pembayaran:</span>
+              <span className="text-neutral-500 font-medium">
+                {language === 'en' ? 'Payment Status:' : 'Status Pembayaran:'}
+              </span>
               <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[10px] sm:text-[11px] font-bold border border-emerald-200">
                 {paymentType === 'full_100'
-                  ? `Lunas 100% (Rp ${grandTotal.toLocaleString('id-ID')})`
+                  ? `${language === 'en' ? 'Paid 100%' : 'Lunas 100%'} (Rp ${grandTotal.toLocaleString('id-ID')})`
                   : `DP 30% (Rp ${dpAmount.toLocaleString('id-ID')})`}
               </span>
             </div>
 
             {/* Kode Booking */}
             <div className="flex items-center justify-between pt-1 border-t border-neutral-100">
-              <span className="text-neutral-500 font-medium">Kode Booking:</span>
+              <span className="text-neutral-500 font-medium">
+                {language === 'en' ? 'Booking Code:' : 'Kode Booking:'}
+              </span>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs sm:text-sm font-black font-mono tracking-wider text-emerald-900">
                   {bookingIdDisplay}
@@ -654,7 +681,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                     setTimeout(() => setSalinStatus(false), 2000);
                   }}
                   className="p-1 rounded bg-neutral-100 border border-neutral-200 text-neutral-600 hover:bg-neutral-200 cursor-pointer"
-                  title="Salin Kode Booking"
+                  title={language === 'en' ? 'Copy Booking Code' : 'Salin Kode Booking'}
                 >
                   {salinStatus ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                 </button>
@@ -674,7 +701,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
               />
             </div>
             <p className="text-[10px] text-neutral-500 mt-1 font-medium text-center">
-              Tunjukkan QR Code kepada resepsionis saat check-in
+              {language === 'en' ? t.showQrToReception : 'Tunjukkan QR Code kepada resepsionis saat check-in'}
             </p>
           </div>
         </div>
@@ -688,7 +715,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
             className="w-full h-10 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md cursor-pointer"
           >
             <MessageCircle className="w-4 h-4 fill-white" />
-            <span>Kirim Konfirmasi Pesanan ke WhatsApp Pengelola</span>
+            <span>{language === 'en' ? t.sendConfirmationToAdminWa : 'Kirim Konfirmasi Pesanan ke WhatsApp Pengelola'}</span>
           </button>
 
           <div className="grid grid-cols-2 gap-2">
@@ -698,7 +725,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
               className="w-full h-9 rounded-xl bg-white border border-neutral-300 text-neutral-800 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-neutral-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
             >
               <Home className="w-3.5 h-3.5" />
-              <span>Kembali ke Beranda</span>
+              <span>{language === 'en' ? t.backToHomeBtn : 'Kembali ke Beranda'}</span>
             </button>
 
             <button
@@ -706,7 +733,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
               onClick={() => setCurrentView('my_bookings')}
               className="w-full h-9 rounded-xl bg-[#13281E] hover:bg-[#1A3428] text-white font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs cursor-pointer"
             >
-              <span>Lihat Pesanan Saya</span>
+              <span>{language === 'en' ? t.viewMyBookingsBtn : 'Lihat Pesanan Saya'}</span>
               <ArrowRight className="w-3.5 h-3.5 text-white" />
             </button>
           </div>
@@ -738,14 +765,14 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
 
         <div className="text-center">
           <h1 className="text-[14px] font-black text-neutral-900 tracking-tight">
-            {activeStep === 1 && 'Langkah 1: Pilih Penginapan'}
-            {activeStep === 2 && 'Langkah 2: Pilih Kamar'}
-            {activeStep === 3 && 'Langkah 3: Data Pemesan'}
-            {activeStep === 4 && 'Langkah 4: Pilihan Pembayaran'}
-            {activeStep === 5 && 'Langkah 5: Upload Bukti Transfer'}
+            {activeStep === 1 && (language === 'en' ? t.step1Title : 'Langkah 1: Pilih Penginapan')}
+            {activeStep === 2 && (language === 'en' ? t.step2Title : 'Langkah 2: Pilih Kamar')}
+            {activeStep === 3 && (language === 'en' ? t.step3Title : 'Langkah 3: Data Pemesan')}
+            {activeStep === 4 && (language === 'en' ? t.step4Title : 'Langkah 4: Pilihan Pembayaran')}
+            {activeStep === 5 && (language === 'en' ? t.step5Title : 'Langkah 5: Upload Bukti Transfer')}
           </h1>
           <span className="text-[10px] text-emerald-800 font-bold block">
-            Tahap {activeStep} dari 5
+            {language === 'en' ? `Step ${activeStep} of 5` : `Tahap ${activeStep} dari 5`}
           </span>
         </div>
 
@@ -781,13 +808,13 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
           <div className="space-y-4">
             <div className="text-left">
               <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 block">
-                Langkah 1 dari 5
+                {language === 'en' ? 'Step 1 of 5' : 'Langkah 1 dari 5'}
               </span>
               <h2 className="text-lg sm:text-xl font-black text-neutral-900 tracking-tight">
-                Pilih Penginapan Homestay
+                {language === 'en' ? t.ourLodgingOptions : 'Pilih Penginapan Homestay'}
               </h2>
               <p className="text-xs text-neutral-500 mt-0.5">
-                Pilih lokasi penginapan untuk melanjutkan ke pemilihan kamar:
+                {language === 'en' ? t.step1Sub : 'Pilih lokasi penginapan untuk melanjutkan ke pemilihan kamar:'}
               </p>
             </div>
 
@@ -850,12 +877,12 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                   {/* Badges Atas */}
                   <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between gap-2 z-10">
                     <span className="px-3 py-1 rounded-full bg-emerald-600 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-sm">
-                      {sundakCms?.badge || sundakProp?.badge || 'Satu Rumah Penuh (Full House)'}
+                      {sundakCms?.badge || sundakProp?.badge || (language === 'en' ? t.sundakBadgeFullHouse : 'Satu Rumah Penuh (Full House)')}
                     </span>
                     <div className="bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1 text-xs font-bold text-amber-300 shadow-sm">
                       <span>★</span>
                       <span>{sundakCms?.rating || sundakProp?.rating || 4.9}</span>
-                      <span className="text-[10px] text-white/85 font-medium">({sundakCms?.reviews_count || sundakProp?.reviewsCount || 168} Ulasan)</span>
+                      <span className="text-[10px] text-white/85 font-medium">({sundakCms?.reviews_count || sundakProp?.reviewsCount || 168} {language === 'en' ? t.reviewsCount : 'Ulasan'})</span>
                     </div>
                   </div>
 
@@ -879,17 +906,21 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                     </div>
                     <div className="min-w-0 flex-1">
                       <h4 className="text-xs font-extrabold text-neutral-900 leading-snug">
-                        Konsep: Satu Rumah Penuh (Bukan Per Kamar)
+                        {language === 'en' ? 'Concept: Entire House (Not Per Room)' : 'Konsep: Satu Rumah Penuh (Bukan Per Kamar)'}
                       </h4>
                       <p className="text-[11px] text-neutral-600 mt-1 leading-relaxed">
-                        {(sundakProp as any)?.concept || 'Tarif Rp75.000/orang/malam (minimal 6 orang, maksimal 21 orang). Total biaya: Jumlah orang × Jumlah malam × Rp75.000.'}
+                        {language === 'en'
+                          ? 'Rate Rp75,000/person/night (min. 6 guests, max. 21 guests). Total cost: Guests × Nights × Rp75,000.'
+                          : ((sundakProp as any)?.concept || 'Tarif Rp75.000/orang/malam (minimal 6 orang, maksimal 21 orang). Total biaya: Jumlah orang × Jumlah malam × Rp75.000.')}
                       </p>
                     </div>
                   </div>
 
                   {/* Deskripsi Singkat */}
                   <p className="text-xs text-neutral-600 leading-relaxed font-normal line-clamp-3">
-                    {sundakProp?.description || 'Satu rumah penuh untuk keluarga/rombongan dekat pantai pasir putih Sundak. 4 kamar tidur AC, 3 kamar mandi, ruang keluarga luas, dapur lengkap alat masak & makan, mesin cuci, dan WiFi.'}
+                    {language === 'en'
+                      ? (sundakProp?.descriptionEn || t.sundakUnitDesc)
+                      : (sundakProp?.description || 'Satu rumah penuh untuk keluarga/rombongan dekat pantai pasir putih Sundak. 4 kamar tidur AC, 3 kamar mandi, ruang keluarga luas, dapur lengkap alat masak & makan, mesin cuci, dan WiFi.')}
                   </p>
 
                   {/* Fasilitas Utama */}
@@ -920,12 +951,12 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                   {/* Badges Atas */}
                   <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between gap-2 z-10">
                     <span className="px-3 py-1 rounded-full bg-emerald-600 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-sm">
-                      {trenggoleCms?.badge || trenggoleProp?.badge || 'Penginapan Kamar & Full House'}
+                      {trenggoleCms?.badge || trenggoleProp?.badge || (language === 'en' ? t.trenggoleBadgeRooms : 'Penginapan Kamar & Full House')}
                     </span>
                     <div className="bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full flex items-center gap-1 text-xs font-bold text-amber-300 shadow-sm">
                       <span>★</span>
                       <span>{trenggoleCms?.rating || trenggoleProp?.rating || 4.8}</span>
-                      <span className="text-[10px] text-white/85 font-medium">({trenggoleCms?.reviews_count || trenggoleProp?.reviewsCount || 96} Ulasan)</span>
+                      <span className="text-[10px] text-white/85 font-medium">({trenggoleCms?.reviews_count || trenggoleProp?.reviewsCount || 96} {language === 'en' ? t.reviewsCount : 'Ulasan'})</span>
                     </div>
                   </div>
 
@@ -949,17 +980,21 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                     </div>
                     <div className="min-w-0 flex-1">
                       <h4 className="text-xs font-extrabold text-neutral-900 leading-snug">
-                        Konsep: Kamar Individual (Sewa Per Kamar)
+                        {language === 'en' ? 'Concept: Individual Rooms (Rent Per Room)' : 'Konsep: Kamar Individual (Sewa Per Kamar)'}
                       </h4>
                       <p className="text-[11px] text-neutral-600 mt-1 leading-relaxed">
-                        {(trenggoleProp as any)?.concept || 'Tersedia 4 pilihan kamar AC view pantai. Mulai Rp285.000/malam. Kapasitas 4 orang per kamar (2 bed: ranjang + bed lantai).'}
+                        {language === 'en'
+                          ? '4 AC beach view room options available. Starting at Rp285,000/night. Capacity 4 guests per room (2 beds: bed + floor mattress).'
+                          : ((trenggoleProp as any)?.concept || 'Tersedia 4 pilihan kamar AC view pantai. Mulai Rp285.000/malam. Kapasitas 4 orang per kamar (2 bed: ranjang + bed lantai).')}
                       </p>
                     </div>
                   </div>
 
                   {/* Deskripsi Singkat */}
                   <p className="text-xs text-neutral-600 leading-relaxed font-normal line-clamp-3">
-                    {trenggoleProp?.description || 'Penginapan nyaman langsung dekat bibir pantai Trenggole. 4 pilihan kamar AC view pantai, 2 bed per kamar, kamar mandi dalam, perlengkapan mandi, dan WiFi.'}
+                    {language === 'en'
+                      ? (trenggoleProp?.descriptionEn || 'Comfortable lodging directly near Trenggole beach shore. 4 AC room options with beach view, 2 beds per room, private bathroom, toiletries, and WiFi.')
+                      : (trenggoleProp?.description || 'Penginapan nyaman langsung dekat bibir pantai Trenggole. 4 pilihan kamar AC view pantai, 2 bed per kamar, kamar mandi dalam, perlengkapan mandi, dan WiFi.')}
                   </p>
 
                   {/* Fasilitas Utama */}
@@ -1003,7 +1038,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                 onClick={() => setActiveStep(1)}
                 className="px-2.5 py-1 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-[10px] font-bold border border-neutral-200/80"
               >
-                Ganti Lokasi
+                {language === 'en' ? t.changeLocationBtn : 'Ganti Lokasi'}
               </button>
             </div>
 
@@ -1013,7 +1048,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-emerald-700 shrink-0" />
                   <span className="text-xs font-bold text-neutral-900">
-                    Jadwal Menginap:
+                    {language === 'en' ? t.staySchedule : 'Jadwal Menginap:'}
                   </span>
                 </div>
                 <button
@@ -1021,7 +1056,9 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                   onClick={() => setShowDateSettings(!showDateSettings)}
                   className="text-[11px] text-emerald-800 font-bold hover:underline cursor-pointer"
                 >
-                  {showDateSettings ? 'Tutup Pengaturan Tanggal' : 'Ubah Tanggal'}
+                  {showDateSettings
+                    ? (language === 'en' ? t.closeDateSettings : 'Tutup Pengaturan Tanggal')
+                    : (language === 'en' ? t.changeDateBtn : 'Ubah Tanggal')}
                 </button>
               </div>
 
@@ -1033,7 +1070,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                   <span>{checkOutDate}</span>
                 </div>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
-                  {totalNights} Malam
+                  {totalNights} {language === 'en' ? t.nightsCount : 'Malam'}
                 </span>
               </div>
 
@@ -1042,7 +1079,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-neutral-100">
                   <div>
                     <label className="text-[10px] font-bold text-neutral-600 block mb-1">
-                      Check-in
+                      {language === 'en' ? t.checkInInputLabel : 'Check-in'}
                     </label>
                     <input
                       type="date"
@@ -1056,7 +1093,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-neutral-600 block mb-1">
-                      Check-out
+                      {language === 'en' ? t.checkOutInputLabel : 'Check-out'}
                     </label>
                     <input
                       type="date"
@@ -1086,14 +1123,14 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                 <div className="flex items-center justify-between px-1">
                   <div>
                     <h3 className="text-sm font-black text-neutral-900 leading-tight">
-                      Pilihan Kamar Pantai Trenggole
+                      {language === 'en' ? t.trenggoleRoomsHeading : 'Pilihan Kamar Pantai Trenggole'}
                     </h3>
                     <p className="text-[11px] text-neutral-500 mt-0.5">
-                      Pilih kamar yang Anda inginkan (4 pilihan kamar AC view pantai):
+                      {language === 'en' ? t.trenggoleRoomsSub : 'Pilih kamar yang Anda inginkan (4 pilihan kamar AC view pantai):'}
                     </p>
                   </div>
                   <span className="text-[11px] font-bold text-sky-800 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-200">
-                    {activeProp.roomTypes?.length || 4} Pilihan Kamar
+                    {activeProp.roomTypes?.length || 4} {language === 'en' ? t.roomOptionsBadge : 'Pilihan Kamar'}
                   </span>
                 </div>
 
@@ -1148,11 +1185,11 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                           <div className="absolute top-3.5 left-3.5 z-10 flex items-center gap-1.5">
                             {isAvail ? (
                               <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
-                                Tersedia
+                                {language === 'en' ? t.roomAvailable : 'Tersedia'}
                               </span>
                             ) : (
                               <span className="px-2.5 py-1 rounded-full bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider shadow-xs">
-                                Sudah Penuh
+                                {language === 'en' ? t.roomSoldOut : 'Sudah Penuh'}
                               </span>
                             )}
                           </div>
@@ -1161,7 +1198,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                           {isSelected && (
                             <div className="absolute top-3.5 right-3.5 z-10">
                               <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-black shadow-xs flex items-center gap-1">
-                                <Check className="w-3 h-3" /> Kamar Terpilih
+                                <Check className="w-3 h-3" /> {language === 'en' ? t.roomSelected : 'Kamar Terpilih'}
                               </span>
                             </div>
                           )}
@@ -1188,7 +1225,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                           <div className="flex items-center gap-3 text-xs font-semibold text-neutral-700 flex-wrap py-1 border-b border-neutral-100">
                             <div className="flex items-center gap-1.5">
                               <Users className="w-4 h-4 text-emerald-700 shrink-0" />
-                              <span>{capacity} orang</span>
+                              <span>{capacity} {language === 'en' ? t.peopleCount : 'orang'}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                               <Bed className="w-4 h-4 text-emerald-700 shrink-0" />
@@ -1230,7 +1267,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                                 Rp {price.toLocaleString('id-ID')}
                               </span>
                               <span className="text-[10px] text-neutral-500 font-medium">
-                                per malam / kamar
+                                {language === 'en' ? t.perNightPerRoom : 'per malam / kamar'}
                               </span>
                             </div>
 
@@ -1250,11 +1287,11 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                                   }`}
                                 >
                                   {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
-                                  <span>{isSelected ? 'Kamar Terpilih' : 'Pilih Kamar'}</span>
+                                  <span>{isSelected ? (language === 'en' ? t.roomSelected : 'Kamar Terpilih') : (language === 'en' ? t.viewRoomDetails : 'Pilih Kamar')}</span>
                                 </button>
                               ) : (
                                 <span className="px-3.5 py-2 rounded-full bg-rose-100 text-rose-800 text-xs font-bold">
-                                  Kamar Penuh
+                                  {language === 'en' ? t.roomFullBadge : 'Kamar Penuh'}
                                 </span>
                               )}
                             </div>
@@ -1289,7 +1326,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                       <button
                         type="button"
                         onClick={() => {
-                          setShareToastText('Tautan disalin ke clipboard!');
+                          setShareToastText(language === 'en' ? t.linkCopiedClipboard : 'Tautan disalin ke clipboard!');
                           setTimeout(() => setShareToastText(''), 2000);
                         }}
                         className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-md shadow-xs flex items-center justify-center text-neutral-800 active:scale-90 transition-transform cursor-pointer"
@@ -1320,7 +1357,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                         </span>
                         <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-bold flex items-center gap-1.5 shadow-sm">
                           <Home className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>{activeProp?.badge || 'Satu Rumah Penuh'}</span>
+                          <span>{activeProp?.badge || (language === 'en' ? t.sundakBadgeFullHouse : 'Satu Rumah Penuh')}</span>
                         </span>
                       </div>
                       <span className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white/90 text-xs font-semibold shadow-sm">
@@ -1338,15 +1375,15 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                     <div className="flex items-center gap-3.5 text-xs font-semibold text-neutral-700 flex-wrap py-1 border-y border-neutral-100">
                       <div className="flex items-center gap-1.5">
                         <Users className="w-4 h-4 text-emerald-700 shrink-0" />
-                        <span>Min. 6 orang (Maks. 21)</span>
+                        <span>{language === 'en' ? t.min6Max21Guests : 'Min. 6 orang (Maks. 21)'}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Bed className="w-4 h-4 text-emerald-700 shrink-0" />
-                        <span>4 Kamar AC</span>
+                        <span>{language === 'en' ? '4 AC Bedrooms' : '4 Kamar AC'}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Bath className="w-4 h-4 text-emerald-700 shrink-0" />
-                        <span>3 Kamar Mandi</span>
+                        <span>{language === 'en' ? '3 Bathrooms' : '3 Kamar Mandi'}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Wifi className="w-4 h-4 text-emerald-700 shrink-0" />
@@ -1360,7 +1397,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                           Rp {(sundakProp?.roomTypes?.[0]?.pricePerPersonNight || 75000).toLocaleString('id-ID')}
                         </span>
                         <span className="text-[11px] text-neutral-500 font-medium">
-                          per orang / malam (min. 6 orang)
+                          {language === 'en' ? t.perPersonPerNightMin6 : 'per orang / malam (min. 6 orang)'}
                         </span>
                       </div>
 
@@ -1371,19 +1408,21 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                             onClick={handleValidateAndProceedStep2}
                             className="h-11 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
                           >
-                            <span>Pilih Unit Sundak</span>
+                            <span>{language === 'en' ? t.chooseSundakUnitBtn : 'Pilih Unit Sundak'}</span>
                             <ArrowRight className="w-4 h-4" />
                           </button>
                         ) : (
                           <span className="px-3.5 py-2 rounded-full bg-rose-100 text-rose-800 text-xs font-bold">
-                            Full / Terisi
+                            {language === 'en' ? t.fullBookedBadge : 'Full / Terisi'}
                           </span>
                         )}
                       </div>
                     </div>
 
                     <p className="text-xs text-neutral-600 leading-relaxed font-normal pt-1">
-                      Satu rumah utuh untuk keluarga/rombongan dekat pantai pasir putih Sundak. 4 kamar tidur AC, 3 KM, ruang keluarga luas, dapur lengkap alat masak/makan, mesin cuci, dan WiFi.
+                      {language === 'en'
+                        ? t.sundakUnitDesc
+                        : 'Satu rumah utuh untuk keluarga/rombongan dekat pantai pasir putih Sundak. 4 kamar tidur AC, 3 KM, ruang keluarga luas, dapur lengkap alat masak/makan, mesin cuci, dan WiFi.'}
                     </p>
                   </div>
                 </div>
@@ -1399,13 +1438,13 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
           <div className="space-y-4">
             <div className="text-left">
               <span className="text-xs font-black uppercase tracking-wider text-neutral-500 block">
-                Langkah 3 dari 5
+                {language === 'en' ? 'Step 3 of 5' : 'Langkah 3 dari 5'}
               </span>
               <h2 className="text-lg font-black text-neutral-900">
-                Isi Data Pemesan
+                {language === 'en' ? t.step3Title : 'Isi Data Pemesan'}
               </h2>
               <p className="text-xs text-neutral-500 mt-0.5">
-                Lengkapi identitas pemesan dan jumlah tamu rombongan.
+                {language === 'en' ? t.step3Sub : 'Lengkapi identitas pemesan dan jumlah tamu rombongan.'}
               </p>
             </div>
 
@@ -1413,13 +1452,13 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
             <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs flex items-center justify-between">
               <div>
                 <span className="text-[10px] text-emerald-800 font-bold uppercase block">
-                  Tanggal Menginap Terpilih:
+                  {language === 'en' ? t.selectedStayDates : 'Tanggal Menginap Terpilih:'}
                 </span>
                 <span className="font-bold text-neutral-900 text-xs">
-                  {checkInDate} s/d {checkOutDate} ({totalNights} Malam)
+                  {checkInDate} {language === 'en' ? 'to' : 's/d'} {checkOutDate} ({totalNights} {language === 'en' ? t.nightsCount : 'Malam'})
                 </span>
                 <span className="text-[11px] text-neutral-600 block mt-0.5">
-                  Unit: {activeProp.name} • {bookingChoiceDisplayName}
+                  {language === 'en' ? t.unitLabel : 'Unit:'} {activeProp.name} • {bookingChoiceDisplayName}
                 </span>
               </div>
               <button
@@ -1427,7 +1466,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                 onClick={() => setActiveStep(2)}
                 className="px-2.5 py-1 rounded-xl bg-white border border-emerald-300 text-emerald-800 text-[11px] font-bold shadow-2xs hover:bg-emerald-50"
               >
-                Ubah Tanggal
+                {language === 'en' ? t.changeDateBtn : 'Ubah Tanggal'}
               </button>
             </div>
 
@@ -1435,7 +1474,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
               {/* Nama Pemesan */}
               <div>
                 <label className="font-bold text-neutral-800 block mb-1">
-                  1. Nama Lengkap Pemesan <span className="text-rose-500">*</span>
+                  {language === 'en' ? t.guestNameFieldLabel : '1. Nama Lengkap Pemesan'} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1444,7 +1483,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                     setNamaLengkap(e.target.value);
                     setErrorNotice('');
                   }}
-                  placeholder="Nama pemesan sesuai KTP"
+                  placeholder={language === 'en' ? t.guestNamePlaceholder : 'Nama pemesan sesuai KTP'}
                   className="w-full h-11 px-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
                 />
               </div>
@@ -1452,7 +1491,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
               {/* Kota Asal */}
               <div>
                 <label className="font-bold text-neutral-800 block mb-1">
-                  2. Kota Asal Pemesan <span className="text-rose-500">*</span>
+                  {language === 'en' ? t.originCityFieldLabel : '2. Kota Asal Pemesan'} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1461,7 +1500,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                     setAsalKota(e.target.value);
                     setErrorNotice('');
                   }}
-                  placeholder="Contoh: Yogyakarta, Solo, Jakarta, Semarang"
+                  placeholder={language === 'en' ? t.originCityPlaceholder : 'Contoh: Yogyakarta, Solo, Jakarta, Semarang'}
                   className="w-full h-11 px-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
                 />
               </div>
@@ -1469,7 +1508,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
               {/* Nomor WhatsApp */}
               <div>
                 <label className="font-bold text-neutral-800 block mb-1">
-                  3. Nomor WhatsApp Aktif <span className="text-rose-500">*</span>
+                  {language === 'en' ? t.whatsappFieldLabel : '3. Nomor WhatsApp Aktif'} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="tel"
@@ -1480,7 +1519,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                       setErrorNotice('');
                     }
                   }}
-                  placeholder="Contoh: 081234567890"
+                  placeholder={language === 'en' ? t.whatsappPlaceholder : 'Contoh: 081234567890'}
                   className={`w-full h-11 px-3.5 rounded-2xl bg-[#F6F7F9] border text-xs font-semibold text-neutral-900 focus:outline-none transition-colors ${
                     errorNotice.includes('WhatsApp')
                       ? 'border-rose-400 bg-rose-50/30 focus:ring-1 focus:ring-rose-500'
@@ -1498,7 +1537,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
               {/* Dengan Siapa Berkunjung (Wajib Mahrom) */}
               <div>
                 <label className="font-bold text-neutral-800 block mb-1">
-                  4. Dengan Siapa Berkunjung (Wajib Mahrom) <span className="text-rose-500">*</span>
+                  {language === 'en' ? t.withWhomFieldLabel : '4. Dengan Siapa Berkunjung (Wajib Mahrom)'} <span className="text-rose-500">*</span>
                 </label>
                 <select
                   value={withWhom}
@@ -1508,7 +1547,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                   }}
                   className="w-full h-11 px-3 rounded-2xl bg-[#F6F7F9] border border-neutral-200 text-xs font-semibold text-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-700"
                 >
-                  <option value="">-- Pilih Hubungan Tamu (Wajib Mahrom / Sah) --</option>
+                  <option value="">{language === 'en' ? t.withWhomSelectPlaceholder : '-- Pilih Hubungan Tamu (Wajib Mahrom / Sah) --'}</option>
                   {getWebsiteSetting(
                     'guest_relation_options',
                     'Keluarga Inti (Suami/Istri & Anak) - Mahrom, Rombongan Keluarga Besar (Mahrom), Pasangan Suami & Istri Sah (Pasutri), Rombongan Teman Sesama Pria (Ikhwan), Rombongan Teman Sesama Wanita (Akhwat), Komunitas / Lembaga / Majelis'
@@ -1535,12 +1574,12 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="font-bold text-neutral-900 block text-xs">
-                      5. Jumlah Tamu <span className="text-rose-500">*</span>
+                      {language === 'en' ? t.guestCountFieldLabel : '5. Jumlah Tamu'} <span className="text-rose-500">*</span>
                     </label>
                     <span className="text-[11px] text-neutral-500 block">
                       {isSundak
-                        ? 'Pantai Sundak: Minimal 6 orang, maksimal 21 orang (Rp75.000/orang/malam)'
-                        : `Pantai Trenggole: Maksimal ${trenggoleSelectedRooms.length * 4} orang (${trenggoleSelectedRooms.length} kamar)`}
+                        ? (language === 'en' ? t.sundakCapInfo : 'Pantai Sundak: Minimal 6 orang, maksimal 21 orang (Rp75.000/orang/malam)')
+                        : (language === 'en' ? `${t.trenggoleCapInfo} ${trenggoleSelectedRooms.length * 4} ${t.peopleCount} (${trenggoleSelectedRooms.length} ${t.roomsCount})` : `Pantai Trenggole: Maksimal ${trenggoleSelectedRooms.length * 4} orang (${trenggoleSelectedRooms.length} kamar)`)}
                     </span>
                   </div>
 
@@ -1568,7 +1607,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                 {/* Kalkulasi Sundak: Hanya tampil jika jumlah tamu valid (6 - 21 orang) */}
                 {isSundak && totalGuests >= 6 && totalGuests <= 21 && (
                   <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-900 font-medium">
-                    Kalkulasi Sundak: <strong>{totalGuests} orang × {totalNights} malam × Rp75.000 = Rp {(totalGuests * totalNights * 75000).toLocaleString('id-ID')}</strong>
+                    {language === 'en' ? t.sundakCalcLabel : 'Kalkulasi Sundak:'} <strong>{totalGuests} {language === 'en' ? t.peopleCount : 'orang'} × {totalNights} {language === 'en' ? t.nightsCount : 'malam'} × Rp75.000 = Rp {(totalGuests * totalNights * 75000).toLocaleString('id-ID')}</strong>
                   </div>
                 )}
 
@@ -1577,7 +1616,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                   <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-[11px] text-rose-800 font-medium flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                     <span>
-                      Minimal pemesanan Pantai Sundak (Full House) adalah 6 orang. Untuk rombongan di bawah 6 orang, silakan pilih Pantai Trenggole.
+                      {language === 'en' ? t.sundakMin6Warning : 'Minimal pemesanan Pantai Sundak (Full House) adalah 6 orang. Untuk rombongan di bawah 6 orang, silakan pilih Pantai Trenggole.'}
                     </span>
                   </div>
                 )}
@@ -1587,7 +1626,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                   <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-[11px] text-rose-800 font-medium flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                     <span>
-                      Kapasitas maksimal Pantai Sundak (Full House) adalah 21 orang.
+                      {language === 'en' ? t.sundakMax21Warning : 'Kapasitas maksimal Pantai Sundak (Full House) adalah 21 orang.'}
                     </span>
                   </div>
                 )}
@@ -1598,7 +1637,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                 <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                   <span className="font-semibold">
-                    Lengkapi data terlebih dahulu sebelum melanjutkan pemesanan.
+                    {language === 'en' ? t.completeDataNotice : 'Lengkapi data terlebih dahulu sebelum melanjutkan pemesanan.'}
                   </span>
                 </div>
               )}
@@ -1613,13 +1652,13 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
           <div className="space-y-4">
             <div className="text-left">
               <span className="text-xs font-black uppercase tracking-wider text-neutral-500 block">
-                Langkah 4 dari 5
+                {language === 'en' ? 'Step 4 of 5' : 'Langkah 4 dari 5'}
               </span>
               <h2 className="text-lg font-black text-neutral-900">
-                Pilihan Pembayaran
+                {language === 'en' ? t.step4Title : 'Pilihan Pembayaran'}
               </h2>
               <p className="text-xs text-neutral-500 mt-0.5">
-                Pilih opsi pembayaran: Uang Muka (DP 30%) atau Lunas 100%. Nominal otomatis dihitung.
+                {language === 'en' ? t.step4Sub : 'Pilih opsi pembayaran: Uang Muka (DP 30%) atau Lunas 100%. Nominal otomatis dihitung.'}
               </p>
             </div>
 
@@ -1635,26 +1674,26 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                   </span>
                 </div>
                 <span className="px-2.5 py-1 rounded-full bg-neutral-100 text-[10px] font-bold text-neutral-600">
-                  {totalNights} Malam
+                  {totalNights} {language === 'en' ? t.nightsCount : 'Malam'}
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-neutral-600">
                 <div>
-                  <span className="text-[10px] text-neutral-400 block font-bold uppercase">Nama Pemesan</span>
+                  <span className="text-[10px] text-neutral-400 block font-bold uppercase">{language === 'en' ? t.guestNameLabel : 'Nama Pemesan'}</span>
                   <strong className="text-neutral-900">{namaLengkap} ({asalKota})</strong>
                 </div>
                 <div>
-                  <span className="text-[10px] text-neutral-400 block font-bold uppercase">Nomor WhatsApp</span>
+                  <span className="text-[10px] text-neutral-400 block font-bold uppercase">{language === 'en' ? 'WhatsApp Number' : 'Nomor WhatsApp'}</span>
                   <strong className="text-neutral-900">{noHp}</strong>
                 </div>
                 <div>
-                  <span className="text-[10px] text-neutral-400 block font-bold uppercase">Tanggal Menginap</span>
-                  <strong className="text-neutral-900">{checkInDate} s/d {checkOutDate}</strong>
+                  <span className="text-[10px] text-neutral-400 block font-bold uppercase">{language === 'en' ? t.stayDurationLabel : 'Tanggal Menginap'}</span>
+                  <strong className="text-neutral-900">{checkInDate} {language === 'en' ? 'to' : 's/d'} {checkOutDate}</strong>
                 </div>
                 <div>
-                  <span className="text-[10px] text-neutral-400 block font-bold uppercase">Jumlah Tamu</span>
-                  <strong className="text-neutral-900">{totalGuests} Orang</strong>
+                  <span className="text-[10px] text-neutral-400 block font-bold uppercase">{language === 'en' ? t.guestCountSummary : 'Jumlah Tamu'}</span>
+                  <strong className="text-neutral-900">{totalGuests} {language === 'en' ? t.adults : 'Orang'}</strong>
                 </div>
               </div>
 
@@ -1662,18 +1701,18 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
               <div className="pt-3 border-t border-neutral-100 space-y-1">
                 {isSundak ? (
                   <div className="flex items-center justify-between text-neutral-600">
-                    <span>{totalGuests} orang × {totalNights} malam × Rp75.000</span>
+                    <span>{totalGuests} {language === 'en' ? t.peopleCount : 'orang'} × {totalNights} {language === 'en' ? t.nightsCount : 'malam'} × Rp75.000</span>
                     <span className="font-bold text-neutral-900">Rp {grandTotal.toLocaleString('id-ID')}</span>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between text-neutral-600">
-                    <span>Tarif {trenggoleSelectedRooms.length} kamar × {totalNights} malam</span>
+                    <span>{language === 'en' ? `Rate for ${trenggoleSelectedRooms.length} ${t.roomsCount} × ${totalNights} ${t.nightsCount}` : `Tarif ${trenggoleSelectedRooms.length} kamar × ${totalNights} malam`}</span>
                     <span className="font-bold text-neutral-900">Rp {grandTotal.toLocaleString('id-ID')}</span>
                   </div>
                 )}
 
                 <div className="pt-2 border-t border-neutral-200/80 flex items-baseline justify-between text-sm">
-                  <strong className="text-neutral-900">Total Biaya Menginap:</strong>
+                  <strong className="text-neutral-900">{language === 'en' ? t.totalStayCost : 'Total Biaya Menginap:'}</strong>
                   <strong className="text-emerald-800 font-black text-lg">
                     Rp {grandTotal.toLocaleString('id-ID')}
                   </strong>
@@ -1684,7 +1723,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
             {/* DUA PILIHAN PEMBAYARAN: DP 50% vs LUNAS 100% */}
             <div className="bg-white rounded-[28px] p-5 shadow-xs border border-emerald-300 space-y-3.5 text-xs">
               <span className="font-black uppercase tracking-wider text-neutral-900 block">
-                Pilih Tipe Pembayaran:
+                {language === 'en' ? t.choosePaymentType : 'Pilih Tipe Pembayaran:'}
               </span>
 
               <div className="grid grid-cols-2 gap-2.5">
@@ -1698,15 +1737,17 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                       : 'border-neutral-200 bg-[#F9FAFB] hover:border-neutral-300'
                   }`}
                 >
-                  <span className="text-[10px] font-bold text-emerald-800 uppercase block">Opsi 1</span>
+                  <span className="text-[10px] font-bold text-emerald-800 uppercase block">{language === 'en' ? t.option1Label : 'Opsi 1'}</span>
                   <span className="text-sm font-black text-neutral-900 block mt-0.5">
-                    DP 30%
+                    {language === 'en' ? t.dp30Label : 'DP 30%'}
                   </span>
                   <span className="text-xs font-black text-emerald-900 block mt-1">
                     Rp {Math.round(grandTotal * 0.3).toLocaleString('id-ID')}
                   </span>
                   <span className="text-[10px] text-neutral-500 block mt-0.5">
-                    Sisa Rp {Math.round(grandTotal * 0.7).toLocaleString('id-ID')} saat check-in
+                    {language === 'en'
+                      ? `Remaining Rp ${Math.round(grandTotal * 0.7).toLocaleString('id-ID')} ${t.dp30Sub}`
+                      : `Sisa Rp ${Math.round(grandTotal * 0.7).toLocaleString('id-ID')} saat check-in`}
                   </span>
                 </button>
 
@@ -1720,15 +1761,15 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                       : 'border-neutral-200 bg-[#F9FAFB] hover:border-neutral-300'
                   }`}
                 >
-                  <span className="text-[10px] font-bold text-sky-800 uppercase block">Opsi 2</span>
+                  <span className="text-[10px] font-bold text-sky-800 uppercase block">{language === 'en' ? t.option2Label : 'Opsi 2'}</span>
                   <span className="text-sm font-black text-neutral-900 block mt-0.5">
-                    Lunas 100%
+                    {language === 'en' ? t.full100Label : 'Lunas 100%'}
                   </span>
                   <span className="text-xs font-black text-emerald-900 block mt-1">
                     Rp {grandTotal.toLocaleString('id-ID')}
                   </span>
                   <span className="text-[10px] text-neutral-500 block mt-0.5">
-                    Tidak ada sisa pelunasan saat tiba
+                    {language === 'en' ? t.full100Sub : 'Tidak ada sisa pelunasan saat tiba'}
                   </span>
                 </button>
               </div>
@@ -1736,14 +1777,14 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
               {/* Rincian Bayar Sekarang */}
               <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-neutral-700">Nominal yang Harus Ditransfer:</span>
+                  <span className="font-bold text-neutral-700">{language === 'en' ? t.amountToTransfer : 'Nominal yang Harus Ditransfer:'}</span>
                   <span className="text-base font-black text-emerald-900">
                     Rp {dpAmount.toLocaleString('id-ID')}
                   </span>
                 </div>
                 {paymentType === 'dp_30' && (
                   <div className="flex items-center justify-between text-[11px] text-neutral-600">
-                    <span>Sisa Pelunasan Saat Check-in:</span>
+                    <span>{language === 'en' ? t.remainingBalanceLabel : 'Sisa Pelunasan Saat Check-in:'}</span>
                     <span className="font-bold text-neutral-900">
                       Rp {remainingBalance.toLocaleString('id-ID')}
                     </span>
@@ -1755,7 +1796,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
               <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 space-y-1.5">
                 <div className="flex items-center gap-1.5 text-rose-900 font-bold text-xs">
                   <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                  <span>Ketentuan: &quot;DP akan hangus apabila pesanan dibatalkan.&quot;</span>
+                  <span>{language === 'en' ? t.cancellationPolicyTitle : 'Ketentuan: "DP akan hangus apabila pesanan dibatalkan."'}</span>
                 </div>
                 <label className="flex items-start gap-2 pt-0.5 cursor-pointer">
                   <input
@@ -1765,7 +1806,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                     className="w-4 h-4 mt-0.5 rounded border-rose-300 text-rose-600"
                   />
                   <span className="text-[11px] text-rose-900">
-                    Saya menyetujui ketentuan pemesanan dan pembatalan Griya Barokah Homestay.
+                    {language === 'en' ? t.cancellationPolicyAgree : 'Saya menyetujui ketentuan pemesanan dan pembatalan Griya Barokah Homestay.'}
                   </span>
                 </label>
               </div>
@@ -1780,20 +1821,22 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
           <div className="space-y-4">
             <div className="text-left">
               <span className="text-xs font-black uppercase tracking-wider text-neutral-500 block">
-                Langkah 5 dari 5
+                {language === 'en' ? 'Step 5 of 5' : 'Langkah 5 dari 5'}
               </span>
               <h2 className="text-lg font-black text-neutral-900">
-                Pembayaran & Bukti Transfer
+                {language === 'en' ? t.step5Title : 'Pembayaran & Bukti Transfer'}
               </h2>
               <p className="text-xs text-neutral-500 mt-0.5">
-                Lakukan transfer sejumlah nominal di bawah dan wajib upload bukti transfer.
+                {language === 'en' ? t.step5Sub : 'Lakukan transfer sejumlah nominal di bawah dan wajib upload bukti transfer.'}
               </p>
             </div>
 
             {/* Total Tagihan Transfer */}
             <div className="p-4 rounded-[26px] bg-white border border-emerald-300 shadow-xs space-y-2 text-xs">
               <span className="text-[10px] uppercase font-bold text-neutral-500 block">
-                Nominal Transfer {paymentType === 'full_100' ? '(Lunas 100%)' : '(DP 30%)'}
+                {language === 'en'
+                  ? `${t.transferAmountLabel} ${paymentType === 'full_100' ? `(${t.full100Label})` : `(${t.dp30Label})`}`
+                  : `Nominal Transfer ${paymentType === 'full_100' ? '(Lunas 100%)' : '(DP 30%)'}`}
               </span>
               <div className="flex items-baseline justify-between">
                 <div>
@@ -1801,7 +1844,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                     {activeProp.name}
                   </h3>
                   <span className="text-[11px] text-neutral-500">
-                    {namaLengkap} • {totalNights} Malam
+                    {namaLengkap} • {totalNights} {language === 'en' ? t.nightsCount : 'Malam'}
                   </span>
                 </div>
                 <div className="text-right">
@@ -1809,7 +1852,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                     Rp {dpAmount.toLocaleString('id-ID')}
                   </span>
                   <span className="text-[10px] text-neutral-400">
-                    {paymentType === 'full_100' ? 'Lunas' : 'DP 30%'}
+                    {paymentType === 'full_100' ? (language === 'en' ? 'Full' : 'Lunas') : 'DP 30%'}
                   </span>
                 </div>
               </div>
@@ -1818,7 +1861,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
             {/* Rekening Tujuan */}
             <div className="p-4.5 rounded-[26px] bg-white border border-neutral-200/90 shadow-xs space-y-3.5 text-xs">
               <span className="font-extrabold text-neutral-900 block">
-                Pilih Rekening Tujuan Transfer:
+                {language === 'en' ? t.chooseBankDestination : 'Pilih Rekening Tujuan Transfer:'}
               </span>
 
               <div className="flex items-center gap-2">
@@ -1863,7 +1906,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                 <div className="p-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-neutral-500 font-medium">
-                      Nomor Rekening / Virtual Account ({metodePembayaran === 'bca' ? bcaBankName : mandiriBankName})
+                      {language === 'en' ? t.accountNumberLabel : 'Nomor Rekening / Virtual Account'} ({metodePembayaran === 'bca' ? bcaBankName : mandiriBankName})
                     </span>
                     <span className="px-2 py-0.5 rounded bg-white text-[10px] font-bold text-neutral-700 border border-neutral-200 uppercase">
                       {metodePembayaran === 'bca' ? bcaBankName : mandiriBankName}
@@ -1880,11 +1923,11 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                       className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white border border-neutral-200 text-xs font-semibold text-neutral-800 hover:bg-neutral-50 active:scale-95 transition-all shadow-xs cursor-pointer"
                     >
                       {salinStatus ? <Check className="w-3.5 h-3.5 text-[#1DB954]" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{salinStatus ? 'Tersalin' : 'Salin'}</span>
+                      <span>{salinStatus ? (language === 'en' ? t.copied : 'Tersalin') : (language === 'en' ? t.copy : 'Salin')}</span>
                     </button>
                   </div>
                   <span className="text-[10px] text-neutral-500 block">
-                    Atas Nama: <strong>{metodePembayaran === 'bca' ? bcaHolder : mandiriHolder}</strong>
+                    {language === 'en' ? t.accountHolderLabel : 'Atas Nama:'} <strong>{metodePembayaran === 'bca' ? bcaHolder : mandiriHolder}</strong>
                   </span>
                 </div>
               ) : (
@@ -1899,7 +1942,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                     />
                   </div>
                   <span className="text-[11px] text-neutral-600 font-medium">
-                    Scan QRIS via BCA Mobile, Mandiri Livin, GoPay, OVO, atau ShopeePay.
+                    {language === 'en' ? t.scanQrisSub : 'Scan QRIS via BCA Mobile, Mandiri Livin, GoPay, OVO, atau ShopeePay.'}
                   </span>
                 </div>
               )}
@@ -1909,12 +1952,12 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                 <div className="flex items-center justify-between">
                   <label className="font-black text-neutral-900 text-xs flex items-center gap-1.5">
                     <Upload className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Upload Bukti Transfer</span>
-                    <span className="text-rose-500">* (Wajib)</span>
+                    <span>{language === 'en' ? t.uploadProofLabel : 'Upload Bukti Transfer'}</span>
+                    <span className="text-rose-500">{language === 'en' ? t.uploadProofRequired : '* (Wajib)'}</span>
                   </label>
                   {paymentProofImage && (
                     <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      ✓ Foto Terpilih
+                      {language === 'en' ? t.proofSelected : '✓ Foto Terpilih'}
                     </span>
                   )}
                 </div>
@@ -1933,13 +1976,13 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                       />
                       <div className="min-w-0 flex-grow">
                         <span className="text-xs font-bold text-emerald-950 block">
-                          Bukti transfer berhasil diunggah
+                          {language === 'en' ? t.proofUploadedSuccess : 'Bukti transfer berhasil diunggah'}
                         </span>
                         <span className="text-[11px] text-neutral-500 block truncate">
-                          Siap dikirim untuk verifikasi pengelola.
+                          {language === 'en' ? t.proofReadyToVerify : 'Siap dikirim untuk verifikasi pengelola.'}
                         </span>
                         <label className="text-[11px] text-emerald-700 font-bold hover:underline cursor-pointer block mt-1">
-                          <span>Ganti foto bukti transfer</span>
+                          <span>{language === 'en' ? t.changeProofPhoto : 'Ganti foto bukti transfer'}</span>
                           <input
                             type="file"
                             accept="image/*"
@@ -1955,10 +1998,10 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                         <Upload className="w-6 h-6 text-emerald-700" />
                       </div>
                       <span className="text-xs font-bold text-neutral-900 block">
-                        Pilih Foto Struk / Screenshot Bukti Transfer
+                        {language === 'en' ? t.chooseProofPrompt : 'Pilih Foto Struk / Screenshot Bukti Transfer'}
                       </span>
                       <span className="text-[11px] text-neutral-400 block mt-0.5">
-                        Format JPG atau PNG (Maks. 10MB)
+                        {language === 'en' ? t.proofFormatHint : 'Format JPG atau PNG (Maks. 10MB)'}
                       </span>
                       <input
                         type="file"
@@ -1973,7 +2016,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                 {/* Peringatan Wajib Bukti Pembayaran */}
                 {!paymentProofImage && (
                   <p className="text-[11px] text-rose-700 font-semibold bg-rose-50 p-2.5 rounded-xl border border-rose-200">
-                    ⚠️ <strong>Perhatian:</strong> Upload bukti transfer sebelum booking dikirim. Booking tidak boleh diproses jika bukti pembayaran kosong.
+                    ⚠️ <strong>{language === 'en' ? t.attentionLabel : 'Perhatian:'}</strong> {language === 'en' ? t.proofMandatoryWarning : 'Upload bukti transfer sebelum booking dikirim. Booking tidak boleh diproses jika bukti pembayaran kosong.'}
                   </p>
                 )}
 
@@ -1982,7 +2025,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                   <div className="p-3 bg-rose-50 border-2 border-rose-300 text-rose-900 rounded-xl text-xs flex items-start gap-2 shadow-xs">
                     <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                     <div>
-                      <strong className="block font-bold">Pemesanan Tidak Dapat Diproses:</strong>
+                      <strong className="block font-bold">{language === 'en' ? t.bookingCannotProcess : 'Pemesanan Tidak Dapat Diproses:'}</strong>
                       <span className="font-semibold leading-relaxed">{errorNotice}</span>
                     </div>
                   </div>
@@ -1997,7 +2040,9 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200/80 px-6 py-3.5 max-w-md mx-auto flex items-center justify-between shadow-lg">
         <div>
           <span className="text-[10px] uppercase font-bold text-neutral-400 tracking-wider block">
-            {activeStep === 5 ? `Total Bayar (${paymentType === 'full_100' ? 'Lunas' : 'DP 30%'})` : 'Total Biaya'}
+            {activeStep === 5
+              ? (language === 'en' ? `${t.totalPayLabel} (${paymentType === 'full_100' ? t.paidFullMyBooking : 'DP 30%'})` : `Total Bayar (${paymentType === 'full_100' ? 'Lunas' : 'DP 30%'})`)
+              : (language === 'en' ? t.totalCostLabel : 'Total Biaya')}
           </span>
           <span className="text-[16px] font-black text-neutral-900">
             {activeStep === 2 && !isSundak && trenggoleSelectedRooms.length === 0
@@ -2016,7 +2061,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
             onClick={() => setActiveStep(2)}
             className="h-12 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
           >
-            <span>Lanjut ke Pilih Kamar &amp; Tanggal</span>
+            <span>{language === 'en' ? t.continueToStep2 : 'Lanjut ke Pilih Kamar & Tanggal'}</span>
             <ArrowRight className="w-4 h-4 text-white" />
           </button>
         )}
@@ -2028,7 +2073,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
             disabled={!isSundakAvailable}
             className="h-12 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer disabled:bg-neutral-300 disabled:text-neutral-500 disabled:cursor-not-allowed"
           >
-            <span>Isi Data Tamu</span>
+            <span>{language === 'en' ? t.continueToStep3 : 'Isi Data Tamu'}</span>
             <ArrowRight className="w-4 h-4 text-white" />
           </button>
         )}
@@ -2041,7 +2086,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
           const activeCmsRoom = cmsRooms?.find((r) => r.id === selectedRoom?.id);
           const fullName = activeCmsRoom?.nama_kamar || selectedRoom?.name || '';
           const matchKamar = fullName.match(/Kamar\s*\d+/i);
-          const roomLabel = matchKamar ? matchKamar[0] : fullName || 'Kamar';
+          const roomLabel = matchKamar ? matchKamar[0] : fullName || (language === 'en' ? 'Room' : 'Kamar');
 
           return (
             <button
@@ -2055,7 +2100,9 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
               }`}
             >
               <span>
-                {isSelected ? `Lanjut dengan ${roomLabel}` : 'Pilih Kamar Dahulu'}
+                {isSelected
+                  ? (language === 'en' ? `${t.continueWithRoom} ${roomLabel}` : `Lanjut dengan ${roomLabel}`)
+                  : (language === 'en' ? t.selectRoomFirst : 'Pilih Kamar Dahulu')}
               </span>
               <ArrowRight className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-neutral-400'}`} />
             </button>
@@ -2069,7 +2116,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
             disabled={!isStep3Valid}
             className="h-12 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <span>Lanjut ke Pembayaran</span>
+            <span>{language === 'en' ? t.continueToPayment : 'Lanjut ke Pembayaran'}</span>
             <ArrowRight className="w-4 h-4 text-white" />
           </button>
         )}
@@ -2080,7 +2127,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
             onClick={handleProceedStep4}
             className="h-12 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
           >
-            <span>Lanjut ke Transfer</span>
+            <span>{language === 'en' ? t.continueToTransfer : 'Lanjut ke Transfer'}</span>
             <ArrowRight className="w-4 h-4 text-white" />
           </button>
         )}
@@ -2092,7 +2139,7 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
             disabled={isSubmitting || !paymentProofImage}
             className="h-12 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <span>{isSubmitting ? 'Mengirim...' : 'Kirim Booking'}</span>
+            <span>{isSubmitting ? (language === 'en' ? t.submittingBookingBtn : 'Mengirim...') : (language === 'en' ? t.submitBookingBtn : 'Kirim Booking')}</span>
             <ArrowRight className="w-4 h-4 text-white" />
           </button>
         )}

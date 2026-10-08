@@ -20,7 +20,7 @@ export const FavoritesView: React.FC = () => {
         </button>
 
         <h1 className="text-base font-bold text-neutral-900 tracking-tight">
-          {language === 'id' ? 'Homestay Favorit' : 'Favorite Homestays'}
+          {t.favoriteHomestays}
         </h1>
 
         <div className="w-10 h-10" />
@@ -30,9 +30,7 @@ export const FavoritesView: React.FC = () => {
       <div className="px-5 py-4 space-y-4 flex-grow">
         {savedProps.length === 0 ? (
           <div className="p-8 text-center rounded-3xl bg-white shadow-xs text-neutral-500 text-xs">
-            {language === 'id'
-              ? 'Belum ada homestay favorit tersimpan. Tekan ikon hati pada homestay untuk menyimpan!'
-              : 'No saved homestays yet. Tap the heart icon on any accommodation to save for later!'}
+            {t.noFavoritesYet}
           </div>
         ) : (
           savedProps.map((prop) => (

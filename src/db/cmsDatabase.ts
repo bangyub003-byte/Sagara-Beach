@@ -474,6 +474,10 @@ export const DEFAULT_WEBSITE_SETTINGS: TB_Website_Settings[] = [
   { id: 'set-home-loc-badge', key: 'homepage_location_badge', value: 'Pantai Sundak & Trenggole, Gunungkidul', kategori: 'homepage' },
   { id: 'set-home-title', key: 'homepage_section_title', value: 'Pilihan Penginapan Homestay', kategori: 'homepage' },
   { id: 'set-home-desc', key: 'homepage_section_desc', value: 'Penginapan keluarga nyaman, ber-AC, dan dekat dengan pantai pasir putih', kategori: 'homepage' },
+  { id: 'set-facility-banner-img', key: 'facility_banner_image', value: '/images/living_room_1790552074900.jpg', kategori: 'homepage' },
+  { id: 'set-facility-banner-title', key: 'facility_banner_title', value: 'Ruang Keluarga & Fasilitas Bersama', kategori: 'homepage' },
+  { id: 'set-facility-banner-sub', key: 'facility_banner_subtitle', value: 'Suasana hangat untuk berkumpul bersama keluarga santai', kategori: 'homepage' },
+  { id: 'set-general-facilities', key: 'general_facilities', value: 'Semua Kamar Ber-AC, KM Duduk & Jongkok, Dapur Lengkap & Gas, Kulkas & TV Keluarga, Tersedia 13 Extra Bed, Free WiFi Cepat', kategori: 'homepage' },
 
   // Booking & Aturan
   { id: 'set-book-inst', key: 'booking_instruction', value: 'Pilih lokasi & tanggal menginap, isi data tamu mahrom, dan upload bukti transfer DP 30% atau Lunas 100%.', kategori: 'booking' },
