@@ -3,8 +3,10 @@ import { useBooking } from '../context/BookingContext';
 import { RoomType } from '../types';
 import { SafeImage } from './common/SafeImage';
 import { PhotoSlider } from './common/PhotoSlider';
+import { GalleryLightboxModal } from './common/GalleryLightboxModal';
 import {
   ChevronLeft,
+  ChevronRight,
   Share2,
   Heart,
   Star,
@@ -16,6 +18,7 @@ import {
   Users,
   CheckCircle2,
   AlertCircle,
+  Images,
 } from 'lucide-react';
 
 export const PropertyDetailPage: React.FC = () => {
@@ -31,12 +34,46 @@ export const PropertyDetailPage: React.FC = () => {
     cmsHomestays,
     cmsRooms,
     setIsLocationPreselected,
+    getWebsiteSetting,
+    adminWhatsappNumber,
   } = useBooking();
 
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
   const [showFullDesc, setShowFullDesc] = useState<boolean>(false);
   const [shareToast, setShareToast] = useState<boolean>(false);
   const [roomErrorNotice, setRoomErrorNotice] = useState<string>('');
+  const [lightboxState, setLightboxState] = useState<{
+    isOpen: boolean;
+    images: string[];
+    initialIndex: number;
+    title: string;
+    subtitle?: string;
+  }>({
+    isOpen: false,
+    images: [],
+    initialIndex: 0,
+    title: '',
+    subtitle: '',
+  });
+
+  const openLightbox = (
+    images: string[],
+    initialIndex = 0,
+    title = 'Galeri Foto',
+    subtitle?: string
+  ) => {
+    setLightboxState({
+      isOpen: true,
+      images,
+      initialIndex,
+      title,
+      subtitle,
+    });
+  };
+
+  const closeLightbox = () => {
+    setLightboxState((prev) => ({ ...prev, isOpen: false }));
+  };
 
   const prop = selectedProperty;
   const cmsProp = cmsHomestays?.find((h) => h.id === prop.id) || cmsHomestays?.[0];
@@ -49,6 +86,12 @@ export const PropertyDetailPage: React.FC = () => {
       : [cmsProp?.foto_utama || prop.image];
 
   const currentMainImage = galleryImages[activeImageIndex] || cmsProp?.foto_utama || prop.image;
+
+  const rawAdminWhatsapp = getWebsiteSetting
+    ? getWebsiteSetting('admin_whatsapp', adminWhatsappNumber || '082138613888')
+    : adminWhatsappNumber || '082138613888';
+  const cleanWaDigits = rawAdminWhatsapp.replace(/\D/g, '');
+  const waLinkDigits = cleanWaDigits.startsWith('0') ? `62${cleanWaDigits.slice(1)}` : cleanWaDigits;
 
   const handleShare = () => {
     if (navigator.share) {
@@ -159,6 +202,37 @@ export const PropertyDetailPage: React.FC = () => {
           )}
         </div>
 
+        {/* Tombol Akses Galeri Lengkap Penginapan Tepat di Bawah Header/Slider */}
+        <div className="px-5 pt-3">
+          <button
+            type="button"
+            onClick={() =>
+              openLightbox(
+                galleryImages,
+                activeImageIndex,
+                cmsProp?.nama || prop.name,
+                language === 'en' ? 'Accommodation Full Gallery' : 'Galeri Lengkap Penginapan'
+              )
+            }
+            className="w-full py-2.5 px-4 rounded-2xl bg-white border border-neutral-200/90 shadow-2xs hover:bg-neutral-50 active:scale-[0.99] text-xs font-bold text-neutral-800 flex items-center justify-between transition-all cursor-pointer group"
+          >
+            <span className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-800 flex items-center justify-center">
+                <Images className="w-3.5 h-3.5" />
+              </div>
+              <span>
+                {language === 'en'
+                  ? `View All Photos (${galleryImages.length})`
+                  : `Lihat Semua Foto (${galleryImages.length})`}
+              </span>
+            </span>
+            <span className="text-[11px] text-neutral-500 font-semibold flex items-center gap-1 group-hover:text-emerald-700 transition-colors">
+              <span>{language === 'en' ? 'Open Gallery' : 'Buka Galeri'}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </span>
+          </button>
+        </div>
+
         {/* Share Toast */}
         {shareToast && (
           <div className="mx-5 my-2 p-2.5 bg-neutral-900 text-white rounded-2xl text-xs text-center">
@@ -245,6 +319,12 @@ export const PropertyDetailPage: React.FC = () => {
                 const cmsRoom = cmsRooms?.find((cr) => cr.id === room.id);
                 const roomImage = cmsRoom?.foto_utama || cmsRoom?.foto || room.image;
                 const roomDisplayName = language === 'id' ? room.name : room.nameEn;
+                const roomGallery =
+                  cmsRoom?.galeri && cmsRoom.galeri.length > 0
+                    ? cmsRoom.galeri
+                    : Array.isArray(room.gallery) && room.gallery.length > 0
+                    ? room.gallery
+                    : [roomImage];
 
                 return (
                   <div
@@ -260,34 +340,52 @@ export const PropertyDetailPage: React.FC = () => {
                     }`}
                   >
                     {/* Foto Kamar Landscape dengan Slider Otomatis & Swipe */}
-                    <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-neutral-900">
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedRoomType(room);
+                        setRoomErrorNotice('');
+                        openLightbox(
+                          roomGallery,
+                          0,
+                          cmsRoom?.nama_kamar || roomDisplayName,
+                          language === 'en' ? 'Room Photo Gallery' : 'Galeri Foto Kamar'
+                        );
+                      }}
+                      className="relative h-44 sm:h-48 w-full overflow-hidden bg-neutral-900 group cursor-pointer"
+                      title={language === 'en' ? 'Click photo to open room gallery' : 'Klik foto untuk melihat semua foto kamar ini'}
+                    >
                       <PhotoSlider
-                        images={
-                          cmsRoom?.galeri && cmsRoom.galeri.length > 0
-                            ? cmsRoom.galeri
-                            : Array.isArray(room.gallery) && room.gallery.length > 0
-                            ? room.gallery
-                            : [roomImage]
-                        }
+                        images={roomGallery}
                         alt={cmsRoom?.nama_kamar || roomDisplayName}
                         fallbackText={cmsRoom?.nama_kamar || roomDisplayName}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         containerClassName="w-full h-full"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
 
                       {/* Badges Atas Foto */}
-                      <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
+                      <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10 pointer-events-none">
                         <span className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[11px] font-bold flex items-center gap-1 shadow-sm">
                           <Bed className="w-3.5 h-3.5 text-emerald-400" />
                           <span>{roomDisplayName}</span>
                         </span>
 
-                        {isSelected && (
-                          <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-black shadow-sm">
-                            {t.roomSelectedBadge}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                          {/* Indikator Jumlah Foto Kamar jika > 1 */}
+                          {roomGallery.length > 1 && (
+                            <span className="px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 border border-white/20 shadow-sm pointer-events-auto">
+                              <Images className="w-3 h-3 text-emerald-400" />
+                              <span>1/{roomGallery.length}</span>
+                            </span>
+                          )}
+
+                          {isSelected && (
+                            <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-black shadow-sm">
+                              {t.roomSelectedBadge}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Harga di Kanan Bawah Foto */}
@@ -371,10 +469,10 @@ export const PropertyDetailPage: React.FC = () => {
             </ul>
             <div className="pt-1 flex items-center justify-between text-xs border-t border-emerald-200/60">
               <span className="text-neutral-600 font-medium">
-                {t.contactWaLabel} <strong className="text-neutral-900">082138613888</strong>
+                {t.contactWaLabel} <strong className="text-neutral-900">{rawAdminWhatsapp}</strong>
               </span>
               <a
-                href="https://wa.me/6282138613888"
+                href={`https://wa.me/${waLinkDigits}`}
                 target="_blank"
                 rel="noreferrer"
                 className="px-3 py-1 rounded-full bg-emerald-800 text-white font-bold text-[11px] hover:bg-emerald-900 transition-colors shadow-2xs"
@@ -408,6 +506,16 @@ export const PropertyDetailPage: React.FC = () => {
           <ArrowRight className="w-4 h-4 text-white" />
         </button>
       </div>
+
+      {/* Modal Lightbox & Galeri Lengkap (Penginapan & Kamar) */}
+      <GalleryLightboxModal
+        isOpen={lightboxState.isOpen}
+        onClose={closeLightbox}
+        images={lightboxState.images}
+        initialIndex={lightboxState.initialIndex}
+        title={lightboxState.title}
+        subtitle={lightboxState.subtitle}
+      />
     </div>
   );
 };
