@@ -694,7 +694,7 @@ export const CustomerDashboard: React.FC = () => {
                 </div>
               </div>
               <a
-                href={`https://wa.me/${formattedLayananWa}?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20info%20properti%20tanah%20rumah`}
+                href={`https://wa.me/${formattedAdminWa}?text=Halo%20Pengelola%20Griya%20Barokah,%20saya%20ingin%20info%20properti%20tanah%20rumah`}
                 target="_blank"
                 rel="noreferrer"
                 className="px-2.5 py-1 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white text-[10px] font-bold active:scale-95 transition-transform"

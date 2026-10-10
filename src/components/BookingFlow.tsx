@@ -329,7 +329,13 @@ export const BookingFlow: React.FC = () => {
   const mandiriBankName = getWebsiteSetting('bank_mandiri_bank_name', 'Mandiri');
   const mandiriNumber = getWebsiteSetting('bank_mandiri_number', '8920 1829 4819 0021');
   const mandiriHolder = getWebsiteSetting('bank_mandiri_holder', 'Griya Barokah Homestay');
-  const qrisPayload = getWebsiteSetting('payment_qris_payload', 'SAGARA_QRIS_GRIYA_BAROKAH');
+  const qrisPayload = getWebsiteSetting('payment_qris_payload', 'BELUM_AKTIF');
+  const isQrisActive = Boolean(
+    qrisPayload &&
+      qrisPayload.trim() !== '' &&
+      qrisPayload.trim().toUpperCase() !== 'BELUM_AKTIF' &&
+      qrisPayload.trim() !== 'SAGARA_QRIS_GRIYA_BAROKAH'
+  );
 
   const handleCopyVa = () => {
     const vaNum = metodePembayaran === 'bca' ? bcaNumber : mandiriNumber;
@@ -1905,20 +1911,22 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                   {mandiriBankName} VA
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setMetodePembayaran('qris')}
-                  className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                    metodePembayaran === 'qris'
-                      ? 'bg-[#181C24] text-white shadow-xs'
-                      : 'bg-[#F4F5F7] text-neutral-600 hover:bg-neutral-200'
-                  }`}
-                >
-                  QRIS Barokah
-                </button>
+                {isQrisActive && (
+                  <button
+                    type="button"
+                    onClick={() => setMetodePembayaran('qris')}
+                    className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                      metodePembayaran === 'qris'
+                        ? 'bg-[#181C24] text-white shadow-xs'
+                        : 'bg-[#F4F5F7] text-neutral-600 hover:bg-neutral-200'
+                    }`}
+                  >
+                    QRIS Barokah
+                  </button>
+                )}
               </div>
 
-              {metodePembayaran !== 'qris' ? (
+              {metodePembayaran !== 'qris' || !isQrisActive ? (
                 <div className="p-3.5 rounded-2xl bg-[#F6F7F9] border border-neutral-200 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-neutral-500 font-medium">

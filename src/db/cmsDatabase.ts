@@ -493,8 +493,7 @@ export const DEFAULT_WEBSITE_SETTINGS: TB_Website_Settings[] = [
   { id: 'set-bank-bca-name', key: 'bank_bca_holder', value: 'Griya Barokah Homestay', kategori: 'booking' },
   { id: 'set-bank-man-label', key: 'bank_mandiri_bank_name', value: 'Mandiri', kategori: 'booking' },
   { id: 'set-bank-man-no', key: 'bank_mandiri_number', value: '8920 1829 4819 0021', kategori: 'booking' },
-  { id: 'set-bank-man-name', key: 'bank_mandiri_holder', value: 'Griya Barokah Homestay', kategori: 'booking' },
-  { id: 'set-qris-code', key: 'payment_qris_payload', value: 'SAGARA_QRIS_GRIYA_BAROKAH', kategori: 'booking' },
+  { id: 'set-qris-code', key: 'payment_qris_payload', value: 'BELUM_AKTIF', kategori: 'booking' },
 
   // Footer & Kontak
   { id: 'set-foot-addr', key: 'footer_address', value: 'Kawasan Pantai Sundak & Pantai Trenggole, Sidoharjo, Kec. Tepus, Gunungkidul, D.I. Yogyakarta', kategori: 'footer' },

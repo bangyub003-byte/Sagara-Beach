@@ -695,11 +695,17 @@ export const AdminSettingsTab: React.FC<Props> = ({ onShowToast }) => {
 
               {/* QRIS Payload */}
               <div className="space-y-1">
-                <label className="text-[11px] font-bold text-neutral-700">Payload / Data QRIS</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-neutral-700">Payload / Data QRIS</label>
+                  <span className="text-[10px] text-neutral-400">
+                    Isi "BELUM_AKTIF" atau kosongkan untuk menyembunyikan tombol QRIS di checkout
+                  </span>
+                </div>
                 <input
                   type="text"
                   value={qrisPayload}
                   onChange={(e) => setQrisPayload(e.target.value)}
+                  placeholder='Isi payload QRIS asli atau "BELUM_AKTIF"'
                   className="w-full h-8 px-2.5 rounded-xl bg-[#F6F7F9] border border-neutral-200 text-xs font-mono text-neutral-900 focus:outline-none"
                 />
               </div>
