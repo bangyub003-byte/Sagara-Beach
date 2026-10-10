@@ -44,6 +44,7 @@ export const CustomerDashboard: React.FC = () => {
     facilityImage,
     setPreselectedGuestCount,
     setIsLocationPreselected,
+    setBookingStartStep,
   } = useBooking();
 
   // State Pilihan Singkat di Beranda (Lokasi & Jumlah Tamu saja - TANPA TANGGAL)
@@ -233,6 +234,7 @@ export const CustomerDashboard: React.FC = () => {
         setSelectedRoomType(target.roomTypes[0]);
       }
     }
+    setBookingStartStep(1);
     setCurrentView('booking_flow');
   };
 

@@ -53,6 +53,8 @@ interface BookingContextType {
   setPreselectedGuestCount: (count: number | null) => void;
   isLocationPreselected: boolean;
   setIsLocationPreselected: (val: boolean) => void;
+  bookingStartStep: 1 | 2;
+  setBookingStartStep: (step: 1 | 2) => void;
 
   // Admin CRUD Akomodasi & Kamar
   addAccommodation: (prop: Omit<Property, 'id'>) => void;
@@ -436,6 +438,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const [preselectedGuestCount, setPreselectedGuestCount] = useState<number | null>(null);
   const [isLocationPreselected, setIsLocationPreselected] = useState<boolean>(false);
+  const [bookingStartStep, setBookingStartStep] = useState<1 | 2>(1);
 
   // Fungsi refresh booking dari database Supabase (bisa dipanggil kapan saja oleh Resepsionis & Admin)
   const refreshBookings = useCallback(async (): Promise<void> => {
@@ -1422,6 +1425,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setPreselectedGuestCount,
         isLocationPreselected,
         setIsLocationPreselected,
+        bookingStartStep,
+        setBookingStartStep,
         addAccommodation,
         updateAccommodation,
         deleteAccommodation,

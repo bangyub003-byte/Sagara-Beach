@@ -45,7 +45,6 @@ export const AccommodationsView: React.FC = () => {
     }
     return 'all';
   });
-  const [expandedRoomsPropId, setExpandedRoomsPropId] = useState<string | null>(null);
 
   const displayedAccommodations =
     selectedAccId === 'all'
@@ -54,21 +53,11 @@ export const AccommodationsView: React.FC = () => {
 
   const handleSelectPropertyDetail = (prop: Property) => {
     setSelectedProperty(prop);
+    setIsLocationPreselected(true);
     if (prop.roomTypes.length > 0) {
       setSelectedRoomType(prop.roomTypes[0]);
     }
     setCurrentView('detail');
-  };
-
-  const handleDirectReserve = (prop: Property, room?: RoomType) => {
-    setSelectedProperty(prop);
-    setIsLocationPreselected(true);
-    if (room) {
-      setSelectedRoomType(room);
-    } else if (prop.roomTypes.length > 0) {
-      setSelectedRoomType(prop.roomTypes[0]);
-    }
-    setCurrentView('booking_flow');
   };
 
   return (
@@ -245,99 +234,18 @@ export const AccommodationsView: React.FC = () => {
                   ))}
                 </div>
 
-                {/* Tombol Aksi Bawah: Detail & Pesan */}
-                <div className="pt-2.5 border-t border-neutral-100 flex items-center justify-between gap-2.5">
+                {/* Tombol Aksi Tunggal: Lihat Detail & Pesan */}
+                <div className="pt-2.5 border-t border-neutral-100">
                   <button
                     type="button"
                     onClick={() => handleSelectPropertyDetail(currentAcc)}
-                    className="flex-1 h-10 px-4 rounded-full bg-neutral-100 hover:bg-neutral-200/80 text-neutral-800 text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-neutral-200/60"
+                    className="w-full h-11 px-5 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-black active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
                   >
-                    <Eye className="w-3.5 h-3.5 text-neutral-600" />
-                    <span>{t.viewDetailBtn}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDirectReserve(currentAcc)}
-                    className="flex-1 h-10 px-4 rounded-full bg-[#13281E] hover:bg-[#1A3428] text-white text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
-                  >
-                    <span>{t.selectAndBookBtn}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <Eye className="w-4 h-4 text-emerald-300" />
+                    <span>{language === 'en' ? 'View Details & Book' : 'Lihat Detail & Pesan'}</span>
+                    <ArrowRight className="w-4 h-4 text-white ml-auto" />
                   </button>
                 </div>
-
-                {/* Quick Toggle Pilihan Kamar untuk Trenggole */}
-                {!isSundak && currentAcc.roomTypes.length > 0 && (
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExpandedRoomsPropId(
-                          expandedRoomsPropId === currentAcc.id ? null : currentAcc.id
-                        )
-                      }
-                      className="w-full py-2 px-3 rounded-xl bg-neutral-50 hover:bg-neutral-100 border border-neutral-200/80 text-xs font-semibold text-neutral-700 flex items-center justify-between cursor-pointer transition-colors"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <Bed className="w-3.5 h-3.5 text-emerald-700" />
-                        <span>{t.view4RoomsTrenggole}</span>
-                      </span>
-                      <ChevronRight
-                        className={`w-4 h-4 text-neutral-400 transition-transform ${
-                          expandedRoomsPropId === currentAcc.id ? 'rotate-90' : ''
-                        }`}
-                      />
-                    </button>
-
-                    {expandedRoomsPropId === currentAcc.id && (
-                      <div className="mt-2.5 space-y-2 pt-1 border-t border-neutral-100">
-                        {currentAcc.roomTypes.map((room) => {
-                          const cmsRoom = cmsRooms?.find((cr) => cr.id === room.id);
-                          const roomImgSrc = cmsRoom?.foto_utama || cmsRoom?.foto || room.image;
-                          const roomDisplayName = language === 'en'
-                            ? (room.nameEn || room.name)
-                            : (cmsRoom?.nama_kamar || room.name);
-
-                          return (
-                            <div
-                              key={room.id}
-                              className="p-3 rounded-2xl bg-neutral-50 border border-neutral-200/70 flex items-center justify-between gap-3"
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <SafeImage
-                                  src={roomImgSrc}
-                                  alt={roomDisplayName}
-                                  fallbackText={roomDisplayName}
-                                  className="w-12 h-12 rounded-xl object-cover shrink-0"
-                                  containerClassName="w-12 h-12 rounded-xl shrink-0 overflow-hidden"
-                                />
-                                <div className="min-w-0">
-                                  <h5 className="font-extrabold text-xs text-neutral-900 truncate">
-                                    {roomDisplayName}
-                                  </h5>
-                                <span className="text-[10px] text-neutral-500 block">
-                                  {room.capacityGuests} {t.detailGuests} • {room.bedsCount} {t.bedsUnit} • {t.floorLabel}{room.floor || 1}
-                                </span>
-                                <span className="text-[11px] font-black text-emerald-800">
-                                  Rp {room.pricePerNight.toLocaleString('id-ID')}
-                                </span>
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => handleDirectReserve(currentAcc, room)}
-                              className="px-3 py-1.5 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white text-[11px] font-bold shrink-0 shadow-2xs cursor-pointer active:scale-95"
-                            >
-                              {t.selectRoomBtn}
-                            </button>
-                          </div>
-                        );
-                      })}
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           );

@@ -58,6 +58,8 @@ export const AdminAccommodationsTab: React.FC<Props> = ({ onShowToast }) => {
   const [badge, setBadge] = useState('');
   const [whatsappContact, setWhatsappContact] = useState('082138613888');
   const [propertyType, setPropertyType] = useState<'full_homestay' | 'individual_rooms'>('full_homestay');
+  const [rating, setRating] = useState<number>(4.9);
+  const [reviewsCount, setReviewsCount] = useState<number>(120);
 
   const openAddModal = () => {
     setEditingHomestay(null);
@@ -83,6 +85,8 @@ export const AdminAccommodationsTab: React.FC<Props> = ({ onShowToast }) => {
     setBadge('PENGINAPAN KELUARGA');
     setWhatsappContact('082138613888');
     setPropertyType('full_homestay');
+    setRating(4.9);
+    setReviewsCount(120);
   };
 
   const openEditModal = (h: TB_Homestay) => {
@@ -112,6 +116,8 @@ export const AdminAccommodationsTab: React.FC<Props> = ({ onShowToast }) => {
     setBadge(h.badge || '');
     setWhatsappContact(h.whatsapp_contact || '082138613888');
     setPropertyType(h.property_type);
+    setRating(typeof h.rating === 'number' ? h.rating : 4.9);
+    setReviewsCount(typeof h.reviews_count === 'number' ? h.reviews_count : 120);
   };
 
   // Fasilitas handlers
@@ -216,8 +222,8 @@ export const AdminAccommodationsTab: React.FC<Props> = ({ onShowToast }) => {
       fasilitas: fasilitasArr,
       peraturan: peraturanArr,
       status,
-      rating: editingHomestay?.rating || 4.9,
-      reviews_count: editingHomestay?.reviews_count || 120,
+      rating: Number(rating) || 4.9,
+      reviews_count: Number(reviewsCount) || 0,
       badge: badge.trim() || 'HOMESTAY',
       property_type: propertyType,
       whatsapp_contact: whatsappContact.trim() || '082138613888',
@@ -298,6 +304,7 @@ export const AdminAccommodationsTab: React.FC<Props> = ({ onShowToast }) => {
                     <div className="flex items-center gap-1 text-[10px] text-amber-600 font-bold shrink-0">
                       <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                       <span>{h.rating || 4.9}</span>
+                      <span className="text-[9px] text-neutral-400 font-normal">({h.reviews_count ?? 120} ulasan)</span>
                     </div>
                   </div>
 
@@ -762,6 +769,40 @@ export const AdminAccommodationsTab: React.FC<Props> = ({ onShowToast }) => {
                     {status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                   </button>
                 </div>
+              </div>
+            </div>
+
+            {/* Rating (1-5) & Jumlah Ulasan */}
+            <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-amber-50/60 border border-amber-200/80">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-amber-950 flex items-center gap-1">
+                  <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                  <span>Rating (1-5)</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  max="5"
+                  value={rating}
+                  onChange={(e) => setRating(Number(e.target.value))}
+                  placeholder="4.9"
+                  className="w-full h-9 px-2.5 rounded-xl bg-white border border-amber-200 text-xs font-bold text-neutral-900 focus:outline-none focus:border-amber-500"
+                />
+                <span className="text-[9px] text-amber-800 block">Contoh: 4.8 atau 4.95</span>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-amber-950">Jumlah Ulasan</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={reviewsCount}
+                  onChange={(e) => setReviewsCount(Number(e.target.value))}
+                  placeholder="96"
+                  className="w-full h-9 px-2.5 rounded-xl bg-white border border-amber-200 text-xs font-bold text-neutral-900 focus:outline-none focus:border-amber-500"
+                />
+                <span className="text-[9px] text-amber-800 block">Contoh: 96 atau 120 ulasan</span>
               </div>
             </div>
 

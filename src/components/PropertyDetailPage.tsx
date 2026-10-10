@@ -34,6 +34,7 @@ export const PropertyDetailPage: React.FC = () => {
     cmsHomestays,
     cmsRooms,
     setIsLocationPreselected,
+    setBookingStartStep,
     getWebsiteSetting,
     adminWhatsappNumber,
   } = useBooking();
@@ -120,6 +121,7 @@ export const PropertyDetailPage: React.FC = () => {
     }
     setRoomErrorNotice('');
     setIsLocationPreselected(true);
+    setBookingStartStep(2);
     setCurrentView('booking_flow');
   };
 

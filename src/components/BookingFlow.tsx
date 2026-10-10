@@ -90,12 +90,15 @@ export const BookingFlow: React.FC = () => {
     getWebsiteSetting,
     isLocationPreselected,
     setIsLocationPreselected,
+    bookingStartStep,
+    setBookingStartStep,
     preselectedGuestCount,
     t,
   } = useBooking();
 
   // Wizard Step: 1 | 2 | 3 | 4 | 5
-  const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  // Jika pengguna datang dari PropertyDetailPage (bookingStartStep === 2), langsung mulai di Langkah 2
+  const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4 | 5>(() => bookingStartStep || 1);
   const [isSuccessView, setIsSuccessView] = useState<boolean>(false);
   const [errorNotice, setErrorNotice] = useState<string>('');
 
@@ -191,8 +194,13 @@ export const BookingFlow: React.FC = () => {
   const [checkInDate, setCheckInDate] = useState<string>('2025-10-18');
   const [checkOutDate, setCheckOutDate] = useState<string>('2025-10-20');
 
-  // Trenggole: pilihan kamar (multi-select atau single) - default kosong agar pengguna memilih sendiri
-  const [trenggoleSelectedRooms, setTrenggoleSelectedRooms] = useState<string[]>([]);
+  // Trenggole: pilihan kamar (multi-select atau single) - prefill dari selectedRoomType jika ada
+  const [trenggoleSelectedRooms, setTrenggoleSelectedRooms] = useState<string[]>(() => {
+    if (selectedRoomType?.id && (selectedRoomType.id.startsWith('trenggole-') || selectedPropId === 'homestay-trenggole')) {
+      return [selectedRoomType.id];
+    }
+    return [];
+  });
 
   // State tampilan showcase kamar di Step 2 (Sesuai Referensi Gambar #2)
   const [activePreviewRoomId, setActivePreviewRoomId] = useState<string>(() => {
@@ -751,8 +759,16 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
       <header className="px-5 py-3 flex items-center justify-between border-b border-neutral-200/80 bg-white/70 backdrop-blur-md">
         <button
           onClick={() => {
-            if (activeStep > 1) {
+            if (activeStep > 2) {
               setActiveStep((prev) => (prev - 1) as any);
+              setErrorNotice('');
+            } else if (activeStep === 2) {
+              // Jika datang langsung dari PropertyDetailPage, kembali ke detail
+              if (bookingStartStep === 2) {
+                setCurrentView('detail');
+              } else {
+                setActiveStep(1);
+              }
               setErrorNotice('');
             } else {
               setCurrentView('home');
@@ -1553,9 +1569,9 @@ Bukti transfer telah saya upload di aplikasi. Mohon verifikasi pesanan saya. Ter
                     'Keluarga Inti (Suami/Istri & Anak) - Mahrom, Rombongan Keluarga Besar (Mahrom), Pasangan Suami & Istri Sah (Pasutri), Rombongan Teman Sesama Pria (Ikhwan), Rombongan Teman Sesama Wanita (Akhwat), Komunitas / Lembaga / Majelis'
                   )
                     .split(',')
-                    .map((opt) => opt.trim())
+                    .map((opt: string) => opt.trim())
                     .filter(Boolean)
-                    .map((opt, optIdx) => (
+                    .map((opt: string, optIdx: number) => (
                       <option key={optIdx} value={opt}>
                         {opt}
                       </option>
